@@ -1,0 +1,98 @@
+- implement outline LFO (only volume of the original voice for now)
+	# ig LFOs will have to go directly into the audio engine (not into the voices) so that there won't be any problems with polyphony and/or modulation later on
+	# do reference the LFO in the voice though, but only advance its position while the voice isn't tailing off (-> no problems with polyphony later on)
+	# render LFO waveform
+	# implement changing the LFO's rate in the settings menu
+	- make it possible to modulate other voices
+		# change the RegionLfo's modulation function so that it also takes Voice* as an input
+		# keep an array of voices in the LFO
+			/ by default, only the associated region is in that list
+		# overwrite the LFO's update function, so that it applies its update to all voices in the array, in the order they are contained in there
+		# in the region's settings menu, show an area with a list of all the different regions (-> currenty equal to their voices, later on it will represent all the voices of the respective region)
+		# make all items in that list checkable
+ !		- when loading the menu, look up all the different regions (currently through the voices, later on through the voices' ids) and list them in the LFO's list
+			- for a smoother workflow, it would be amazing if the items also took on their respective region's fillColour!
+		# when checking/unchecking items from the list, update the LFO's voice array
+			# fixed order: smallest region id to largest region id
+		# bug: LFOs currently don't modulate their own associated region, only other regions
+ !		- later: when deleting voices, make sure to adjust the LFOs' lists as well!
+			- make the broadcaster a ChangeBroadcaster and add the settings menus as listeners -> notify when the LFOs list changes
+	# create unipolar/bipolar LFO modes
+		# unipolar: rewrites(!) the LFO's values to 0...1  ->  good for velocity modulation for instance
+		# bipolar: rewrites(!) the LFO's values to -1...1  ->  good for pitch modulation for instance
+	- implement other parameters to modulate
+		!# there will most likely be one major problem with this: the voices' samples are probably not rendered in parallel; it's more likely that each voice renders 1 entire audio block in order
+			(/) possible, but rather complicated fix: create an array of LFO modulation buffers in each voice. when an LFO updates another region's parameters, it instead writes an LFO modulation buffer (containing the values that it took on during the current block) and adds that block to the modulation buffer lists of every affected other voice as well as the parameter that the buffer should affect. while rendering, a voice will also parse the current sample of every buffer in its LFO modulation list and thus achieve the modulation sample by sample again. not sure how fast/slow this approach would be, though...
+			# other idea: would it be possible for the synth to only render audio blocks one single sample at a time? that would also fix this problem (not sure if it would affect speed though)
+				-> alright, apparently this works! will have to see whether this affects performance though. other than that, the only downside is that effects which take blocks to process cannot be used anymore (e.g. most filters, perhaps distortion?), but that should be fine, they probably aren't strictly needed or there might be workarounds
+				?- as a workaround for block-based processing: maybe synth.renderNextBlock could only render the raw voice samples (incl. LFO adjustments), and afterwards there could be a method that triggers the block-based processing for all active voices. they only need to remember how their block-based effects' parameters were modulated during this block, though, which might further reduce performance...
+		!# one more minor problem: how to handle parameters that are affected by multiple LFOs?
+			(-) if every voice were to be handled sample by sample in parallel, it would probably be enough to change the respective setModulated[Parameter] methods to just multiply the modulated value by the passed amount, and to reset the modulated value to the base value at the beginning of each sample
+				!# actually, making a variable that collects the multiplications (multiplier = 1.0 * mod1 * mod2 * ...) would be more consistent because parameter modifiers based on addition should be handled in the same manner (sum = 0.0 + mod1 + mod2 + ...) to avoid premature overflows (e.g. sum = 0.0 + 1.0 + 1.0 - 1.0 would return 0.0 when checking for overflows after every addition, but with all mods combined it would return 1.0)!
+		# other voices' volume
+			# also add a base volume slider to the settings menu (-60dB...+6dB)
+		# voices' playback speed (incl. its own)
+			# also add a base pitch slider to the settings menu (-60st...+60st -> since one octave doubles/halves the frequency, this corresponds to multiplication by 1/32...32, the formula being mult=2^(semis/12))
+		# LFOs' rates (incl. its own)
+		/ LFOs' modulation depths (incl. its own)
+		- voices' playback positions (incl. its own)
+			- would require adding a "slow update" mode to the LFO where it doesn't update during every single sample
+			- also add a base start position slider to the settings menu (0.0 ... 100.0 ?)
+	/ implement changing the LFO's modulation depth in the settings menu
+		!- make it depend on the shape's size, actually
+			- use the shape's area (bounds) in relation to that of the full image -> being >=2/3 of the image's area should result in full modulation depth
+(# outline animations for the LFOs)
+- improvements to processing speed?
+- AHDSR modulation for voices
+- is there a way to make it so that modulation of other regions remains at the current modulation value even when the region modulating it stops playing?
+	-> example: currently, if region 1 modulates region 2's volume, the modulation stops after region 1 stops playing (i.e. region 2 plays with its base volume - not the base volume multiplied with the LFO value of region 1 that was last measured). is there a way to apply the LFO's modulation independent from a region playing?
+	- idea: maybe advance all LFOs *before* rendering all next synth samples? would that change anything/much?
+	- idea 2: maybe don't use a single variable to accumulate modulations. instad, use a list of modulation values with are multiplied/summed during every sample. when an LFO starts modulating a value, its value is inserted into the list and updated after every sample - but only removed when the LFO is deleted or starts modulating a different value. downside: more operations during every sample
+(- implement more LFO-modulatable parameters)
+- update LFO menu (might not be necessary anymore depending on what has been done at the point that this is next)
+- make it possible to delete regions
+	- to handle all the audio parameters, create a method in the *audio engine*(!) that deletes all voices with the region's id from the LFOs' voice lists, and then all of those voices from the synth
+- serialisation
+
+
+
+
+- improve drawing algorithm using image information
+	- differentiate between left and right clicks: left clicks use the automated outline finder, right clicks simply draw straight lines like they do now -> more flexible
+- fix some bugs/things that would cause problems with unknowing users
+	- since regions currently only keep their voice's index, errors would occur if regions that were created earlier than that region were deleted
+		-> fix: when implementing polyphony, voices will have a certain variable that refers to their region. simply delete only voices with the corresponding variable value -> two birds with one stone
+	- voices would currently keep playing while toggled on and switching to editing -> region could be deleted while playing -> errors in audio buffer!
+		-> fix: tell the synth to stop all notes without tailoff when switching from playing to any other state
+		- actually, it's kiiiinda nice to be able to edit an LFO's parameters while the sound is still playing... maybe there's a way to only force a stop when selecting a new audio file?
+	- when setting a region to togglable, they also toggle in editing mode
+		-> fix: only update their toggleable state when switching to playing
+		- see above bug; maybe make an exception for editing mode (but switch all regions to off when switching back to playing mode maybe)
+	- make it so that regions can only be created when at least 3 points have been added to the screen (might already be in the code)
+		(!)- bonus: make it so that regions can only be created if the points aren't on a line
+	- safer audio file loading (see juce tutorial)
+(- panning setting for each region)
+- implement states the cleaner way: using the actual state model (i.e. using interfaces)
+	- for PluginEditor
+	- for SegmentableImage
+	- for SegmentedRegion
+	- for Lfo (updating the parameter while wavetable isn't set currently takes up ressources every sample)
+	- for Voice/Sound probably (again, ressources are taken up while the audio data hasn't been loaded yet)
+!- allow for 2-voice-polyphony
+	- add *2* voices *and 1 sound* per region
+	- add a variable to the voice and oscillator class that represents the region, and tell it that it can only play sounds if its variable corresponds to that of the oscillator
+		- add a counter variable (uint should suffice) to the audio engine. this variable is incremented every time a new region is created. the regions take on the current value of the counter when they are created. -> unique ID
+		- display the region's ID in the title of the region's settings menu!
+		- all juce::Component objects should have a methods getComponentID/setComponentID -> use those
+	- instead of using Voice.startNote, use synth.noteOn to play sounds
+		- maybe overwrite this somehow? how will the synth know which sound to play?
+			!- maybe make it so the sound can only play one specific MIDI note, and the region plays that specific note
+				- this has the added benefit that implementing MIDI support for the instrument will be easier - just make that MIDI note adjustable in the region editor!
+- add some kind of information button that displays key mappings for each mode (e.g. using backspace to delete points while in drawing mode)
+(- add playback modes for the voices: Normal (Forward), Oneshot, Forward-Backward, Backward-Forward, Backward)
+!- add an option to quantise the start/stop timings of voices to certain note values corresponding to the DAW's BPM
+	- this would be an amazing quality of life change, but idk how easy this would be... i know that the DAW's BPM should be contained in some MIDI signals, but idk where or when or how to evaluate them to achieve synchronisation
+- set help texts for all components
+	- there should already be a method setHelpText for all Component members
+- option to set an LFO's rate to that of its associated region's sound
+- perhaps modulate a region's LFO depth with its AHDSR modulator (whether or not it's possible to modulate LFO depth otherwise)
