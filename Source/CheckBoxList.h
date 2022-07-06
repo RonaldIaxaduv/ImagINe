@@ -103,10 +103,6 @@ public:
             {
                 auto item = items[rowNumber];
 
-                //if (isRowSelected)
-                //    item->setColour(juce::ToggleButton::ColourIds::textColourId, juce::Colours::lightseagreen);
-                //else
-                    item->setColour(juce::ToggleButton::textColourId, juce::Colours::black);
 
                 return item;
             }
@@ -118,11 +114,6 @@ public:
             if (rowNumber < getNumRows())
             {
                 auto item = items[rowNumber];
-
-                //if (isRowSelected)
-                //    item->setColour(juce::ToggleButton::ColourIds::textColourId, juce::Colours::lightseagreen);
-                //else
-                    item->setColour(juce::ToggleButton::textColourId, juce::Colours::black);
 
                 return item;
             }
@@ -209,7 +200,6 @@ public:
 
         return checkedRegionIndices;
     }
-
     void setCheckedRegions(juce::Array<int> regionIDs)
     {
         for (auto it = items.begin(); it != items.end(); ++it)

@@ -29,8 +29,9 @@ struct TempSound : public juce::SynthesiserSound
 class AudioEngine  : public juce::AudioSource
 {
 public:
-    AudioEngine(juce::MidiKeyboardState& keyState)
-        : keyboardState(keyState)
+    AudioEngine(juce::MidiKeyboardState& keyState) :
+        keyboardState(keyState),
+        specs()
     {
         //for (auto i = 0; i < 4; ++i)                // [1]
         //    synth.addVoice(new Voice());
@@ -40,10 +41,34 @@ public:
         synth.addSound(new TempSound());
     }
 
-    /*void setUsingSineWaveSound()
+    int getNextRegionID()
     {
-        synth.clearSounds();
-    }*/
+        return ++regionIdCounter;
+    }
+    int getLastRegionID()
+    {
+        return regionIdCounter;
+    }
+    int addNewRegion(const juce::Colour& regionColour)
+    {
+        regionColours.add(regionColour);
+        return getNextRegionID();
+    }
+
+    juce::Colour getRegionColour(int regionID)
+    {
+        if (regionID >= 0 && regionID <= getLastRegionID())
+            return regionColours[regionID];
+        else
+            return juce::Colours::transparentBlack;
+    }
+    void changeRegionColour(int regionID, juce::Colour newColour)
+    {
+        if (regionID >= 0 && regionID <= getLastRegionID())
+        {
+            regionColours.set(regionID, newColour);
+        }
+    }
 
     int addVoice(Voice* newVoice)
     {
@@ -61,6 +86,29 @@ public:
     //{
     //    synth.removeVoice(index);
     //}
+    juce::Array<Voice*> getVoicesWithID(int regionID)
+    {
+        juce::Array<Voice*> voiceList;
+
+        for (int i = 0; i < synth.getNumVoices(); ++i)
+        {
+            auto curVoice = static_cast<Voice*>(synth.getVoice(i));
+
+            if (curVoice->getID() == regionID)
+            {
+                voiceList.add(curVoice);
+            }
+        }
+
+        return voiceList;
+    }
+    bool checkRegionHasVoice(int regionID)
+    {
+        if (getVoicesWithID(regionID).size() > 0)
+            return true;
+        else
+            return false;
+    }
     void removeVoicesWithID(int regionID)
     {
         for (int i = 0; i < synth.getNumVoices(); ++i)
@@ -116,39 +164,6 @@ public:
     juce::Synthesiser* getSynth()
     {
         return &synth;
-    }
-
-    int getNextRegionID()
-    {
-        return ++regionIdCounter;
-    }
-    int getLastRegionID()
-    {
-        return regionIdCounter;
-    }
-    juce::Array<Voice*> getVoicesWithID(int regionID)
-    {
-        juce::Array<Voice*> voiceList;
-
-        for (int i = 0; i < synth.getNumVoices(); ++i)
-        {
-            auto curVoice = static_cast<Voice*>(synth.getVoice(i));
-            
-            if (curVoice->getID() == regionID)
-            {
-                voiceList.add(curVoice);
-            }
-        }
-
-        return voiceList;
-    }
-
-    bool checkRegionHasVoice(int regionID)
-    {
-        if (getVoicesWithID(regionID).size() > 0)
-            return true;
-        else
-            return false;
     }
 
     void addLfo(RegionLfo* newLfo)
@@ -213,6 +228,7 @@ private:
     juce::Synthesiser synth;
     juce::dsp::ProcessSpec specs;
 
+    juce::Array<juce::Colour> regionColours;
     juce::OwnedArray<RegionLfo> lfos; //one LFO per segmented region which represents that region's outline in relation to its focus point
 
     int regionIdCounter = -1;

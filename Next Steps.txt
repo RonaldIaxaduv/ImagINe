@@ -10,8 +10,8 @@
 		# overwrite the LFO's update function, so that it applies its update to all voices in the array, in the order they are contained in there
 		# in the region's settings menu, show an area with a list of all the different regions (-> currenty equal to their voices, later on it will represent all the voices of the respective region)
 		# make all items in that list checkable
- !		- when loading the menu, look up all the different regions (currently through the voices, later on through the voices' ids) and list them in the LFO's list
-			- for a smoother workflow, it would be amazing if the items also took on their respective region's fillColour!
+		# when loading the menu, look up all the different regions (currently through the voices, later on through the voices' ids) and list them in the LFO's list
+			# for a smoother workflow, it would be amazing if the items also took on their respective region's fillColour!
 		# when checking/unchecking items from the list, update the LFO's voice array
 			# fixed order: smallest region id to largest region id
 		# bug: LFOs currently don't modulate their own associated region, only other regions
@@ -35,15 +35,20 @@
 			# also add a base pitch slider to the settings menu (-60st...+60st -> since one octave doubles/halves the frequency, this corresponds to multiplication by 1/32...32, the formula being mult=2^(semis/12))
 		# LFOs' rates (incl. its own)
 		/ LFOs' modulation depths (incl. its own)
-		- voices' playback positions (incl. its own)
+ !		- voices' playback positions (incl. its own)
 			- would require adding a "slow update" mode to the LFO where it doesn't update during every single sample
 			- also add a base start position slider to the settings menu (0.0 ... 100.0 ?)
 	/ implement changing the LFO's modulation depth in the settings menu
-		!- make it depend on the shape's size, actually
+ !		!- make it depend on the shape's size, actually
 			- use the shape's area (bounds) in relation to that of the full image -> being >=2/3 of the image's area should result in full modulation depth
 (# outline animations for the LFOs)
-- improvements to processing speed?
+!- add a second column of toggle buttons to the LFO voice list that invert the modulation for that region
+	-> this would be quite powerful since it enables call-and-response patterns (e.g. while one voice is loud another is quiet / while one voice is high another is low / ...)
+	?- each inversion button is only visible/enabled if the region has been selected
 - AHDSR modulation for voices
+	- use this as a tester for a cleaner implementation of the state model maybe
+- improvements to processing speed?
+	- implementing states in a cleaner fashion would probably help the most since it'd cut down on tons of if-cases
 - is there a way to make it so that modulation of other regions remains at the current modulation value even when the region modulating it stops playing?
 	-> example: currently, if region 1 modulates region 2's volume, the modulation stops after region 1 stops playing (i.e. region 2 plays with its base volume - not the base volume multiplied with the LFO value of region 1 that was last measured). is there a way to apply the LFO's modulation independent from a region playing?
 	- idea: maybe advance all LFOs *before* rendering all next synth samples? would that change anything/much?

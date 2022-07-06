@@ -33,7 +33,7 @@ public:
         initialiseImages();
 
         this->audioEngine = audioEngine;
-        ID = audioEngine->getNextRegionID();
+        ID = audioEngine->addNewRegion(fillColour);
 
         //setButtonStyle(ButtonStyle::ImageStretched);
 
@@ -63,7 +63,7 @@ public:
 
         //release LFO
         /*if (associatedLfo != nullptr && lfoIndex >= 0)
-            audioEngine->lfos.remove(lfoIndex, true);*/
+            audioEngine->lfosim.remove(lfoIndex, true);*/
         audioEngine->removeLfo(getID());
         associatedLfo = nullptr;
 
@@ -759,6 +759,7 @@ private:
             juce::TextButton selectFileButton;
 
             juce::Label colourPickerWIP; //WIP: later, this will be a button that opens a separate window containing a juce::ColourSelector (the GUI for these is rather large, see https://www.ccoderun.ca/juce/api/ColourSelector.png )
+            //^- when changing region colours, also call associatedRegion->audioEngine->changeRegionColour
 
             juce::Label focusPositionLabel;
             juce::Slider focusPositionX; //inc/dec slider 
@@ -858,7 +859,7 @@ private:
                     lfoRegionsList.clearItems();
                     juce::Array<int> regionIdList;
 
-                    for (int i = 0; i <= associatedRegion->getAudioEngine()->getLastRegionID(); ++i)
+                    for (int i = 0; i <= associatedRegion->audioEngine->getLastRegionID(); ++i)
                     {
                         if (associatedRegion->getAudioEngine()->checkRegionHasVoice(i) == true)
                         {
@@ -869,7 +870,7 @@ private:
                     for (auto it = regionIdList.begin(); it != regionIdList.end(); ++it)
                     {
                         auto newRowNumber = lfoRegionsList.addItem("Region " + juce::String(*it), *it);
-                        lfoRegionsList.setRowBackgroundColour(newRowNumber, juce::Colours::seagreen); //WIP: how to get other regions' colours from here? maybe make a list/dictionary in AudioEngine...?
+                        lfoRegionsList.setRowBackgroundColour(newRowNumber, associatedRegion->audioEngine->getRegionColour(*it));
                         lfoRegionsList.setClickFunction(newRowNumber, [this] { updateLfoVoices(lfoRegionsList.getCheckedRegionIDs()); });
                     }
                 }
