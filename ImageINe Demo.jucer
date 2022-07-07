@@ -5,8 +5,13 @@
               pluginFormats="buildStandalone,buildVST3" pluginCharacteristicsValue="pluginIsSynth">
   <MAINGROUP id="ERSV9V" name="ImageINe Demo">
     <GROUP id="{8D26A2AA-44ED-091F-1BA7-BD7625DE9D6A}" name="Source">
+      <FILE id="QESKw0" name="DahdsrEnvelopeEditor.h" compile="0" resource="0"
+            file="Source/DahdsrEnvelopeEditor.h"/>
+      <FILE id="fz1B9Y" name="DahdsrEnvelopeStates.h" compile="0" resource="0"
+            file="Source/DahdsrEnvelopeStates.h"/>
+      <FILE id="RWAEsS" name="DahdsrEnvelope.h" compile="0" resource="0"
+            file="Source/DahdsrEnvelope.h"/>
       <FILE id="L44Mx8" name="CheckBoxList.h" compile="0" resource="0" file="Source/CheckBoxList.h"/>
-      <FILE id="kOwstq" name="LfoEditor.h" compile="0" resource="0" file="Source/LfoEditor.h"/>
       <FILE id="YnZO47" name="RegionLfo.h" compile="0" resource="0" file="Source/RegionLfo.h"/>
       <FILE id="PWWlNa" name="Lfo.h" compile="0" resource="0" file="Source/Lfo.h"/>
       <FILE id="Chjdrc" name="SamplerOscillator.h" compile="0" resource="0"
