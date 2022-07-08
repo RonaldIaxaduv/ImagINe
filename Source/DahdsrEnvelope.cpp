@@ -180,9 +180,17 @@ void DahdsrEnvelope::transitionToState(DahdsrEnvelopeStateIndex stateToTransitio
             break;
 
         case DahdsrEnvelopeStateIndex::sustain:
-            //auto* sustainState = dynamic_cast<DahdsrEnvelopeState_Sustain*>(states[DahdsrEnvelopeStateIndex::sustain]);
-            //sustainState->setStartingLevel(currentEnvelopeLevel); //has no effect
-            nonInstantStateFound = true;
+            //auto* sustainState = dynamic_cast<DahdsrEnvelopeState_Sustain*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::sustain)]);
+            if (dynamic_cast<DahdsrEnvelopeState_Sustain*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::sustain)])->getLevel() == 0.0) //if sustain is inaudible, release would also be inaudible -> note has basically already ended -> skip to idle
+            {
+                stateToTransitionTo = DahdsrEnvelopeStateIndex::idle;
+                continue;
+            }
+            else
+            {
+                //dynamic_cast<DahdsrEnvelopeState_Sustain*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::sustain)])->setStartingLevel(currentEnvelopeLevel); //has no effect
+                nonInstantStateFound = true;
+            }
             break;
 
         case DahdsrEnvelopeStateIndex::release:

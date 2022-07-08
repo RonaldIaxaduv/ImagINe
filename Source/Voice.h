@@ -134,8 +134,6 @@ struct Voice  : public juce::SynthesiserVoice
                 return;
             }
 
-            bool hasBeenReleasing = envelope.isReleasing();
-
             while (--numSamples >= 0)
             {
                 //evaluate modulated values
@@ -167,7 +165,7 @@ struct Voice  : public juce::SynthesiserVoice
                 ++startSample;
             }
 
-            if (hasBeenReleasing && envelope.isIdle()) //has finished releasing
+            if (envelope.isIdle()) //has finished playing (including release). may also occur if the sample rate suddenly changed, but in theory, that shouldn't happen I think
             {
                 //stop note
                 clearCurrentNote();
