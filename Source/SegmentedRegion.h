@@ -16,6 +16,7 @@
 //#include "RegionLfo.h"
 //#include "LfoEditor.h"
 #include "CheckBoxList.h"
+#include "DahdsrEnvelopeEditor.h"
 
 //==============================================================================
 /*
@@ -459,7 +460,9 @@ private:
         class RegionEditor : public juce::Component
         {
         public:
-            RegionEditor(SegmentedRegion* region) : lfoEditor(region)
+            RegionEditor(SegmentedRegion* region) :
+                lfoEditor(region),
+                dahdsrEditor((region != nullptr && region->associatedVoice != nullptr) ? region->associatedVoice->getEnvelope() : nullptr)
             {
                 associatedRegion = region;
 
@@ -513,11 +516,11 @@ private:
                 addChildComponent(toggleModeButton);
 
                 //DAHDSR
-                dahdsrWIP.setText("[DAHDSR settings WIP]", juce::NotificationType::dontSendNotification);
-                addChildComponent(dahdsrWIP);
+                addChildComponent(dahdsrEditor);
 
                 //volume
                 volumeSlider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
+                volumeSlider.setTextValueSuffix("dB");
                 volumeSlider.setRange(-60.0, 6.0, 0.01);
                 volumeSlider.setSkewFactorFromMidPoint(-6.0);
                 volumeSlider.onValueChange = [this] { updateVolume(); };
@@ -530,8 +533,8 @@ private:
 
                 //pitch
                 pitchSlider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
-                pitchSlider.setRange(-60.0, 60.0, 0.1);
                 pitchSlider.setTextValueSuffix("st");
+                pitchSlider.setRange(-60.0, 60.0, 0.1);
                 pitchSlider.onValueChange = [this] { updatePitch(); };
                 pitchSlider.setValue(0.0, juce::NotificationType::dontSendNotification);
                 addChildComponent(pitchSlider);
@@ -590,7 +593,7 @@ private:
                     toggleModeButton.setBounds(area.removeFromTop(20));
                     toggleModeButton.onClick = [this] { updateToggleable(); };
 
-                    dahdsrWIP.setBounds(area.removeFromTop(20));
+                    dahdsrEditor.setBounds(area.removeFromTop(80));
 
                     auto volumeArea = area.removeFromTop(20);
                     volumeLabel.setBounds(volumeArea.removeFromLeft(volumeArea.getWidth() / 3));
@@ -622,7 +625,7 @@ private:
 
                 toggleModeButton.setVisible(shouldBeVisible);
 
-                dahdsrWIP.setVisible(shouldBeVisible);
+                dahdsrEditor.setVisible(shouldBeVisible);
 
                 volumeLabel.setVisible(shouldBeVisible);
                 volumeSlider.setVisible(shouldBeVisible);
@@ -700,6 +703,7 @@ private:
                                 selectedFileLabel.setText(file.getFileName(), juce::NotificationType::dontSendNotification);
                                 lfoEditor.updateAvailableVoices();
                                 updateAllVoiceSettings(); //sets currently selected volume, pitch etc.
+                                dahdsrEditor.setAssociatedEnvelope(associatedRegion->associatedVoice->getEnvelope());
                             }
                             else
                             {
@@ -767,7 +771,7 @@ private:
 
             juce::ToggleButton toggleModeButton;
 
-            juce::Label dahdsrWIP; //WIP: later, this will contain a little user interface for DAHDSR settings (or maybe just ADSR since there's already a class for that)
+            DahdsrEnvelopeEditor dahdsrEditor;
 
             juce::Label volumeLabel;
             juce::Slider volumeSlider;
@@ -783,6 +787,7 @@ private:
                     this->associatedRegion = associatedRegion;
 
                     lfoRateSlider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
+                    lfoRateSlider.setTextValueSuffix("Hz");
                     lfoRateSlider.setRange(0.01, 100.0, 0.01);
                     lfoRateSlider.setSkewFactorFromMidPoint(1.0);
                     lfoRateSlider.onValueChange = [this] { updateLfoRate(); };

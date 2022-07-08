@@ -51,11 +51,18 @@
 		!- (probably) more efficient solution: instead of having just one modulation function, have one modulation function *per voice*
 			- at that point, it would also be easier to modulate different parameters of different voices (essentially making the list into *a mod matrix for every single region*), so that might actually be neat. but, to do that, the checkbox for the modulated parameter would have to also be moved into the listbox instead of being above it, which would require some more work
 	?- each inversion button is only visible/enabled if the region has been selected
-- (D)AHDSR envelope for voices
-	- use this as a tester for a cleaner implementation of the state model maybe
-	- if it's easy to do, also apply the same envelope to the region's LFO, not just the voice(s)
+# (D)AHDSR envelope for voices
+	# use this as a tester for a cleaner implementation of the state model maybe
+	(-) if it's easy to do, also apply the same envelope to the region's LFO, not just the voice(s)
+- split the RegionEditor into a different file
+	- possible now that i know how reference forwarding works
+	-> create .h and .cpp for SegmentedRegion and for RegionEditor and put empty references to the other at the top of each header class
+- split the LfoEditor into a different file
+	- possible now that i know how reference forwarding works
+	-> create .h and .cpp for LfoEditor and for RegionEditor and put empty references to the other at the top of each header class
 - improvements to processing speed?
 	- implementing states in a cleaner fashion would probably help the most since it'd cut down on tons of if-cases
+- bug: the LFO line doesn't keep updating while the voice is tailing off (-> just create a bool variable isPlaying in Voice that's checked for that purpose)
 - is there a way to make it so that modulation of other regions remains at the current modulation value even when the region modulating it stops playing?
 	-> example: currently, if region 1 modulates region 2's volume, the modulation stops after region 1 stops playing (i.e. region 2 plays with its base volume - not the base volume multiplied with the LFO value of region 1 that was last measured). is there a way to apply the LFO's modulation independent from a region playing?
 	- idea: maybe advance all LFOs *before* rendering all next synth samples? would that change anything/much?

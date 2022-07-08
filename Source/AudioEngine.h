@@ -78,6 +78,7 @@ public:
             newVoice->setLfoAdvancer(associatedLfo->getAdvancerFunction()); //make the new voice advance the LFO associated with the same region
             newVoice->setLfoFreqModFunction(associatedLfo->getFrequencyModulationFunction()); //allows the voice to modulate the LFO's frequency
         }
+        newVoice->prepare(specs);
 
         synth.addVoice(newVoice);
         return synth.getNumVoices() - 1;

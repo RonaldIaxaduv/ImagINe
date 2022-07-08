@@ -12,6 +12,7 @@
 
 #include <JuceHeader.h>
 #include "SamplerOscillator.h"
+#include "DahdsrEnvelope.h"
 
 
 //==============================================================================
@@ -20,14 +21,16 @@
 struct Voice  : public juce::SynthesiserVoice
 {
     Voice() :
-        playbackMultApprox([](double semis) { return std::pow(2.0, semis / 12.0); }, -60.0, 60.0, 60 + 60 + 1) //1 point per semi should be enough
+        playbackMultApprox([](double semis) { return std::pow(2.0, semis / 12.0); }, -60.0, 60.0, 60 + 60 + 1), //1 point per semi should be enough
+        envelope()
     {
         osc = nullptr;
         advanceLfoFunction = [] {; };
     }
 
     Voice(juce::AudioSampleBuffer buffer, int origSampleRate, int regionID) :
-        playbackMultApprox([](double semis) { return std::pow(2.0, semis / 12.0); }, -60.0, 60.0, 60 + 60 + 1) //1 point per semi should be enough
+        playbackMultApprox([](double semis) { return std::pow(2.0, semis / 12.0); }, -60.0, 60.0, 60 + 60 + 1), //1 point per semi should be enough
+        envelope()
     {
         osc = new SamplerOscillator(buffer, origSampleRate);
         ID = regionID;
@@ -47,6 +50,7 @@ struct Voice  : public juce::SynthesiserVoice
 
         //tempBlock = juce::dsp::AudioBlock<float>(heapBlock, spec.numChannels, spec.maximumBlockSize);
         setCurrentPlaybackSampleRate(spec.sampleRate);
+        envelope.setSampleRate(spec.sampleRate);
 
         /*if (associatedLfo != nullptr)
             associatedLfo->prepare(spec);*/
@@ -78,12 +82,13 @@ struct Voice  : public juce::SynthesiserVoice
         juce::SynthesiserSound* sound, int /*currentPitchWheelPosition*/) override
     {
         currentBufferPos = 0.0;
-        //tailOff = 0.0;
 
         //auto cyclesPerSecond = juce::MidiMessage::getMidiNoteInHertz(midiNoteNumber);
         //auto cyclesPerSample = cyclesPerSecond / getSampleRate();
 
         //currentSound = dynamic_cast<SamplerOscillator*>(sound);
+
+        envelope.noteOn();
         
         updateBufferPosDelta();
     }
@@ -92,16 +97,15 @@ struct Voice  : public juce::SynthesiserVoice
     {
         if (allowTailOff)
         {
-            /*if (tailOff == 0.0)
-                tailOff = 1.0;*/
-            clearCurrentNote();
-            //angleDelta = 0.0;
-            bufferPosDelta = 0.0;
+            /*clearCurrentNote();
+            bufferPosDelta = 0.0;*/
+            envelope.noteOff();
         }
         else
         {
             clearCurrentNote();
             bufferPosDelta = 0.0;
+            envelope.forceStop();
         }
     }
 
@@ -130,73 +134,19 @@ struct Voice  : public juce::SynthesiserVoice
                 return;
             }
 
-            //if (tailOff > 0.0) // [7]
-            //{
-            //    while (--numSamples >= 0)
-            //    {
-            //        auto currentSample = (float)(std::sin(currentAngle) * level * attack * tailOff);
-
-            //        for (auto i = outputBuffer.getNumChannels(); --i >= 0;)
-            //            outputBuffer.addSample(i, startSample, currentSample);
-
-            //        currentAngle += angleDelta;
-            //        ++startSample;
-
-            //        tailOff *= 0.99; // [8]
-
-            //        if (tailOff <= 0.005)
-            //        {
-            //            clearCurrentNote(); // [9]
-
-            //            angleDelta = 0.0;
-            //            break;
-            //        }
-            //    }
-            //}
-            //else
-            //{
-            //    if (attack < 1.0)
-            //    {
-            //        while (--numSamples >= 0) // [6]
-            //        {
-            //            auto currentSample = (float)(std::sin(currentAngle) * level * attack);
-
-            //            for (auto i = outputBuffer.getNumChannels(); --i >= 0;)
-            //                outputBuffer.addSample(i, startSample, currentSample);
-
-            //            currentAngle += angleDelta;
-            //            attack = juce::jmin(1.0, attack + attackDelta);
-            //            ++startSample;
-            //        }
-            //    }
-            //    else //full attack
-            //    {
-            //        while (--numSamples >= 0) // [6]
-            //        {
-            //            auto currentSample = (float)(std::sin(currentAngle) * level);
-
-            //            for (auto i = outputBuffer.getNumChannels(); --i >= 0;)
-            //                outputBuffer.addSample(i, startSample, currentSample);
-
-            //            currentAngle += angleDelta;
-            //            ++startSample;
-            //        }
-            //    }
-            //}
-
-
-
+            bool hasBeenReleasing = envelope.isReleasing();
 
             while (--numSamples >= 0)
             {
                 //evaluate modulated values
-                //modulatedLevel = level * totalLevelMultiplier; -> applied directly to the sample
                 updateBufferPosDelta(); //determines pitch shift
 
+                //double envelopeLevel = envelope.getNextEnvelopeSample();
+                //double levelModulation = level * totalLevelMultiplier;
+                double gainAdjustment = envelope.getNextEnvelopeSample() * level * totalLevelMultiplier; //= envelopeLevel * levelModulation
                 for (auto i = outputBuffer.getNumChannels() - 1; i >= 0; --i)
                 {
-                    //auto currentSample = (float)(currentSound->fileBuffer.getSample(i, (int)currentBufferPos));
-                    auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)currentBufferPos)) * level * totalLevelMultiplier;
+                    auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)currentBufferPos)) * gainAdjustment;
                     outputBuffer.addSample(i, startSample, (float)currentSample);
                 }
 
@@ -216,6 +166,14 @@ struct Voice  : public juce::SynthesiserVoice
 
                 ++startSample;
             }
+
+            if (hasBeenReleasing && envelope.isIdle()) //has finished releasing
+            {
+                //stop note
+                clearCurrentNote();
+                bufferPosDelta = 0.0;
+            }
+
         }
     }
 
@@ -284,6 +242,11 @@ struct Voice  : public juce::SynthesiserVoice
         return ID;
     }
 
+    DahdsrEnvelope* getEnvelope()
+    {
+        return &envelope;
+    }
+
 private:
     int ID = -1;
 
@@ -303,6 +266,8 @@ private:
     //RegionLfo* associatedLfo = nullptr;
     //int associatedLfoIndex = -1; //must be handled like this and NOT via a RegionLfo pointer, because otherwise the RegionLfo class and Voice class would cross-reference each other -> not compilable
     std::function<void()> advanceLfoFunction; //nvm, referencing AudioEngine would cause the same problem. guess it's gotta be a function then. noooot messy at all xD
+
+    DahdsrEnvelope envelope;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Voice)
 };

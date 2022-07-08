@@ -9,7 +9,11 @@
 */
 
 #pragma once
+
+//forward reference to the envelope class (required to enable circular dependencies - see https://stackoverflow.com/questions/994253/two-classes-that-refer-to-each-other )
 #include "DahdsrEnvelope.h"
+class DahdsrEnvelope;
+
 
 /// <summary>
 /// abstract base class of all DAHDSR state implementations, containing all the methods that a state must provide
@@ -32,10 +36,10 @@ public:
 protected:
     virtual void resetState() = 0;
 
-    static DahdsrEnvelope::StateIndex implementedStateIndex; //corresponds to the index of the state that the derived class implements
-    //DahdsrEnvelope::StateIndex* parentStateIndex = nullptr; //index of the actual DahdsrEnvelope class. the state can change this value and thus make the envelope enter a different state
+    DahdsrEnvelopeStateIndex implementedDahdsrEnvelopeStateIndex; //corresponds to the index of the state that the derived class implements
+    //DahdsrEnvelopeStateIndex* parentDahdsrEnvelopeStateIndex = nullptr; //index of the actual DahdsrEnvelope class. the state can change this value and thus make the envelope enter a different state
 
-    std::function<void(DahdsrEnvelope::StateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo; //this function is used to make the actual envelope transition into a different state. the current envelope value is passed so that the next state may set its starting level if desired
+    std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo; //this function is used to make the actual envelope transition into a different state. the current envelope value is passed so that the next state may set its starting level if desired
 };
 
 /// <summary>
@@ -44,56 +48,21 @@ protected:
 class DahdsrEnvelopeState_Unprepared : public DahdsrEnvelopeState
 {
 public:
-    DahdsrEnvelopeState_Unprepared(std::function<void(DahdsrEnvelope::StateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
-    {
-        implementedStateIndex = DahdsrEnvelope::StateIndex::unprepared;
-        this->transitionTo = transitionTo;
-    }
+    DahdsrEnvelopeState_Unprepared(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
+    ~DahdsrEnvelopeState_Unprepared();
 
-    ~DahdsrEnvelopeState_Unprepared()
-    {
-        transitionTo = nullptr;
-    }
+    void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
+  
+    void noteOn() override;
+    double getNextEnvelopeSample() override;
+    void noteOff() override;
 
-    void sampleRateChanged(double newSampleRate, bool triggerTransition) override
-    {
-        if (triggerTransition)
-        {
-            //transition to next state: idle
-            transitionTo(DahdsrEnvelope::StateIndex::idle, 0.0);
-        }
-    }
+    void forceStop() override;
 
-    void noteOn() override
-    {
-        std::exception("Envelope has not been prepared yet, so it cannot handle notes.");
-    }
-
-    double getNextEnvelopeSample() override
-    {
-        std::exception("Envelope has not been prepared yet, so it cannot provide envelope samples.");
-    }
-
-    void noteOff() override
-    {
-        std::exception("Envelope has not been prepared yet, so it cannot handle notes.");
-    }
-
-    void forceStop() override
-    {
-        //isn't playing yet -> do nothing
-    }
-
-    void setStartingLevel(double startingLevel) override
-    {
-        //doesn't have any volume
-    }
+    void setStartingLevel(double startingLevel) override;
 
 protected:
-    void resetState() override
-    {
-        //nothing to reset
-    }
+    void resetState() override;
 };
 
 /// <summary>
@@ -102,53 +71,21 @@ protected:
 class DahdsrEnvelopeState_Idle : public DahdsrEnvelopeState
 {
 public:
-    DahdsrEnvelopeState_Idle(std::function<void(DahdsrEnvelope::StateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
-    {
-        implementedStateIndex = DahdsrEnvelope::StateIndex::idle;
-        this->transitionTo = transitionTo;
-    }
+    DahdsrEnvelopeState_Idle(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
+    ~DahdsrEnvelopeState_Idle();
 
-    ~DahdsrEnvelopeState_Idle()
-    {
-        transitionTo = nullptr;
-    }
+    void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
-    void sampleRateChanged(double newSampleRate, bool triggerTransition) override
-    {
-        //already prepared -> do nothing
-    }
+    void noteOn() override;
+    double getNextEnvelopeSample() override;
+    void noteOff() override;
 
-    void noteOn() override
-    {
-        //begin delay time
-        transitionTo(DahdsrEnvelope::StateIndex::delay, 0.0);
-    }
+    void forceStop() override;
 
-    double getNextEnvelopeSample() override
-    {
-        return 0.0; //no sound playing yet
-    }
-
-    void noteOff() override
-    {
-        //no sound playing yet -> do nothing
-    }
-
-    void forceStop() override
-    {
-        //no sound playing yet anyway -> do nothing
-    }
-
-    void setStartingLevel(double startingLevel) override
-    {
-        //doesn't have any volume
-    }
+    void setStartingLevel(double startingLevel) override;
 
 protected:
-    void resetState() override
-    {
-        //nothing to reset
-    }
+    void resetState() override;
 };
 
 /// <summary>
@@ -157,92 +94,26 @@ protected:
 class DahdsrEnvelopeState_Delay : public DahdsrEnvelopeState
 {
 public:
-    DahdsrEnvelopeState_Delay(std::function<void(DahdsrEnvelope::StateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
-    {
-        implementedStateIndex = DahdsrEnvelope::StateIndex::delay;
-        this->transitionTo = transitionTo;
-    }
+    DahdsrEnvelopeState_Delay(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
+    ~DahdsrEnvelopeState_Delay();
 
-    ~DahdsrEnvelopeState_Delay()
-    {
-        transitionTo = nullptr;
-    }
+    void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
-    void sampleRateChanged(double newSampleRate, bool triggerTransition) override
-    {
-        if (newSampleRate != sampleRate && newSampleRate > 0.0)
-        {
-            sampleRate = newSampleRate;
-            setTime(timeInSeconds); //update time to new sample rate
-            resetState();
+    void noteOn() override;
+    double getNextEnvelopeSample() override;
+    void noteOff() override;
 
-            if (triggerTransition)
-            {
-                //return to idle state to reset
-                transitionTo(DahdsrEnvelope::StateIndex::idle, 0.0);
-            }
-        }
-    }
+    void forceStop() override;
 
-    void noteOn() override
-    {
-        //restart delay time
-        resetState();
-    }
-
-    double getNextEnvelopeSample() override
-    {
-        if (currentSample < timeInSamples - 1)
-        {
-            currentSample += 1;
-            return 0.0;
-        }
-        else //last sample -> transition to attack state
-        {
-            transitionTo(DahdsrEnvelope::StateIndex::attack, 0.0);
-            resetState();
-            return 0.0;
-        }
-    }
-
-    void noteOff() override
-    {
-        //transition directly to release (since no sound is playing yet, it could also directly transition to idle, but this is more consistent and thus preferable imo)
-        transitionTo(DahdsrEnvelope::StateIndex::release, 0.0);
-        resetState();
-    }
-
-    void forceStop() override
-    {
-        //immediately return to idle
-        transitionTo(DahdsrEnvelope::StateIndex::idle, 0.0);
-        resetState();
-    }
-
-    void setStartingLevel(double startingLevel) override
-    {
-        //doesn't have any volume
-    }
+    void setStartingLevel(double startingLevel) override;
 
     //================================================================
 
-    void setTime(double newTimeInSeconds)
-    {
-        timeInSeconds = newTimeInSeconds;
-        timeInSamples = timeInSeconds * sampleRate; //0 if sample rate not set -> should not happen if the states are implemented and updated correctly
-
-        currentSample = juce::jmin<int>(currentSample, timeInSamples - 1);
-    }
-    double getTimeInSeconds()
-    {
-        return timeInSeconds;
-    }
+    void setTime(double newTimeInSeconds);
+    double getTimeInSeconds();
 
 protected:
-    void resetState() override
-    {
-        currentSample = 0;
-    }
+    void resetState() override;
 
 private:
     double sampleRate = 0.0;
@@ -257,128 +128,33 @@ private:
 class DahdsrEnvelopeState_Attack : public DahdsrEnvelopeState
 {
 public:
-    DahdsrEnvelopeState_Attack(std::function<void(DahdsrEnvelope::StateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
-    {
-        implementedStateIndex = DahdsrEnvelope::StateIndex::attack;
-        this->transitionTo = transitionTo;
-    }
+    DahdsrEnvelopeState_Attack(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
+    ~DahdsrEnvelopeState_Attack();
 
-    ~DahdsrEnvelopeState_Attack()
-    {
-        transitionTo = nullptr;
-    }
+    void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
-    void sampleRateChanged(double newSampleRate, bool triggerTransition) override
-    {
-        if (newSampleRate != sampleRate && newSampleRate > 0.0)
-        {
-            sampleRate = newSampleRate;
-            setTime(timeInSeconds); //update time to new sample rate
-            resetState();
+    void noteOn() override;
+    double getNextEnvelopeSample() override;
+    void noteOff() override;
 
-            if (triggerTransition)
-            {
-                //return to idle state to reset
-                transitionTo(DahdsrEnvelope::StateIndex::idle, 0.0);
-            }
-        }
-    }
+    void forceStop() override;
 
-    void noteOn() override
-    {
-        //transition back to delay
-        transitionTo(DahdsrEnvelope::StateIndex::delay, envelopeLevelCurrent);
-        resetState();
-    }
-
-    double getNextEnvelopeSample() override
-    {
-        if (currentSample < timeInSamples - 1)
-        {
-            double currentValue = envelopeLevelCurrent;
-            envelopeLevelCurrent += envelopeIncrementPerSample;
-            currentSample += 1;
-            return currentValue;
-        }
-        else //last sample -> transition to hold state
-        {
-            transitionTo(DahdsrEnvelope::StateIndex::hold, envelopeLevelEnd);
-            resetState();
-            return envelopeLevelEnd;
-        }
-    }
-
-    void noteOff() override
-    {
-        //transition directly to release (release starting level is set to the current envelope level)
-        transitionTo(DahdsrEnvelope::StateIndex::release, envelopeLevelCurrent);
-        resetState();
-    }
-
-    void forceStop() override
-    {
-        //immediately return to idle
-        transitionTo(DahdsrEnvelope::StateIndex::idle, envelopeLevelCurrent);
-        resetState();
-    }
-
-    void setStartingLevel(double startingLevel) override
-    {
-        envelopeLevelStart = startingLevel;
-        updateEnvelopeIncrementPerSample();
-        resetState();
-    }
-    double getStartingLevel()
-    {
-        return envelopeLevelStart;
-    }
+    void setStartingLevel(double startingLevel) override;
+    double getStartingLevel();
 
     //================================================================
 
-    void setTime(double newTimeInSeconds)
-    {
-        timeInSeconds = newTimeInSeconds;
-        timeInSamples = timeInSeconds * sampleRate; //0 if sample rate not set -> should not happen if the states are implemented and updated correctly
+    void setTime(double newTimeInSeconds);
+    double getTimeInSeconds();
 
-        currentSample = juce::jmin<int>(currentSample, timeInSamples - 1);
-
-        updateEnvelopeIncrementPerSample();
-    }
-    double getTimeInSeconds()
-    {
-        return timeInSeconds;
-    }
-
-    void setEndLevel(double newEndLevel)
-    {
-        envelopeLevelEnd = newEndLevel;
-        updateEnvelopeIncrementPerSample();
-        resetState();
-    }
-    double getEndLevel()
-    {
-        return envelopeLevelEnd;
-    }
+    void setEndLevel(double newEndLevel);
+    double getEndLevel();
 
 protected:
-    void resetState() override
-    {
-        currentSample = 0;
-        envelopeLevelCurrent = envelopeLevelStart;
-    }
+    void resetState() override;
 
 private:
-    void updateEnvelopeIncrementPerSample()
-    {
-        if (timeInSamples > 0)
-        {
-            envelopeIncrementPerSample = (envelopeLevelEnd - envelopeLevelStart) / static_cast<double>(timeInSamples);
-        }
-        else
-        {
-            envelopeIncrementPerSample = 0.0;
-        }
-    }
+    void updateEnvelopeIncrementPerSample();
 
     double sampleRate = 0.0;
     double timeInSeconds = 0.0;
@@ -398,102 +174,29 @@ private:
 class DahdsrEnvelopeState_Hold : public DahdsrEnvelopeState
 {
 public:
-    DahdsrEnvelopeState_Hold(std::function<void(DahdsrEnvelope::StateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
-    {
-        implementedStateIndex = DahdsrEnvelope::StateIndex::hold;
-        this->transitionTo = transitionTo;
-    }
+    DahdsrEnvelopeState_Hold(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
+    ~DahdsrEnvelopeState_Hold();
 
-    ~DahdsrEnvelopeState_Hold()
-    {
-        transitionTo = nullptr;
-    }
+    void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
-    void sampleRateChanged(double newSampleRate, bool triggerTransition) override
-    {
-        if (newSampleRate != sampleRate && newSampleRate > 0.0)
-        {
-            sampleRate = newSampleRate;
-            setTime(timeInSeconds); //update time to new sample rate
-            resetState();
+    void noteOn() override;
+    double getNextEnvelopeSample() override;
+    void noteOff() override;
 
-            if (triggerTransition)
-            {
-                //return to idle state to reset
-                transitionTo(DahdsrEnvelope::StateIndex::idle, 0.0);
-            }
-        }
-    }
+    void forceStop() override;
 
-    void noteOn() override
-    {
-        //transition back to delay
-        transitionTo(DahdsrEnvelope::StateIndex::delay, level);
-        resetState();
-    }
-
-    double getNextEnvelopeSample() override
-    {
-        if (currentSample < timeInSamples - 1)
-        {
-            currentSample += 1;
-            return level; //constant level
-        }
-        else //last sample -> transition to decay state
-        {
-            transitionTo(DahdsrEnvelope::StateIndex::decay, level);
-            resetState();
-            return level;
-        }
-    }
-
-    void noteOff() override
-    {
-        //transition directly to release (release starting level is set to the current envelope level)
-        transitionTo(DahdsrEnvelope::StateIndex::release, level);
-        resetState();
-    }
-
-    void forceStop() override
-    {
-        //immediately return to idle
-        transitionTo(DahdsrEnvelope::StateIndex::idle, level);
-        resetState();
-    }
-
-    void setStartingLevel(double startingLevel) override
-    {
-        //no starting level -> does nothing
-    }
+    void setStartingLevel(double startingLevel) override;
 
     //================================================================
 
-    void setTime(double newTimeInSeconds)
-    {
-        timeInSeconds = newTimeInSeconds;
-        timeInSamples = timeInSeconds * sampleRate; //0 if sample rate not set -> should not happen if the states are implemented and updated correctly
+    void setTime(double newTimeInSeconds);
+    double getTimeInSeconds();
 
-        currentSample = juce::jmin<int>(currentSample, timeInSamples - 1);
-    }
-    double getTimeInSeconds()
-    {
-        return timeInSeconds;
-    }
-
-    void setLevel(double newLevel)
-    {
-        level = newLevel;
-    }
-    double getLevel()
-    {
-        return level;
-    }
+    void setLevel(double newLevel);
+    double getLevel();
 
 protected:
-    void resetState() override
-    {
-        currentSample = 0;
-    }
+    void resetState() override;
 
 private:
 
@@ -511,128 +214,33 @@ private:
 class DahdsrEnvelopeState_Decay : public DahdsrEnvelopeState
 {
 public:
-    DahdsrEnvelopeState_Decay(std::function<void(DahdsrEnvelope::StateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
-    {
-        implementedStateIndex = DahdsrEnvelope::StateIndex::decay;
-        this->transitionTo = transitionTo;
-    }
+    DahdsrEnvelopeState_Decay(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
+    ~DahdsrEnvelopeState_Decay();
 
-    ~DahdsrEnvelopeState_Decay()
-    {
-        transitionTo = nullptr;
-    }
+    void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
-    void sampleRateChanged(double newSampleRate, bool triggerTransition) override
-    {
-        if (newSampleRate != sampleRate && newSampleRate > 0.0)
-        {
-            sampleRate = newSampleRate;
-            setTime(timeInSeconds); //update time to new sample rate
-            resetState();
+    void noteOn() override;
+    double getNextEnvelopeSample() override;
+    void noteOff() override;
 
-            if (triggerTransition)
-            {
-                //return to idle state to reset
-                transitionTo(DahdsrEnvelope::StateIndex::idle, 0.0);
-            }
-        }
-    }
+    void forceStop() override;
 
-    void noteOn() override
-    {
-        //transition back to delay
-        transitionTo(DahdsrEnvelope::StateIndex::delay, envelopeLevelCurrent);
-        resetState();
-    }
-
-    double getNextEnvelopeSample() override
-    {
-        if (currentSample < timeInSamples - 1)
-        {
-            double currentValue = envelopeLevelCurrent;
-            envelopeLevelCurrent += envelopeIncrementPerSample;
-            currentSample += 1;
-            return currentValue;
-        }
-        else //last sample -> transition to sustain state
-        {
-            transitionTo(DahdsrEnvelope::StateIndex::sustain, envelopeLevelEnd);
-            resetState();
-            return envelopeLevelEnd;
-        }
-    }
-
-    void noteOff() override
-    {
-        //transition directly to release (release starting level is set to the current envelope level)
-        transitionTo(DahdsrEnvelope::StateIndex::release, envelopeLevelCurrent);
-        resetState();
-    }
-
-    void forceStop() override
-    {
-        //immediately return to idle
-        transitionTo(DahdsrEnvelope::StateIndex::idle, envelopeLevelCurrent);
-        resetState();
-    }
-
-    void setStartingLevel(double startingLevel) override
-    {
-        envelopeLevelStart = startingLevel;
-        updateEnvelopeIncrementPerSample();
-        resetState();
-    }
-    double getStartingLevel()
-    {
-        return envelopeLevelStart;
-    }
+    void setStartingLevel(double startingLevel) override;
+    double getStartingLevel();
 
     //================================================================
 
-    void setTime(double newTimeInSeconds)
-    {
-        timeInSeconds = newTimeInSeconds;
-        timeInSamples = timeInSeconds * sampleRate; //0 if sample rate not set -> should not happen if the states are implemented and updated correctly
+    void setTime(double newTimeInSeconds);
+    double getTimeInSeconds();
 
-        currentSample = juce::jmin<int>(currentSample, timeInSamples - 1);
-
-        updateEnvelopeIncrementPerSample();
-    }
-    double getTimeInSeconds()
-    {
-        return timeInSeconds;
-    }
-
-    void setEndLevel(double newEndLevel)
-    {
-        envelopeLevelEnd = newEndLevel;
-        updateEnvelopeIncrementPerSample();
-        resetState();
-    }
-    double getEndLevel()
-    {
-        return envelopeLevelEnd;
-    }
+    void setEndLevel(double newEndLevel);
+    double getEndLevel();
 
 protected:
-    void resetState() override
-    {
-        currentSample = 0;
-        envelopeLevelCurrent = envelopeLevelStart;
-    }
+    void resetState() override;
 
 private:
-    void updateEnvelopeIncrementPerSample()
-    {
-        if (timeInSamples > 0)
-        {
-            envelopeIncrementPerSample = (envelopeLevelEnd - envelopeLevelStart) / static_cast<double>(timeInSamples);
-        }
-        else
-        {
-            envelopeIncrementPerSample = 0.0;
-        }
-    }
+    void updateEnvelopeIncrementPerSample();
 
     double sampleRate = 0.0;
     double timeInSeconds = 0.0;
@@ -652,106 +260,28 @@ private:
 class DahdsrEnvelopeState_Sustain : public DahdsrEnvelopeState
 {
 public:
-    DahdsrEnvelopeState_Sustain(std::function<void(DahdsrEnvelope::StateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
-    {
-        implementedStateIndex = DahdsrEnvelope::StateIndex::sustain;
-        this->transitionTo = transitionTo;
-    }
+    DahdsrEnvelopeState_Sustain(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
+    ~DahdsrEnvelopeState_Sustain();
 
-    ~DahdsrEnvelopeState_Sustain()
-    {
-        transitionTo = nullptr;
-    }
+    void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
-    void sampleRateChanged(double newSampleRate, bool triggerTransition) override
-    {
-        if (newSampleRate != sampleRate && newSampleRate > 0.0)
-        {
-            sampleRate = newSampleRate;
-            setTime(timeInSeconds); //update time to new sample rate
-            resetState();
+    void noteOn() override;
+    double getNextEnvelopeSample() override;
+    void noteOff() override;
 
-            if (triggerTransition)
-            {
-                //return to idle state to reset
-                transitionTo(DahdsrEnvelope::StateIndex::idle, 0.0);
-            }
-        }
-    }
+    void forceStop() override;
 
-    void noteOn() override
-    {
-        //transition back to delay
-        transitionTo(DahdsrEnvelope::StateIndex::delay, level);
-        resetState();
-    }
-
-    double getNextEnvelopeSample() override
-    {
-        if (currentSample < timeInSamples - 1)
-        {
-            currentSample += 1;
-            return level; //constant level
-        }
-        else //last sample -> transition to release state
-        {
-            transitionTo(DahdsrEnvelope::StateIndex::release, level);
-            resetState();
-            return level;
-        }
-    }
-
-    void noteOff() override
-    {
-        //transition directly to release a little earlier (release starting level is set to the current envelope level)
-        transitionTo(DahdsrEnvelope::StateIndex::release, level);
-        resetState();
-    }
-
-    void forceStop() override
-    {
-        //immediately return to idle
-        transitionTo(DahdsrEnvelope::StateIndex::idle, level);
-        resetState();
-    }
-
-    void setStartingLevel(double startingLevel) override
-    {
-        //no starting level -> does nothing
-    }
+    void setStartingLevel(double startingLevel) override;
 
     //================================================================
 
-    void setTime(double newTimeInSeconds)
-    {
-        timeInSeconds = newTimeInSeconds;
-        timeInSamples = timeInSeconds * sampleRate; //0 if sample rate not set -> should not happen if the states are implemented and updated correctly
-
-        currentSample = juce::jmin<int>(currentSample, timeInSamples - 1);
-    }
-
-    void setLevel(double newLevel)
-    {
-        level = newLevel;
-    }
-    double getLevel()
-    {
-        return level;
-    }
+    void setLevel(double newLevel);
+    double getLevel();
 
 protected:
-    void resetState() override
-    {
-        currentSample = 0;
-    }
+    void resetState() override;
 
 private:
-
-    double sampleRate = 0.0;
-    double timeInSeconds = 0.0;
-    int timeInSamples = 0;
-    int currentSample = 0;
-
     double level = 0.0;
 };
 
@@ -761,115 +291,30 @@ private:
 class DahdsrEnvelopeState_Release : public DahdsrEnvelopeState
 {
 public:
-    DahdsrEnvelopeState_Release(std::function<void(DahdsrEnvelope::StateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
-    {
-        implementedStateIndex = DahdsrEnvelope::StateIndex::release;
-        this->transitionTo = transitionTo;
-    }
+    DahdsrEnvelopeState_Release(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
+    ~DahdsrEnvelopeState_Release();
 
-    ~DahdsrEnvelopeState_Release()
-    {
-        transitionTo = nullptr;
-    }
+    void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
-    void sampleRateChanged(double newSampleRate, bool triggerTransition) override
-    {
-        if (newSampleRate != sampleRate && newSampleRate > 0.0)
-        {
-            sampleRate = newSampleRate;
-            setTime(timeInSeconds); //update time to new sample rate
-            resetState();
+    void noteOn() override;
+    double getNextEnvelopeSample() override;
+    void noteOff() override;
 
-            if (triggerTransition)
-            {
-                //return to idle state to reset
-                transitionTo(DahdsrEnvelope::StateIndex::idle, 0.0);
-            }
-        }
-    }
+    void forceStop() override;
 
-    void noteOn() override
-    {
-        //transition back to delay
-        transitionTo(DahdsrEnvelope::StateIndex::delay, envelopeLevelCurrent);
-        resetState();
-    }
-
-    double getNextEnvelopeSample() override
-    {
-        if (currentSample < timeInSamples - 1)
-        {
-            double currentValue = envelopeLevelCurrent;
-            envelopeLevelCurrent += envelopeIncrementPerSample;
-            currentSample += 1;
-            return currentValue;
-        }
-        else //last sample -> back to idle state
-        {
-            transitionTo(DahdsrEnvelope::StateIndex::idle, 0.0);
-            resetState();
-            return 0.0; //end level is always zero
-        }
-    }
-
-    void noteOff() override
-    {
-        //note has already been released to get to this state -> does nothing
-    }
-
-    void forceStop() override
-    {
-        //immediately return to idle
-        transitionTo(DahdsrEnvelope::StateIndex::idle, envelopeLevelCurrent);
-        resetState();
-    }
-
-    void setStartingLevel(double startingLevel) override
-    {
-        envelopeLevelStart = startingLevel;
-        updateEnvelopeIncrementPerSample();
-        resetState();
-    }
-    double getStartingLevel()
-    {
-        return envelopeLevelStart;
-    }
+    void setStartingLevel(double startingLevel) override;
+    double getStartingLevel();
 
     //================================================================
 
-    void setTime(double newTimeInSeconds)
-    {
-        timeInSeconds = newTimeInSeconds;
-        timeInSamples = timeInSeconds * sampleRate; //0 if sample rate not set -> should not happen if the states are implemented and updated correctly
-
-        currentSample = juce::jmin<int>(currentSample, timeInSamples - 1);
-
-        updateEnvelopeIncrementPerSample();
-    }
-    double getTimeInSeconds() //tailoff length
-    {
-        return timeInSeconds;
-    }
+    void setTime(double newTimeInSeconds);
+    double getTimeInSeconds();
 
 protected:
-    void resetState() override
-    {
-        currentSample = 0;
-        envelopeLevelCurrent = envelopeLevelStart;
-    }
+    void resetState() override;
 
 private:
-    void updateEnvelopeIncrementPerSample()
-    {
-        if (timeInSamples > 0)
-        {
-            envelopeIncrementPerSample = (0.0 - envelopeLevelStart) / static_cast<double>(timeInSamples); //envelopeLevelEnd is always zero
-        }
-        else
-        {
-            envelopeIncrementPerSample = 0.0;
-        }
-    }
+    void updateEnvelopeIncrementPerSample();
 
     double sampleRate = 0.0;
     double timeInSeconds = 0.0;

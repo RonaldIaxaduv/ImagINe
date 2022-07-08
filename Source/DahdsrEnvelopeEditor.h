@@ -21,8 +21,6 @@ class DahdsrEnvelopeEditor  : public juce::Component
 public:
     DahdsrEnvelopeEditor(DahdsrEnvelope* associatedEnvelope)
     {
-        this->associatedEnvelope = associatedEnvelope;
-
         //initialise components
         titleLabel.setText("DAHDSR Envelope", juce::NotificationType::dontSendNotification);
         addAndMakeVisible(titleLabel);
@@ -53,7 +51,7 @@ public:
         initialiseSliderLabel(&sustainLabel, "Sustain", &sustainSlider);
 
         //copy current parameter values
-        copyEnvelopeParameters();
+        setAssociatedEnvelope(associatedEnvelope);
     }
 
     ~DahdsrEnvelopeEditor() override
@@ -101,6 +99,13 @@ public:
             titleLabel.setText(name + " DAHDSR Envelope", juce::NotificationType::dontSendNotification);
         else
             titleLabel.setText("DAHDSR Envelope", juce::NotificationType::dontSendNotification);
+    }
+
+    void setAssociatedEnvelope(DahdsrEnvelope* newEnvelope)
+    {
+        associatedEnvelope = newEnvelope;
+        setComponentsEnabled(associatedEnvelope != nullptr);
+        copyEnvelopeParameters();
     }
 
 private:
@@ -158,7 +163,8 @@ private:
 
     void initialiseSliderLabel(juce::Label* labelToInitialise, juce::String text, juce::Slider* sliderToAttachTo)
     {
-        labelToInitialise->setFont(juce::Font(8.0f)); //very small font
+        labelToInitialise->setFont(juce::Font(9.0f)); //very small font
+        labelToInitialise->setJustificationType(juce::Justification::centredBottom);
         labelToInitialise->setText(text, juce::NotificationType::dontSendNotification);
         labelToInitialise->attachToComponent(sliderToAttachTo, false); //on top of slider
         addAndMakeVisible(labelToInitialise);
@@ -167,17 +173,45 @@ private:
 
     void copyEnvelopeParameters()
     {
-        jassert(associatedEnvelope != nullptr);
+        if (associatedEnvelope != nullptr)
+        {
+            delaySlider.setValue(associatedEnvelope->getDelayTime(), juce::NotificationType::dontSendNotification);
+            attackSlider.setValue(associatedEnvelope->getAttackTime(), juce::NotificationType::dontSendNotification);
+            holdSlider.setValue(associatedEnvelope->getHoldTime(), juce::NotificationType::dontSendNotification);
+            decaySlider.setValue(associatedEnvelope->getDecayTime(), juce::NotificationType::dontSendNotification);
+            releaseSlider.setValue(associatedEnvelope->getReleaseTime(), juce::NotificationType::dontSendNotification);
 
-        delaySlider.setValue(associatedEnvelope->getDelayTime(), juce::NotificationType::dontSendNotification);
-        attackSlider.setValue(associatedEnvelope->getAttackTime(), juce::NotificationType::dontSendNotification);
-        holdSlider.setValue(associatedEnvelope->getHoldTime(), juce::NotificationType::dontSendNotification);
-        decaySlider.setValue(associatedEnvelope->getDecayTime(), juce::NotificationType::dontSendNotification);
-        releaseSlider.setValue(associatedEnvelope->getReleaseTime(), juce::NotificationType::dontSendNotification);
+            initialSlider.setValue(juce::Decibels::gainToDecibels<double>(associatedEnvelope->getInitialLevel()), juce::NotificationType::dontSendNotification);
+            peakSlider.setValue(juce::Decibels::gainToDecibels<double>(associatedEnvelope->getPeakLevel()), juce::NotificationType::dontSendNotification);
+            sustainSlider.setValue(juce::Decibels::gainToDecibels<double>(associatedEnvelope->getSustainLevel()), juce::NotificationType::dontSendNotification);
+        }
+    }
 
-        initialSlider.setValue(associatedEnvelope->getInitialLevel(), juce::NotificationType::dontSendNotification);
-        peakSlider.setValue(associatedEnvelope->getPeakLevel(), juce::NotificationType::dontSendNotification);
-        sustainSlider.setValue(associatedEnvelope->getSustainLevel(), juce::NotificationType::dontSendNotification);
+    void setComponentsEnabled(bool shouldBeEnabled)
+    {
+        delayLabel.setEnabled(shouldBeEnabled);
+        delaySlider.setEnabled(shouldBeEnabled);
+
+        initialLabel.setEnabled(shouldBeEnabled);
+        initialSlider.setEnabled(shouldBeEnabled);
+
+        attackLabel.setEnabled(shouldBeEnabled);
+        attackSlider.setEnabled(shouldBeEnabled);
+
+        peakLabel.setEnabled(shouldBeEnabled);
+        peakSlider.setEnabled(shouldBeEnabled);
+
+        holdLabel.setEnabled(shouldBeEnabled);
+        holdSlider.setEnabled(shouldBeEnabled);
+
+        decayLabel.setEnabled(shouldBeEnabled);
+        decaySlider.setEnabled(shouldBeEnabled);
+
+        sustainLabel.setEnabled(shouldBeEnabled);
+        sustainSlider.setEnabled(shouldBeEnabled);
+
+        releaseLabel.setEnabled(shouldBeEnabled);
+        releaseSlider.setEnabled(shouldBeEnabled);
     }
 
 

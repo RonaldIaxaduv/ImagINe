@@ -5,6 +5,12 @@
               pluginFormats="buildStandalone,buildVST3" pluginCharacteristicsValue="pluginIsSynth">
   <MAINGROUP id="ERSV9V" name="ImageINe Demo">
     <GROUP id="{8D26A2AA-44ED-091F-1BA7-BD7625DE9D6A}" name="Source">
+      <FILE id="OoIv4V" name="DahdsrEnvelopeStateIndex.h" compile="0" resource="0"
+            file="Source/DahdsrEnvelopeStateIndex.h"/>
+      <FILE id="EB1Osv" name="DahdsrEnvelopeStates.cpp" compile="1" resource="0"
+            file="Source/DahdsrEnvelopeStates.cpp"/>
+      <FILE id="zxx6nU" name="DahdsrEnvelope.cpp" compile="1" resource="0"
+            file="Source/DahdsrEnvelope.cpp"/>
       <FILE id="QESKw0" name="DahdsrEnvelopeEditor.h" compile="0" resource="0"
             file="Source/DahdsrEnvelopeEditor.h"/>
       <FILE id="fz1B9Y" name="DahdsrEnvelopeStates.h" compile="0" resource="0"
