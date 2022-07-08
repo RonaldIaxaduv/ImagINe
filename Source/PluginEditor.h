@@ -38,15 +38,7 @@ private:
 
     juce::TextButton loadImageButton;
 
-    enum State
-    {
-        Null = 0, //only takes on this value before the MainComponent constructor has finished
-        Init = 1, //note: cannot set the first ID to 0 (reserved for when no ID is selected in a ComboBox - and since these values will be used in a ComboBox, 0 is skipped here)
-        Drawing = 2,
-        Editing = 3,
-        Playing = 4
-    };
-    State currentState = State::Null;
+    SegmentableImageState currentState = SegmentableImageState::Null;
 
     juce::Label modeLabel;
     juce::ComboBox modeBox;

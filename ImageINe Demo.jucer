@@ -5,29 +5,54 @@
               pluginFormats="buildStandalone,buildVST3" pluginCharacteristicsValue="pluginIsSynth">
   <MAINGROUP id="ERSV9V" name="ImageINe Demo">
     <GROUP id="{8D26A2AA-44ED-091F-1BA7-BD7625DE9D6A}" name="Source">
-      <FILE id="OoIv4V" name="DahdsrEnvelopeStateIndex.h" compile="0" resource="0"
-            file="Source/DahdsrEnvelopeStateIndex.h"/>
-      <FILE id="EB1Osv" name="DahdsrEnvelopeStates.cpp" compile="1" resource="0"
-            file="Source/DahdsrEnvelopeStates.cpp"/>
-      <FILE id="zxx6nU" name="DahdsrEnvelope.cpp" compile="1" resource="0"
-            file="Source/DahdsrEnvelope.cpp"/>
-      <FILE id="QESKw0" name="DahdsrEnvelopeEditor.h" compile="0" resource="0"
-            file="Source/DahdsrEnvelopeEditor.h"/>
-      <FILE id="fz1B9Y" name="DahdsrEnvelopeStates.h" compile="0" resource="0"
-            file="Source/DahdsrEnvelopeStates.h"/>
-      <FILE id="RWAEsS" name="DahdsrEnvelope.h" compile="0" resource="0"
-            file="Source/DahdsrEnvelope.h"/>
-      <FILE id="L44Mx8" name="CheckBoxList.h" compile="0" resource="0" file="Source/CheckBoxList.h"/>
-      <FILE id="YnZO47" name="RegionLfo.h" compile="0" resource="0" file="Source/RegionLfo.h"/>
-      <FILE id="PWWlNa" name="Lfo.h" compile="0" resource="0" file="Source/Lfo.h"/>
+      <GROUP id="{CBF11E86-5346-B8D0-1757-75A69300FD28}" name="Segmented Region">
+        <FILE id="lSRbTY" name="SegmentedRegionState.h" compile="0" resource="0"
+              file="Source/SegmentedRegionState.h"/>
+        <FILE id="dDx3mK" name="SegmentedRegion.h" compile="0" resource="0"
+              file="Source/SegmentedRegion.h"/>
+        <FILE id="oNkZIA" name="SegmentedRegion.cpp" compile="1" resource="0"
+              file="Source/SegmentedRegion.cpp"/>
+        <FILE id="RH4Eup" name="RegionEditorWindow.cpp" compile="1" resource="0"
+              file="Source/RegionEditorWindow.cpp"/>
+        <FILE id="rskDBc" name="RegionEditorWindow.h" compile="0" resource="0"
+              file="Source/RegionEditorWindow.h"/>
+        <FILE id="l9feVF" name="RegionEditor.cpp" compile="1" resource="0"
+              file="Source/RegionEditor.cpp"/>
+        <FILE id="w5onAG" name="RegionEditor.h" compile="0" resource="0" file="Source/RegionEditor.h"/>
+      </GROUP>
+      <GROUP id="{33ACA8CC-9657-E34D-1FDC-F120F9F9E03A}" name="LFO">
+        <FILE id="v7orsZ" name="LfoModulatableParameter.h" compile="0" resource="0"
+              file="Source/LfoModulatableParameter.h"/>
+        <FILE id="L44Mx8" name="CheckBoxList.h" compile="0" resource="0" file="Source/CheckBoxList.h"/>
+        <FILE id="YnZO47" name="RegionLfo.h" compile="0" resource="0" file="Source/RegionLfo.h"/>
+        <FILE id="PWWlNa" name="Lfo.h" compile="0" resource="0" file="Source/Lfo.h"/>
+        <FILE id="VbQHeB" name="LfoEditor.cpp" compile="1" resource="0" file="Source/LfoEditor.cpp"/>
+        <FILE id="pxUkHe" name="LfoEditor.h" compile="0" resource="0" file="Source/LfoEditor.h"/>
+      </GROUP>
+      <GROUP id="{DC7CB58C-B436-65A2-AB05-B5CEB4B9C0E6}" name="DAHDSR Envelope">
+        <FILE id="OoIv4V" name="DahdsrEnvelopeStateIndex.h" compile="0" resource="0"
+              file="Source/DahdsrEnvelopeStateIndex.h"/>
+        <FILE id="EB1Osv" name="DahdsrEnvelopeStates.cpp" compile="1" resource="0"
+              file="Source/DahdsrEnvelopeStates.cpp"/>
+        <FILE id="zxx6nU" name="DahdsrEnvelope.cpp" compile="1" resource="0"
+              file="Source/DahdsrEnvelope.cpp"/>
+        <FILE id="QESKw0" name="DahdsrEnvelopeEditor.h" compile="0" resource="0"
+              file="Source/DahdsrEnvelopeEditor.h"/>
+        <FILE id="fz1B9Y" name="DahdsrEnvelopeStates.h" compile="0" resource="0"
+              file="Source/DahdsrEnvelopeStates.h"/>
+        <FILE id="RWAEsS" name="DahdsrEnvelope.h" compile="0" resource="0"
+              file="Source/DahdsrEnvelope.h"/>
+      </GROUP>
       <FILE id="Chjdrc" name="SamplerOscillator.h" compile="0" resource="0"
             file="Source/SamplerOscillator.h"/>
       <FILE id="kh1aPr" name="Voice.h" compile="0" resource="0" file="Source/Voice.h"/>
       <FILE id="JWS5Od" name="AudioEngine.h" compile="0" resource="0" file="Source/AudioEngine.h"/>
-      <FILE id="dDx3mK" name="SegmentedRegion.h" compile="0" resource="0"
-            file="Source/SegmentedRegion.h"/>
       <FILE id="m8U4QV" name="SegmentableImage.h" compile="0" resource="0"
             file="Source/SegmentableImage.h"/>
+      <FILE id="AnGmtW" name="SegmentableImage.cpp" compile="1" resource="0"
+            file="Source/SegmentableImage.cpp"/>
+      <FILE id="Jw3OBx" name="SegmentableImageState.h" compile="0" resource="0"
+            file="Source/SegmentableImageState.h"/>
       <FILE id="r5DQmk" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="dYjBE9" name="PluginProcessor.h" compile="0" resource="0"

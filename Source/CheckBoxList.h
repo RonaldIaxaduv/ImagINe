@@ -52,6 +52,8 @@ public:
     {
         backgroundColour = newBackgroundColour;
         setColour(textColourId, backgroundColour.contrasting().withAlpha(1.0f));
+        setColour(tickColourId, backgroundColour.contrasting().withAlpha(1.0f));
+        setColour(tickDisabledColourId, backgroundColour.contrasting().withAlpha(0.5f));
     }
 
     int getRegionID()
@@ -166,7 +168,6 @@ public:
     void clearItems()
     {
         items.clear();
-
         list.updateContent();
     }
 

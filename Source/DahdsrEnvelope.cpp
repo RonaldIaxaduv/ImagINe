@@ -20,9 +20,9 @@ DahdsrEnvelope::DahdsrEnvelope(double delayTimeSeconds,
     currentStateIndex = initialStateIndex;
 
     //fill states lookup table
-    for (int i = 0; i < DahdsrEnvelopeStateIndex::StateIndexCount; ++i) //WIP: need to static_cast all of them, i think...
+    for (int i = 0; i < static_cast<int>(DahdsrEnvelopeStateIndex::StateIndexCount); ++i) //WIP: need to static_cast all of them, i think...
     {
-        switch (i)
+        switch (static_cast<DahdsrEnvelopeStateIndex>(i))
         {
         case DahdsrEnvelopeStateIndex::unprepared:
             states.add(static_cast<DahdsrEnvelopeState*>(new DahdsrEnvelopeState_Unprepared([this](DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel) { transitionToState(stateToTransitionTo, currentEnvelopeLevel); })));
@@ -52,7 +52,7 @@ DahdsrEnvelope::DahdsrEnvelope(double delayTimeSeconds,
             throw std::exception("unhandled state index. are any states not implemented above?");
         }
     }
-    jassert(states.size() == DahdsrEnvelopeStateIndex::StateIndexCount);
+    jassert(states.size() == static_cast<int>(DahdsrEnvelopeStateIndex::StateIndexCount));
 
     //set states' parameters
     setDelayTime(delayTimeSeconds);
@@ -72,29 +72,29 @@ DahdsrEnvelope::~DahdsrEnvelope()
 
 void DahdsrEnvelope::setSampleRate(double newSampleRate)
 {
-    for (int i = 0; i < DahdsrEnvelopeStateIndex::StateIndexCount; ++i)
+    for (int i = 0; i < static_cast<int>(DahdsrEnvelopeStateIndex::StateIndexCount); ++i)
     {
-        if (i != currentStateIndex)
+        if (i != static_cast<int>(currentStateIndex))
         {
             states[i]->sampleRateChanged(newSampleRate, false); //don't trigger transitions (back to idle) for transitions other than the current one
         }
     }
-    states[currentStateIndex]->sampleRateChanged(newSampleRate, true); //for the current state, *do* trigger the transition to idle (if applicable)
+    states[static_cast<int>(currentStateIndex)]->sampleRateChanged(newSampleRate, true); //for the current state, *do* trigger the transition to idle (if applicable)
 }
 
 void DahdsrEnvelope::noteOn()
 {
-    states[currentStateIndex]->noteOn(); //automatically transitions states where applicable
+    states[static_cast<int>(currentStateIndex)]->noteOn(); //automatically transitions states where applicable
 }
 
 void DahdsrEnvelope::noteOff() //triggers release; called in Voice::noteOff
 {
-    states[currentStateIndex]->noteOff(); //automatically transitions states where applicable
+    states[static_cast<int>(currentStateIndex)]->noteOff(); //automatically transitions states where applicable
 }
 
 double DahdsrEnvelope::getNextEnvelopeSample() //gets the envelope value of the current position in the current state; called in Voice::renderNextBlock
 {
-    return states[currentStateIndex]->getNextEnvelopeSample(); //automatically transitions states where applicable
+    return states[static_cast<int>(currentStateIndex)]->getNextEnvelopeSample(); //automatically transitions states where applicable
 }
 
 //double DahdsrEnvelope::getTailLength()
@@ -125,7 +125,7 @@ void DahdsrEnvelope::transitionToState(DahdsrEnvelopeStateIndex stateToTransitio
 
         case DahdsrEnvelopeStateIndex::delay:
             //auto* delayState = dynamic_cast<DahdsrEnvelopeState_Delay*>(states[DahdsrEnvelopeStateIndex::delay]);
-            if (dynamic_cast<DahdsrEnvelopeState_Delay*>(states[DahdsrEnvelopeStateIndex::delay])->getTimeInSeconds() == 0.0)
+            if (dynamic_cast<DahdsrEnvelopeState_Delay*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::delay)])->getTimeInSeconds() == 0.0)
             {
                 stateToTransitionTo = DahdsrEnvelopeStateIndex::attack;
                 continue;
@@ -139,7 +139,7 @@ void DahdsrEnvelope::transitionToState(DahdsrEnvelopeStateIndex stateToTransitio
 
         case DahdsrEnvelopeStateIndex::attack:
             //auto* attackState = dynamic_cast<DahdsrEnvelopeState_Attack*>(states[DahdsrEnvelopeStateIndex::attack]);
-            if (dynamic_cast<DahdsrEnvelopeState_Attack*>(states[DahdsrEnvelopeStateIndex::attack])->getTimeInSeconds() == 0.0)
+            if (dynamic_cast<DahdsrEnvelopeState_Attack*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::attack)])->getTimeInSeconds() == 0.0)
             {
                 stateToTransitionTo = DahdsrEnvelopeStateIndex::hold;
                 continue;
@@ -153,7 +153,7 @@ void DahdsrEnvelope::transitionToState(DahdsrEnvelopeStateIndex stateToTransitio
 
         case DahdsrEnvelopeStateIndex::hold:
             //auto* holdState = dynamic_cast<DahdsrEnvelopeState_Hold*>(states[DahdsrEnvelopeStateIndex::hold]);
-            if (dynamic_cast<DahdsrEnvelopeState_Hold*>(states[DahdsrEnvelopeStateIndex::hold])->getTimeInSeconds() == 0.0)
+            if (dynamic_cast<DahdsrEnvelopeState_Hold*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::hold)])->getTimeInSeconds() == 0.0)
             {
                 stateToTransitionTo = DahdsrEnvelopeStateIndex::decay;
                 continue;
@@ -167,7 +167,7 @@ void DahdsrEnvelope::transitionToState(DahdsrEnvelopeStateIndex stateToTransitio
 
         case DahdsrEnvelopeStateIndex::decay:
             //auto* decayState = dynamic_cast<DahdsrEnvelopeState_Decay*>(states[DahdsrEnvelopeStateIndex::decay]);
-            if (dynamic_cast<DahdsrEnvelopeState_Decay*>(states[DahdsrEnvelopeStateIndex::decay])->getTimeInSeconds() == 0.0)
+            if (dynamic_cast<DahdsrEnvelopeState_Decay*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::decay)])->getTimeInSeconds() == 0.0)
             {
                 stateToTransitionTo = DahdsrEnvelopeStateIndex::sustain;
                 continue;
@@ -187,14 +187,14 @@ void DahdsrEnvelope::transitionToState(DahdsrEnvelopeStateIndex stateToTransitio
 
         case DahdsrEnvelopeStateIndex::release:
             //auto* releaseState = dynamic_cast<DahdsrEnvelopeState_Release*>(states[DahdsrEnvelopeStateIndex::release]);
-            if (dynamic_cast<DahdsrEnvelopeState_Release*>(states[DahdsrEnvelopeStateIndex::release])->getTimeInSeconds() == 0.0)
+            if (dynamic_cast<DahdsrEnvelopeState_Release*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::release)])->getTimeInSeconds() == 0.0)
             {
                 stateToTransitionTo = DahdsrEnvelopeStateIndex::idle;
                 continue;
             }
             else
             {
-                dynamic_cast<DahdsrEnvelopeState_Release*>(states[DahdsrEnvelopeStateIndex::release])->setStartingLevel(currentEnvelopeLevel); //starting value can be overwritten since any playing state can transition to release at any time
+                dynamic_cast<DahdsrEnvelopeState_Release*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::release)])->setStartingLevel(currentEnvelopeLevel); //starting value can be overwritten since any playing state can transition to release at any time
                 nonInstantStateFound = true;
             }
             break;
@@ -210,7 +210,7 @@ void DahdsrEnvelope::transitionToState(DahdsrEnvelopeStateIndex stateToTransitio
 
 void DahdsrEnvelope::forceStop()
 {
-    states[currentStateIndex]->forceStop(); //automatically transitions states where applicable
+    states[static_cast<int>(currentStateIndex)]->forceStop(); //automatically transitions states where applicable
 }
 
 bool DahdsrEnvelope::isReleasing()
@@ -227,76 +227,76 @@ bool DahdsrEnvelope::isIdle()
 
 void DahdsrEnvelope::setDelayTime(double newTimeInSeconds)
 {
-    dynamic_cast<DahdsrEnvelopeState_Delay*>(states[DahdsrEnvelopeStateIndex::delay])->setTime(newTimeInSeconds);
+    dynamic_cast<DahdsrEnvelopeState_Delay*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::delay)])->setTime(newTimeInSeconds);
 }
 double DahdsrEnvelope::getDelayTime()
 {
-    return dynamic_cast<DahdsrEnvelopeState_Delay*>(states[DahdsrEnvelopeStateIndex::delay])->getTimeInSeconds();
+    return dynamic_cast<DahdsrEnvelopeState_Delay*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::delay)])->getTimeInSeconds();
 }
 
 void DahdsrEnvelope::setInitialLevel(double newInitialLevel)
 {
-    dynamic_cast<DahdsrEnvelopeState_Attack*>(states[DahdsrEnvelopeStateIndex::attack])->setStartingLevel(newInitialLevel);
+    dynamic_cast<DahdsrEnvelopeState_Attack*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::attack)])->setStartingLevel(newInitialLevel);
 }
 double DahdsrEnvelope::getInitialLevel()
 {
-    return dynamic_cast<DahdsrEnvelopeState_Attack*>(states[DahdsrEnvelopeStateIndex::attack])->getStartingLevel();
+    return dynamic_cast<DahdsrEnvelopeState_Attack*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::attack)])->getStartingLevel();
 }
 
 void DahdsrEnvelope::setAttackTime(double newTimeInSeconds)
 {
-    dynamic_cast<DahdsrEnvelopeState_Attack*>(states[DahdsrEnvelopeStateIndex::attack])->setTime(newTimeInSeconds);
+    dynamic_cast<DahdsrEnvelopeState_Attack*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::attack)])->setTime(newTimeInSeconds);
 }
 double DahdsrEnvelope::getAttackTime()
 {
-    return dynamic_cast<DahdsrEnvelopeState_Attack*>(states[DahdsrEnvelopeStateIndex::attack])->getTimeInSeconds();
+    return dynamic_cast<DahdsrEnvelopeState_Attack*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::attack)])->getTimeInSeconds();
 }
 
 void DahdsrEnvelope::setPeakLevel(double newPeakLevel)
 {
-    dynamic_cast<DahdsrEnvelopeState_Attack*>(states[DahdsrEnvelopeStateIndex::attack])->setEndLevel(newPeakLevel);
-    dynamic_cast<DahdsrEnvelopeState_Hold*>(states[DahdsrEnvelopeStateIndex::hold])->setLevel(newPeakLevel);
-    dynamic_cast<DahdsrEnvelopeState_Decay*>(states[DahdsrEnvelopeStateIndex::decay])->setStartingLevel(newPeakLevel);
+    dynamic_cast<DahdsrEnvelopeState_Attack*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::attack)])->setEndLevel(newPeakLevel);
+    dynamic_cast<DahdsrEnvelopeState_Hold*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::hold)])->setLevel(newPeakLevel);
+    dynamic_cast<DahdsrEnvelopeState_Decay*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::decay)])->setStartingLevel(newPeakLevel);
 }
 double DahdsrEnvelope::getPeakLevel()
 {
-    return dynamic_cast<DahdsrEnvelopeState_Hold*>(states[DahdsrEnvelopeStateIndex::hold])->getLevel();
+    return dynamic_cast<DahdsrEnvelopeState_Hold*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::hold)])->getLevel();
 }
 
 void DahdsrEnvelope::setHoldTime(double newTimeInSeconds)
 {
-    dynamic_cast<DahdsrEnvelopeState_Hold*>(states[DahdsrEnvelopeStateIndex::hold])->setTime(newTimeInSeconds);
+    dynamic_cast<DahdsrEnvelopeState_Hold*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::hold)])->setTime(newTimeInSeconds);
 }
 double DahdsrEnvelope::getHoldTime()
 {
-    return dynamic_cast<DahdsrEnvelopeState_Hold*>(states[DahdsrEnvelopeStateIndex::hold])->getTimeInSeconds();
+    return dynamic_cast<DahdsrEnvelopeState_Hold*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::hold)])->getTimeInSeconds();
 }
 
 void DahdsrEnvelope::setDecayTime(double newTimeInSeconds)
 {
-    dynamic_cast<DahdsrEnvelopeState_Decay*>(states[DahdsrEnvelopeStateIndex::decay])->setTime(newTimeInSeconds);
+    dynamic_cast<DahdsrEnvelopeState_Decay*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::decay)])->setTime(newTimeInSeconds);
 }
 double DahdsrEnvelope::getDecayTime()
 {
-    return dynamic_cast<DahdsrEnvelopeState_Decay*>(states[DahdsrEnvelopeStateIndex::decay])->getTimeInSeconds();
+    return dynamic_cast<DahdsrEnvelopeState_Decay*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::decay)])->getTimeInSeconds();
 }
 
 void DahdsrEnvelope::setSustainLevel(double newSustainLevel)
 {
-    dynamic_cast<DahdsrEnvelopeState_Decay*>(states[DahdsrEnvelopeStateIndex::decay])->setEndLevel(newSustainLevel);
-    dynamic_cast<DahdsrEnvelopeState_Sustain*>(states[DahdsrEnvelopeStateIndex::sustain])->setLevel(newSustainLevel);
-    //dynamic_cast<DahdsrEnvelopeState_Release*>(states[release])->setStartingLevel(newSustainLevel); //doesn't matter thaaaat much if it isn't set here since this value is overwritten when any playing state transitions to release
+    dynamic_cast<DahdsrEnvelopeState_Decay*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::decay)])->setEndLevel(newSustainLevel);
+    dynamic_cast<DahdsrEnvelopeState_Sustain*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::sustain)])->setLevel(newSustainLevel);
+    //dynamic_cast<DahdsrEnvelopeState_Release*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::release)])->setStartingLevel(newSustainLevel); //doesn't matter thaaaat much if it isn't set here since this value is overwritten when any playing state transitions to release
 }
 double DahdsrEnvelope::getSustainLevel()
 {
-    return dynamic_cast<DahdsrEnvelopeState_Sustain*>(states[DahdsrEnvelopeStateIndex::sustain])->getLevel();
+    return dynamic_cast<DahdsrEnvelopeState_Sustain*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::sustain)])->getLevel();
 }
 
 void DahdsrEnvelope::setReleaseTime(double newTimeInSeconds)
 {
-    dynamic_cast<DahdsrEnvelopeState_Release*>(states[DahdsrEnvelopeStateIndex::release])->setTime(newTimeInSeconds);
+    dynamic_cast<DahdsrEnvelopeState_Release*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::release)])->setTime(newTimeInSeconds);
 }
 double DahdsrEnvelope::getReleaseTime()
 {
-    return dynamic_cast<DahdsrEnvelopeState_Release*>(states[DahdsrEnvelopeStateIndex::release])->getTimeInSeconds();
+    return dynamic_cast<DahdsrEnvelopeState_Release*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::release)])->getTimeInSeconds();
 }

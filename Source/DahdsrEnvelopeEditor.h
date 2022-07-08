@@ -96,9 +96,9 @@ public:
     void setDisplayedName(juce::String name)
     {
         if (name != "")
-            titleLabel.setText(name + " DAHDSR Envelope", juce::NotificationType::dontSendNotification);
+            titleLabel.setText(name + " DAHDSR Envelope:", juce::NotificationType::dontSendNotification);
         else
-            titleLabel.setText("DAHDSR Envelope", juce::NotificationType::dontSendNotification);
+            titleLabel.setText("DAHDSR Envelope:", juce::NotificationType::dontSendNotification);
     }
 
     void setAssociatedEnvelope(DahdsrEnvelope* newEnvelope)

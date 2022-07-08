@@ -11,6 +11,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "LfoModulatableParameter.h"
 
 /// <summary>
 /// Continuous low-frequency oscillator (LFO) that modulates a parameter using a passed function.
@@ -154,11 +155,11 @@ public:
         }
     }
 
-    void setModulatedParameterID(int newID)
+    void setModulatedParameterID(LfoModulatableParameter newID)
     {
         modulatedParameterID = newID;
     }
-    int getModulatedParameterID()
+    LfoModulatableParameter getModulatedParameterID()
     {
         return modulatedParameterID;
     }
@@ -176,7 +177,7 @@ protected:
 
     std::function<void(float lfoValue)> modulationFunction;
 
-    int modulatedParameterID = -1;
+    LfoModulatableParameter modulatedParameterID = LfoModulatableParameter::none;
 
     virtual void updateModulatedParameter()
     {
