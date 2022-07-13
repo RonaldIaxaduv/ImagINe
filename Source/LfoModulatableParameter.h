@@ -14,11 +14,17 @@ enum class LfoModulatableParameter : int
 {
     none = 0,
     volume = 1,
+    volume_inverted,
     pitch,
-    //Panning,
+    pitch_inverted,
+    //panning,
+    //panning_inverted,
 
     lfoRate,
-    //lfoDepth
+    lfoRate_inverted,
+    //lfoDepth,
+    //lfoDepth_inverted,
 
-    playbackPosition
+    playbackPosition,
+    playbackPosition_inverted
 };

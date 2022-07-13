@@ -13,18 +13,13 @@
 #include <JuceHeader.h>
 #include "LfoModulatableParameter.h"
 #include "CheckBoxList.h"
-
-//forward reference to be able to use SegmentedRegion here
-//#include "SegmentedRegion.h"
-//class SegmentedRegion;
-
 #include "AudioEngine.h"
 #include "RegionLfo.h"
 
-class LfoEditor : public juce::Component
+class LfoEditor : public juce::Component, public juce::ChangeListener
 {
 public:
-    LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo /*SegmentedRegion* associatedRegion*/);
+    LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo);
     ~LfoEditor() override;
 
     void paint(juce::Graphics& g) override;
@@ -34,24 +29,25 @@ public:
 
     void updateAvailableVoices();
 
+    void changeListenerCallback(juce::ChangeBroadcaster* source) override;
+
 private:
-    //SegmentedRegion* associatedRegion;
     AudioEngine* audioEngine;
     RegionLfo* associatedLfo;
 
     juce::Label lfoRateLabel;
     juce::Slider lfoRateSlider;
 
-    juce::Label lfoParameterLabel;
-    juce::ComboBox lfoParameterChoice;
+    //juce::Label lfoParameterLabel;
+    //juce::ComboBox lfoParameterChoice;
 
     CheckBoxList lfoRegionsList;
 
     void updateLfoRate();
 
-    void updateLfoParameter();
+    void updateLfoParameter(int targetRegionID, bool shouldBeModulated, LfoModulatableParameter modulatedParameter);
 
-    void updateLfoVoices(juce::Array<int> voiceIndices);
+    //void updateLfoVoices(juce::Array<int> voiceIndices);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LfoEditor)
 };

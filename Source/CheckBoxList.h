@@ -11,15 +11,51 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "LfoModulatableParameter.h"
 
-class CheckBoxListItem : public juce::ToggleButton
+
+class CheckBoxListItem : public juce::Component, public juce::ChangeBroadcaster
 {
 public:
-    CheckBoxListItem(juce::String text, int row, int regionID) : juce::ToggleButton(text)
+    CheckBoxListItem(juce::String text, int row, int regionID)
     {
         this->row = row;
         this->regionID = regionID;
         backgroundColour = juce::Colours::transparentBlack;
+
+        setInterceptsMouseClicks(false, true);
+
+        regionButton.setButtonText(text);
+        regionButton.onClick = [this]
+        {
+            modulationChoice.setEnabled(regionButton.getToggleState());
+            sendChangeMessage();
+        };
+        addAndMakeVisible(regionButton);
+
+        modulationChoice.addSectionHeading("Basic");
+        modulationChoice.addItem("Volume", static_cast<int>(LfoModulatableParameter::volume));
+        modulationChoice.addItem("Volume (inverted)", static_cast<int>(LfoModulatableParameter::volume_inverted));
+        modulationChoice.addItem("Pitch", static_cast<int>(LfoModulatableParameter::pitch));
+        modulationChoice.addItem("Pitch (inverted)", static_cast<int>(LfoModulatableParameter::pitch_inverted));
+        //modulationChoice.addItem("Panning", static_cast<int>(LfoModulatableParameter::panning));
+        //modulationChoice.addItem("Panning (inverted)", static_cast<int>(LfoModulatableParameter::panning_inverted));
+        modulationChoice.addSeparator();
+        modulationChoice.addSectionHeading("LFO");
+        modulationChoice.addItem("LFO Rate", static_cast<int>(LfoModulatableParameter::lfoRate));
+        modulationChoice.addItem("LFO Rate (inverted)", static_cast<int>(LfoModulatableParameter::lfoRate_inverted));
+        modulationChoice.addSeparator();
+        modulationChoice.addSectionHeading("Experimental");
+        modulationChoice.addItem("Playback Position", static_cast<int>(LfoModulatableParameter::playbackPosition));
+        modulationChoice.addItem("Playback Position (inverted)", static_cast<int>(LfoModulatableParameter::playbackPosition_inverted));
+        modulationChoice.onChange = [this] { sendChangeMessage(); }; //the LfoEditor does the actualy routing to the RegionLfo. that way, this class doesn't need any references to RegionLfo or the LfoEditor or any of that stuff, which is cleaner overall
+        modulationChoice.setEnabled(false);
+        addAndMakeVisible(modulationChoice);
+    }
+
+    ~CheckBoxListItem()
+    {
+        removeAllChangeListeners();
     }
 
     int getRow()
@@ -36,12 +72,18 @@ public:
         g.setColour(backgroundColour);
         g.fillAll();
 
-        ToggleButton::paint(g);
+        //ToggleButton::paint(g);
     }
 
     void resized() override
     {
         setBoundsInset(juce::BorderSize<int>(2));
+
+        auto area = getLocalBounds();
+        int unit = area.getWidth() / 6;
+
+        regionButton.setBounds(area.removeFromLeft(unit * 2));
+        modulationChoice.setBounds(area); //unit
     }
 
     juce::Colour getBackgroundColour()
@@ -51,20 +93,64 @@ public:
     void setBackgroundColour(juce::Colour newBackgroundColour)
     {
         backgroundColour = newBackgroundColour;
-        setColour(textColourId, backgroundColour.contrasting().withAlpha(1.0f));
-        setColour(tickColourId, backgroundColour.contrasting().withAlpha(1.0f));
-        setColour(tickDisabledColourId, backgroundColour.contrasting().withAlpha(0.5f));
+
+        regionButton.setColour(juce::ToggleButton::textColourId, backgroundColour.contrasting().withAlpha(1.0f));
+        regionButton.setColour(juce::ToggleButton::tickColourId, backgroundColour.contrasting().withAlpha(1.0f));
+        regionButton.setColour(juce::ToggleButton::tickDisabledColourId, backgroundColour.contrasting().withAlpha(0.5f));
+
+        modulationChoice.setColour(juce::ComboBox::ColourIds::textColourId, backgroundColour.contrasting().withAlpha(1.0f));
+        modulationChoice.setColour(juce::ComboBox::ColourIds::backgroundColourId, backgroundColour);
+        modulationChoice.setColour(juce::ComboBox::ColourIds::arrowColourId, backgroundColour.contrasting(0.4f).withAlpha(1.0f));
+    }
+
+    juce::String getName()
+    {
+        return regionButton.getButtonText();
     }
 
     int getRegionID()
     {
         return regionID;
     }
+    bool isModulated()
+    {
+        return regionButton.getToggleState();
+    }
+    void setIsModulated(bool shouldBeModulated)
+    {
+        regionButton.setToggleState(shouldBeModulated, juce::NotificationType::dontSendNotification);
+        modulationChoice.setEnabled(shouldBeModulated);
+    }
+    LfoModulatableParameter getModulatedParameter()
+    {
+        return static_cast<LfoModulatableParameter>(modulationChoice.getSelectedId());
+    }
+    void setModulatedParameterID(LfoModulatableParameter id)
+    {
+        modulationChoice.setSelectedId(static_cast<int>(id), juce::NotificationType::dontSendNotification);
+    }
+
+    void triggerClick(const juce::MouseEvent& e)
+    {
+        auto pos = e.getMouseDownPosition();
+        if (regionButton.getBounds().contains(pos))
+        {
+            regionButton.triggerClick();
+        }
+        else if (modulationChoice.getBounds().contains(pos))
+        {
+            modulationChoice.showPopup();
+        }
+    }
 
 private:
     int row;
     int regionID;
+
     juce::Colour backgroundColour;
+
+    juce::ToggleButton regionButton;
+    juce::ComboBox modulationChoice;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CheckBoxListItem)
 };
@@ -79,7 +165,11 @@ public:
     CheckBoxList() : juce::ListBoxModel()
     {
         list.setModel(this);
+        list.setClickingTogglesRowSelection(false);
+        list.setRowSelectedOnMouseDown(false);
         addAndMakeVisible(list);
+
+        setInterceptsMouseClicks(false, true);
     }
 
     ~CheckBoxList() override
@@ -133,7 +223,7 @@ public:
     {
         if (rowNumber < getNumRows())
         {
-            return items[rowNumber]->getButtonText();
+            return items[rowNumber]->getName();
         }
         else
         {
@@ -141,11 +231,11 @@ public:
         }
     }
 
-    void listBoxItemClicked(int row, const juce::MouseEvent&) override
+    void listBoxItemClicked(int row, const juce::MouseEvent& e) override
     {
         if (row < getNumRows())
         {
-            items[row]->triggerClick();
+            items[row]->triggerClick(e);
         }
     }
 
@@ -154,10 +244,11 @@ public:
         list.setBounds(getLocalBounds());
     }
 
-    int addItem(juce::String text, int regionID)
+    int addItem(juce::String text, int regionID, juce::ChangeListener* changeListener)
     {
         auto* newItem = new CheckBoxListItem(text, getNumRows(), regionID);
         newItem->setInterceptsMouseClicks(false, false); //it's probably cleaner to handle clicks through listBoxItemClicked since mouse click interception would mess with item selection
+        newItem->addChangeListener(changeListener);
         items.add(newItem);
 
         list.updateContent();
@@ -179,13 +270,13 @@ public:
         }
     }
 
-    void setClickFunction(int rowNumber, std::function<void ()> clickFunction)
+    /*void setClickFunction(int rowNumber, std::function<void ()> clickFunction)
     {
         if (rowNumber < getNumRows())
         {
             items[rowNumber]->onClick = clickFunction;
         }
-    }
+    }*/
 
     juce::Array<int> getCheckedRegionIDs()
     {
@@ -193,7 +284,7 @@ public:
         
         for (auto it = items.begin(); it != items.end(); ++it)
         {
-            if ((*it)->getToggleState() == true) //checkbox checked?
+            if ((*it)->isModulated()) //region checkbox checked?
             {
                 checkedRegionIndices.add((*it)->getRegionID());
             }
@@ -205,7 +296,24 @@ public:
     {
         for (auto it = items.begin(); it != items.end(); ++it)
         {
-            (*it)->setToggleState(regionIDs.contains((*it)->getRegionID()), juce::NotificationType::dontSendNotification); //checked if contained in regionIDs
+            (*it)->setIsModulated(regionIDs.contains((*it)->getRegionID())); //checked if contained in regionIDs
+        }
+    }
+    void copyRegionModulations(juce::Array<int> modulatedRegionIDs, juce::Array<LfoModulatableParameter> modulatedParameterIDs)
+    {
+        for (auto it = items.begin(); it != items.end(); ++it)
+        {
+            int index = modulatedRegionIDs.indexOf((*it)->getRegionID());
+            if (index >= 0) //modulatedRegionIDs contains this region
+            {
+                (*it)->setIsModulated(true);
+                (*it)->setModulatedParameterID(modulatedParameterIDs[index]);
+            }
+            else
+            {
+                (*it)->setIsModulated(false);
+            }
+
         }
     }
 

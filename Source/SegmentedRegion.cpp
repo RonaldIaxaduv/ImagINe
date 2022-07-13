@@ -257,39 +257,39 @@ void SegmentedRegion::renderLfoWaveform()
     //to get the desired number of samples, the path must be divided into sections with the following distance:
     float stepDistance = p.getLength() / ((float)(waveform.getNumSamples() - 2));
 
+    juce::Point<float> relativeFocus(focus.getX() * getBounds().getWidth(), focus.getY() * getBounds().getHeight());
     for (int i = 0; i < waveform.getNumSamples() - 1; ++i)
     {
+
         samples[i] = p.getPointAlongPath((float)i * stepDistance, //this will usually just iterate between each pixel
             juce::AffineTransform(), //no transform
             juce::Path::defaultToleranceForMeasurement //?
-        ).getDistanceSquaredFrom(focus); //use distance from focus point to create a 1D value
+        ).getDistanceSquaredFrom(relativeFocus); //use distance from focus point to create a 1D value
     }
     //the last sample will be set to the first one after normalisation (see there)
 
     //normalise to -1...1 (can be set to 0...1 later via RegionLfo.setPolarity)
     auto range = waveform.findMinMax(0, 0, waveform.getNumSamples() - 1);
-    float mid = range.getStart() + range.getLength() * 0.5f;
-    float mult = 1.0f / (range.getEnd() - mid); //= 1.0f / (mid - range.getStart()) = -1.0f / (range.getStart() - mid)
-    //float mult = 1.0f / range.getLength(); //when normalising to 0...1 instead
+    //float mid = range.getStart() + range.getLength() * 0.5f;
+    //float mult = 1.0f / (range.getEnd() - mid); //= 1.0f / (mid - range.getStart()) = -1.0f / (range.getStart() - mid) //when normalising to -1...1
+    float mult = 1.0f / range.getLength(); //when normalising to 0...1
 
     for (int i = 0; i < waveform.getNumSamples() - 1; ++i)
     {
-        samples[i] = (samples[i] - mid) * mult;
-        //samples[i] = (samples[i] - range.getStart()) * mult; //when normalising to 0...1 instead
+        //samples[i] = (samples[i] - mid) * mult; //when normalising to -1...1
+        samples[i] = (samples[i] - range.getStart()) * mult; //when normalising to 0...1
     }
     samples[waveform.getNumSamples() - 1] = waveform.getSample(0, 0); //the last sample is equal to the first -> makes wrapping simpler and faster
 
     //apply to LFO
     if (associatedLfo == nullptr) //lfo not yet initialised
     {
-        associatedLfo = new RegionLfo(waveform, [](float, Voice*) {; }, getID()); //no modulation until the voice has been initialised
-        jassert(associatedLfo->getPolarity() == RegionLfo::Polarity::bipolar); //default should be bipolar
+        associatedLfo = new RegionLfo(waveform, RegionLfo::Polarity::unipolar, getID()); //no modulation until the voice has been initialised
         audioEngine->addLfo(associatedLfo);
     }
     else
     {
-        associatedLfo->setPolarity(RegionLfo::Polarity::bipolar);
-        associatedLfo->setWaveTable(waveform);
+        associatedLfo->setWaveTable(waveform, RegionLfo::Polarity::unipolar);
     }
 
     associatedLfo->setBaseFrequency(0.2f);

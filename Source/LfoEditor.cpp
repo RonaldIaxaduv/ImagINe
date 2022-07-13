@@ -13,9 +13,8 @@
 
 //public
 
-LfoEditor::LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo /*SegmentedRegion* associatedRegion*/)
+LfoEditor::LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo)
 {
-    //this->associatedRegion = associatedRegion;
     this->audioEngine = audioEngine;
     this->associatedLfo = associatedLfo;
 
@@ -30,22 +29,22 @@ LfoEditor::LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo /*Segmen
     addAndMakeVisible(lfoRateLabel);
     lfoRateLabel.attachToComponent(&lfoRateSlider, true);
 
-    lfoParameterChoice.addSectionHeading("Basic");
-    lfoParameterChoice.addItem("Volume", static_cast<int>(LfoModulatableParameter::volume));
-    lfoParameterChoice.addItem("Pitch", static_cast<int>(LfoModulatableParameter::pitch));
-    //lfoParameterChoice.addItem("Panning", static_cast<int>(LfoModulatableParameter::panning));
-    lfoParameterChoice.addSeparator();
-    lfoParameterChoice.addSectionHeading("LFO");
-    lfoParameterChoice.addItem("LFO Rate", static_cast<int>(LfoModulatableParameter::lfoRate));
-    lfoParameterChoice.addSeparator();
-    lfoParameterChoice.addSectionHeading("Experimental");
-    lfoParameterChoice.addItem("Playback Position", static_cast<int>(LfoModulatableParameter::playbackPosition));
-    lfoParameterChoice.onChange = [this] { updateLfoParameter(); };
-    addAndMakeVisible(lfoParameterChoice);
+    //lfoParameterChoice.addSectionHeading("Basic");
+    //lfoParameterChoice.addItem("Volume", static_cast<int>(LfoModulatableParameter::volume));
+    //lfoParameterChoice.addItem("Pitch", static_cast<int>(LfoModulatableParameter::pitch));
+    ////lfoParameterChoice.addItem("Panning", static_cast<int>(LfoModulatableParameter::panning));
+    //lfoParameterChoice.addSeparator();
+    //lfoParameterChoice.addSectionHeading("LFO");
+    //lfoParameterChoice.addItem("LFO Rate", static_cast<int>(LfoModulatableParameter::lfoRate));
+    //lfoParameterChoice.addSeparator();
+    //lfoParameterChoice.addSectionHeading("Experimental");
+    //lfoParameterChoice.addItem("Playback Position", static_cast<int>(LfoModulatableParameter::playbackPosition));
+    //lfoParameterChoice.onChange = [this] { updateLfoParameter(); };
+    //addAndMakeVisible(lfoParameterChoice);
 
-    lfoParameterLabel.setText("Modulated Parameter: ", juce::NotificationType::dontSendNotification);
-    addAndMakeVisible(lfoParameterLabel);
-    lfoParameterLabel.attachToComponent(&lfoParameterChoice, true);
+    //lfoParameterLabel.setText("Modulated Parameter: ", juce::NotificationType::dontSendNotification);
+    //addAndMakeVisible(lfoParameterLabel);
+    //lfoParameterLabel.attachToComponent(&lfoParameterChoice, true);
 
     updateAvailableVoices();
     addAndMakeVisible(lfoRegionsList);
@@ -70,28 +69,26 @@ void LfoEditor::resized()
     lfoRateLabel.setBounds(lfoRateArea.removeFromLeft(lfoRateArea.getWidth() / 3));
     lfoRateSlider.setBounds(lfoRateArea);
 
-    auto lfoParamArea = area.removeFromTop(20);
+    /*auto lfoParamArea = area.removeFromTop(20);
     lfoParameterLabel.setBounds(lfoParamArea.removeFromLeft(lfoParamArea.getWidth() / 3));
-    lfoParameterChoice.setBounds(lfoParamArea);
+    lfoParameterChoice.setBounds(lfoParamArea);*/
 
     lfoRegionsList.setBounds(area);
 }
 
 void LfoEditor::copyParameters()
 {
-    //auto lfo = associatedRegion->getAssociatedLfo();
-
     //copy rate
     lfoRateSlider.setValue(associatedLfo->getBaseFrequency(), juce::NotificationType::dontSendNotification);
 
-    //copy modulated parameter
-    if (static_cast<int>(associatedLfo->getModulatedParameterID()) > 0) //parameter IDs start with 1 (0 isn't included because of how selected item IDs work with ComboBoxes in juce)
-    {
-        lfoParameterChoice.setSelectedId(static_cast<int>(associatedLfo->getModulatedParameterID()), juce::NotificationType::dontSendNotification);
-    }
+    //copy modulated parameters
+    //if (static_cast<int>(associatedLfo->getModulatedParameterID()) > 0) //parameter IDs start with 1 (0 isn't included because of how selected item IDs work with ComboBoxes in juce)
+    //{
+    //    lfoParameterChoice.setSelectedId(static_cast<int>(associatedLfo->getModulatedParameterID()), juce::NotificationType::dontSendNotification);
+    //}
 
-    //copy currently affected voices
-    lfoRegionsList.setCheckedRegions(associatedLfo->getRegionIDs());
+    //copy currently affected voices and their modulated parameters
+    lfoRegionsList.copyRegionModulations(associatedLfo->getAffectedRegionIDs(), associatedLfo->getModulatedParameterIDs());
 }
 
 void LfoEditor::updateAvailableVoices()
@@ -109,10 +106,16 @@ void LfoEditor::updateAvailableVoices()
 
     for (auto it = regionIdList.begin(); it != regionIdList.end(); ++it)
     {
-        auto newRowNumber = lfoRegionsList.addItem("Region " + juce::String(*it), *it);
+        auto newRowNumber = lfoRegionsList.addItem("Region " + juce::String(*it), *it, this); //automatically adds the LfoEditor as a ChangeListener for the row
         lfoRegionsList.setRowBackgroundColour(newRowNumber, audioEngine->getRegionColour(*it));
-        lfoRegionsList.setClickFunction(newRowNumber, [this] { updateLfoVoices(lfoRegionsList.getCheckedRegionIDs()); });
+        //lfoRegionsList.setClickFunction(newRowNumber, [this] { updateLfoVoices(lfoRegionsList.getCheckedRegionIDs()); });
     }
+}
+
+void LfoEditor::changeListenerCallback(juce::ChangeBroadcaster* source)
+{
+    auto* cbListItem = dynamic_cast<CheckBoxListItem*>(source);
+    updateLfoParameter(cbListItem->getRegionID(), cbListItem->isModulated(), cbListItem->getModulatedParameter());
 }
 
 
@@ -125,58 +128,84 @@ void LfoEditor::updateLfoRate()
     associatedLfo->setBaseFrequency(lfoRateSlider.getValue());
 }
 
-void LfoEditor::updateLfoParameter()
+void LfoEditor::updateLfoParameter(int targetRegionID, bool shouldBeModulated, LfoModulatableParameter modulatedParameter)
 {
-    //note: the braces for the case statements are required here to allow for variable initialisations. see https://stackoverflow.com/questions/5136295/switch-transfer-of-control-bypasses-initialization-of-when-calling-a-function
-    switch (static_cast<LfoModulatableParameter>(lfoParameterChoice.getSelectedId()))
+    if (!shouldBeModulated || static_cast<int>(modulatedParameter) <= 0)
+    {
+        associatedLfo->removeRegionModulation(targetRegionID); //removing modulation is the same for every region
+        return;
+    }
+    
+    //the remaining code is only for adding modulations
+
+    std::function<void(float, float, float, Voice* v)> func;
+    switch (modulatedParameter)
     {
     case LfoModulatableParameter::volume:
-    {
-        associatedLfo->setPolarity(RegionLfo::Polarity::unipolar);
-        std::function<void(float, Voice*)> func = [](float lfoValue, Voice* v) { v->modulateLevel(static_cast<double>(lfoValue)); };
-        associatedLfo->setModulationFunction(func);
-        associatedLfo->setModulatedParameterID(LfoModulatableParameter::volume);
+        func = [](float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)
+        {
+            v->modulateLevel(static_cast<double>(lfoValueUnipolar * depth));
+        };
         break;
-    }
+    case LfoModulatableParameter::volume_inverted:
+        func = [](float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)
+        {
+            v->modulateLevel(static_cast<double>((1 - lfoValueUnipolar) * depth));
+        };
+        break;
+
 
     case LfoModulatableParameter::pitch:
-    {
-        associatedLfo->setPolarity(RegionLfo::Polarity::bipolar);
-        std::function<void(float, Voice*)> func = [](float lfoValue, Voice* v) { v->modulatePitchShift(static_cast<double>(lfoValue) * 12.0); };
-        associatedLfo->setModulationFunction(func);
-        associatedLfo->setModulatedParameterID(LfoModulatableParameter::pitch);
+        func = [](float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)
+        {
+            v->modulatePitchShift(static_cast<double>(lfoValueBipolar * depth) * 12.0);
+        };
         break;
-    }
+    case LfoModulatableParameter::pitch_inverted:
+        func = [](float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)
+        {
+            v->modulatePitchShift(static_cast<double>(-lfoValueBipolar * depth) * 12.0);
+        };
+        break;
+
 
     case LfoModulatableParameter::lfoRate:
-    {
-        associatedLfo->setPolarity(RegionLfo::Polarity::bipolar);
-        std::function<void(float, Voice*)> func = [](float lfoValue, Voice* v) { v->getLfoFreqModFunction()(lfoValue * 24.0f); };
-        associatedLfo->setModulationFunction(func);
-        associatedLfo->setModulatedParameterID(LfoModulatableParameter::lfoRate);
+        func = [](float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)
+        {
+            v->getLfoFreqModFunction()(static_cast<double>(lfoValueBipolar * depth) * 24.0);
+        };
         break;
-    }
+    case LfoModulatableParameter::lfoRate_inverted:
+        func = [](float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)
+        {
+            v->getLfoFreqModFunction()(static_cast<double>(-lfoValueBipolar * depth) * 24.0);
+        };
+        break;
+
 
     case LfoModulatableParameter::playbackPosition:
-    {
-        associatedLfo->setPolarity(RegionLfo::Polarity::unipolar);
         //WIP
         break;
-    }
+    case LfoModulatableParameter::playbackPosition_inverted:
+        //WIP
+        break;
+
 
     default:
-        break;
+        throw std::exception("invalid modulated parameter ID");
     }
+
+    associatedLfo->addRegionModulation(audioEngine->getVoicesWithID(targetRegionID), func, modulatedParameter); //also overwrites existing modulation if this region had already been modulated
 }
 
-void LfoEditor::updateLfoVoices(juce::Array<int> voiceIndices)
-{
-    juce::Array<Voice*> voices;
-    for (auto it = voiceIndices.begin(); it != voiceIndices.end(); ++it)
-    {
-        voices.addArray(audioEngine->getVoicesWithID(*it));
-    }
-    associatedLfo->setVoices(voices);
-
-    DBG("voices updated.");
-}
+//void LfoEditor::updateLfoVoices(juce::Array<int> voiceIndices)
+//{
+//    juce::Array<Voice*> voices;
+//    for (auto it = voiceIndices.begin(); it != voiceIndices.end(); ++it)
+//    {
+//        voices.addArray(audioEngine->getVoicesWithID(*it));
+//    }
+//    associatedLfo->setVoices(voices);
+//
+//    DBG("voices updated.");
+//}

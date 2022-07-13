@@ -42,15 +42,22 @@
  !		!- make it depend on the shape's size, actually
 			- use the shape's area (bounds) in relation to that of the full image -> being >=2/3 of the image's area should result in full modulation depth
 (# outline animations for the LFOs)
-!- add a second column of toggle buttons to the LFO voice list that invert the modulation for that region
+!# add a second column of toggle buttons to the LFO voice list that invert the modulation for that region
 	-> this would be quite powerful since it enables call-and-response patterns (e.g. while one voice is loud another is quiet / while one voice is high another is low / ...)
 	- this isn't as straightforward as it might seem since the modulation function is the same for all voices (whereas inversion would only be applied to some of the voices)!
 		- solution: pass an Array<bool> to the lfo that says for which voices inversion should take place. when iterating over the voices, also iterate over that array and apply inversion on the go
 			- is there a way to make this possible without if cases? for bipolar LFOs it would be enough to have an Array<int> with either +1 (not inverted) or -1 (inverted) and multiply the LFO value with one of these entries. but what about unipolar LFOs? inverting their values would be (1 - value), which can't really be put into an array
 			-> use a second audio buffer containing the inverted waveform? this wouldn't save the if-case, but the following calculation...
-		!- (probably) more efficient solution: instead of having just one modulation function, have one modulation function *per voice*
-			- at that point, it would also be easier to modulate different parameters of different voices (essentially making the list into *a mod matrix for every single region*), so that might actually be neat. but, to do that, the checkbox for the modulated parameter would have to also be moved into the listbox instead of being above it, which would require some more work
-	?- each inversion button is only visible/enabled if the region has been selected
+		!# (probably) more efficient solution: instead of having just one modulation function, have one modulation function *per voice*
+			#> at that point, it would also be easier to modulate different parameters of different voices (essentially making the list into *a mod matrix for every single region*), so that might actually be neat. but, to do that, the checkbox for the modulated parameter would have to also be moved into the listbox instead of being above it, which would require some more work
+				# adjust CheckBoxList and CheckBoxListItem
+				# Problem: how to handle Polarity? if there are different modulation functions, those are very likely to require different polarities...
+					- naive solution: calculate the required polarity on the go -> too slow
+					!# compromise: pre-calculate *both* polarities and select the one that's required... -> uses more memory, but saves multiplications
+				# rework the modulationFunction/affectedVoices setup in RegionLfo
+				# adjust the updateLfoParameter and copy Parameters methods in LfoEditor
+	?/ each inversion button is only visible/enabled if the region has been selected
+	# actually, an inversion button would be impractical - just make the inverted versions separate parameters
 # (D)AHDSR envelope for voices
 	# use this as a tester for a cleaner implementation of the state model maybe
 	(-) if it's easy to do, also apply the same envelope to the region's LFO, not just the voice(s)
@@ -62,6 +69,10 @@
 	-> create .h and .cpp for LfoEditor and for RegionEditor and put empty references to the other at the top of each header class
 # DAHDSR: skip sustain state if sustain level is 0.0
 	# would this cause problems in Voice? -> nope
+# bipolar LFOs don't work as they intuitively should yet
+	- currently: points closest to the focus point are at 0.0, points furthest away from the focus are either 1.0 or -1.0 (?)
+	- how it should be: points closest to the focus point are -1.0, points furthest away are 1.0
+	-> the bug was, that the reference point used wasn't actually the focus point *relative to the size of the region*, but actually the raw focus point - i.e. the focus point was assumed to always be in the top-left corner (between (0.0, 0.0) and (1.0, 1.0)...)
 - improvements to processing speed?
 	-> implementing states in a cleaner fashion would probably help the most since it'd cut down on tons of if-cases
 	- implement states for Lfo and/or(?) RegionLfo
