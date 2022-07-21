@@ -21,6 +21,13 @@
         <FILE id="w5onAG" name="RegionEditor.h" compile="0" resource="0" file="Source/RegionEditor.h"/>
       </GROUP>
       <GROUP id="{33ACA8CC-9657-E34D-1FDC-F120F9F9E03A}" name="LFO">
+        <FILE id="exgT57" name="RegionLfo.cpp" compile="1" resource="0" file="Source/RegionLfo.cpp"/>
+        <FILE id="ucmKOB" name="RegionLfoStates.cpp" compile="1" resource="0"
+              file="Source/RegionLfoStates.cpp"/>
+        <FILE id="ZObEuH" name="RegionLfoStates.h" compile="0" resource="0"
+              file="Source/RegionLfoStates.h"/>
+        <FILE id="JY6tlP" name="RegionLfoStateIndex.h" compile="0" resource="0"
+              file="Source/RegionLfoStateIndex.h"/>
         <FILE id="v7orsZ" name="LfoModulatableParameter.h" compile="0" resource="0"
               file="Source/LfoModulatableParameter.h"/>
         <FILE id="L44Mx8" name="CheckBoxList.h" compile="0" resource="0" file="Source/CheckBoxList.h"/>

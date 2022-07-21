@@ -73,10 +73,36 @@
 	- currently: points closest to the focus point are at 0.0, points furthest away from the focus are either 1.0 or -1.0 (?)
 	- how it should be: points closest to the focus point are -1.0, points furthest away are 1.0
 	-> the bug was, that the reference point used wasn't actually the focus point *relative to the size of the region*, but actually the raw focus point - i.e. the focus point was assumed to always be in the top-left corner (between (0.0, 0.0) and (1.0, 1.0)...)
-- improvements to processing speed?
+- improvements to processing speed
 	-> implementing states in a cleaner fashion would probably help the most since it'd cut down on tons of if-cases
-	- implement states for Lfo and/or(?) RegionLfo
+	# implement states for Lfo and/or(?) RegionLfo
+	- get rid of std::function in RegionLfo
+	- add a parameter "update time" (or so - just don't use frequency since it needs to be in s, not 1/s) to the Lfo class -> adjustable by the user, 0.0s (real-time updates) allowed
 	- implement states for Voice
+	- maybe switch to function templates instead of std::function -> see https://stackoverflow.com/questions/25848690/should-i-use-stdfunction-or-a-function-pointer-in-c
+		https://vittorioromeo.info/index/blog/passing_functions_to_functions.html
+		https://stackoverflow.com/questions/43948240/sfinae-failing-when-evaluating-a-constexpr-in-a-template-parameter/43949301?noredirect=1#comment74933533_43949301
+		https://stackoverflow.com/questions/28746744/passing-capturing-lambda-as-function-pointer/28746827#28746827
+		https://stackoverflow.com/questions/9054774/difference-between-stdfunction-and-a-standard-function-pointer/9054802#9054802
+	- make use of certain keywords
+		- noexcept: tells the compiler that the method won't throw any exceptions -> more optimisations possible
+		- inline / __forceinline: tell the compiler that the method should be inlined
+			- methods that are defined in the header of a file are implicitly inline; if they are defined in the cpp, inline can be added at the beginning. forceinline should be used sparingly as too much inlining may actually hurt performance due to larger binaries and paging
+		- final (classes)
+			- for the state implementations
+			- see https://devblogs.microsoft.com/cppblog/the-performance-benefits-of-final-classes/
+		/ register keyword?
+			- probably overkill, the compiler should do this automatically already...
+		- when to use references and when not?
+	- correctly using const pointers (vs. pointer consts and const pointer consts) might also be useful for making things cleaner (though not necessarily faster)
+		- see https://stackoverflow.com/questions/1143262/what-is-the-difference-between-const-int-const-int-const-and-int-const
+		- for functions, see also https://stackoverflow.com/questions/751681/meaning-of-const-last-in-a-function-declaration-of-a-class
+	- correctly using references could also improve some things (e.g. using references instead of pointers for state implementations and regions' voices, LFOs etc. might be worth thinking about)
+		- https://www.tutorialspoint.com/cplusplus/cpp_references.htm
+		- note also: https://stackoverflow.com/questions/51705967/advantages-of-pass-by-value-and-stdmove-over-pass-by-reference
+		- first comment of the first reply here is also important: https://stackoverflow.com/questions/21215409/does-c-pass-objects-by-value-or-reference
+			- for a more direct example: https://stackoverflow.com/questions/9293674/can-we-reassign-the-reference-in-c#9293732
+	- declare methods which don't change member variables const: https://stackoverflow.com/questions/24500909/passing-class-reference-to-function
 - bug: the LFO line doesn't keep updating while the voice is tailing off (-> just create a bool variable isPlaying in Voice that's checked for that purpose)
 - is there a way to make it so that modulation of other regions remains at the current modulation value even when the region modulating it stops playing?
 	-> example: currently, if region 1 modulates region 2's volume, the modulation stops after region 1 stops playing (i.e. region 2 plays with its base volume - not the base volume multiplied with the LFO value of region 1 that was last measured). is there a way to apply the LFO's modulation independent from a region playing?

@@ -45,7 +45,7 @@ public:
         updateModulatedParameter();
     }
 
-    void prepare(const juce::dsp::ProcessSpec& spec)
+    virtual void prepare(const juce::dsp::ProcessSpec& spec)
     {
         sampleRate = spec.sampleRate;
         setBaseFrequency(baseFrequency);
@@ -56,26 +56,6 @@ public:
     {
         baseFrequency = newBaseFrequency;
         evaluateFrequencyModulation();
-
-        //if (waveTable.getNumSamples() > 0)
-        //{
-        //    baseFrequency = newBaseFrequency;
-
-        //    //if (baseFrequency > 0.0f)
-        //    //{
-        //    //    //auto samplesPerCycle = static_cast<float>(sampleRate) / baseFrequency; //number of samples of the waveTable that will be played during one full cycle at the current frequency
-        //    //    //tablePosDelta = waveTable.getNumSamples() / samplesPerCycle;
-        //    //    
-        //    //}
-        //    //else
-        //    //{
-        //    //    tablePosDelta = 0.0f;
-        //    //}
-        //}
-        //else
-        //{
-        //    tablePosDelta = 0.0f;
-        //}
     }
     float getBaseFrequency()
     {
@@ -85,14 +65,6 @@ public:
     {
         totalFrequencyModulation += semitonesToAdd;
     }
-    void evaluateFrequencyModulation()
-    {
-        auto cyclesPerSample = baseFrequency / static_cast<float>(sampleRate); //0.0f if frequency is 0
-        tablePosDelta = static_cast<float>(waveTable.getNumSamples()) * cyclesPerSample; //0.0f if waveTable empty
-        tablePosDelta *= playbackMultApprox(totalFrequencyModulation); //approximation -> faster (one power function per sample per LFO would be madness efficiency-wise)
-        
-        totalFrequencyModulation = 0.0; //automatically reset modulation (would be more complicated to do from the voice processor)
-    }
 
     /// <summary>
     /// advances the LFO's phase by 1 sample
@@ -101,6 +73,8 @@ public:
     {
         if (waveTable.getNumSamples() > 0)
         {
+            evaluateFrequencyModulation();
+
             currentTablePos += tablePosDelta;
             if (static_cast<int>(currentTablePos) >= waveTable.getNumSamples() - 1) //-1 because the last sample is equal to the first
             {
@@ -193,5 +167,14 @@ protected:
 
             modulationFunction(sample);
         }
+    }
+
+    void evaluateFrequencyModulation()
+    {
+        auto cyclesPerSample = baseFrequency / static_cast<float>(sampleRate); //0.0f if frequency is 0
+        tablePosDelta = static_cast<float>(waveTable.getNumSamples()) * cyclesPerSample; //0.0f if waveTable empty
+        tablePosDelta *= playbackMultApprox(totalFrequencyModulation); //approximation -> faster (one power function per sample per LFO would be madness efficiency-wise)
+
+        totalFrequencyModulation = 0.0; //automatically reset modulation (would be more complicated to do from the voice processor)
     }
 };

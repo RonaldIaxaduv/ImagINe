@@ -50,8 +50,6 @@ public:
 
     double getNextEnvelopeSample();
 
-    //double getTailLength();
-
     void transitionToState(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel);
 
     void forceStop();
@@ -87,8 +85,9 @@ public:
     double getReleaseTime();
 
 private:
-    juce::OwnedArray<DahdsrEnvelopeState> states;
+    DahdsrEnvelopeState* states[static_cast<int>(DahdsrEnvelopeStateIndex::StateIndexCount)]; //fixed size -> more efficient access
 
-    const DahdsrEnvelopeStateIndex initialStateIndex = DahdsrEnvelopeStateIndex::unprepared;
+    static const DahdsrEnvelopeStateIndex initialStateIndex = DahdsrEnvelopeStateIndex::unprepared;
     DahdsrEnvelopeStateIndex currentStateIndex;
+    DahdsrEnvelopeState* currentState = nullptr; //provides one less array lookup during each access (i.e. every sample)
 };

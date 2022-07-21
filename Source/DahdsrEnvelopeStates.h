@@ -21,6 +21,8 @@ class DahdsrEnvelope;
 class DahdsrEnvelopeState
 {
 public:
+    DahdsrEnvelopeState(DahdsrEnvelope& envelope);
+
     //envelope events to implement
     virtual void sampleRateChanged(double newSampleRate, bool triggerTransition) = 0;
 
@@ -36,25 +38,23 @@ public:
 protected:
     virtual void resetState() = 0;
 
-    DahdsrEnvelopeStateIndex implementedDahdsrEnvelopeStateIndex; //corresponds to the index of the state that the derived class implements
-    //DahdsrEnvelopeStateIndex* parentDahdsrEnvelopeStateIndex = nullptr; //index of the actual DahdsrEnvelope class. the state can change this value and thus make the envelope enter a different state
-
-    std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo; //this function is used to make the actual envelope transition into a different state. the current envelope value is passed so that the next state may set its starting level if desired
+    DahdsrEnvelopeStateIndex implementedDahdsrEnvelopeStateIndex = DahdsrEnvelopeStateIndex::StateIndexCount; //corresponds to the index of the state that the derived class implements
+    DahdsrEnvelope& envelope; //used to make the actual envelope transition into a different state. quicker than std::function and even a function pointer (would be an additional function call vs. a direct call when using a reference)
 };
 
 /// <summary>
 /// implements the state of the envelope while it's unprepared, i.e. while the reference sample rate has not yet been set
 /// </summary>
-class DahdsrEnvelopeState_Unprepared : public DahdsrEnvelopeState
+class DahdsrEnvelopeState_Unprepared final : public DahdsrEnvelopeState
 {
 public:
-    DahdsrEnvelopeState_Unprepared(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
+    DahdsrEnvelopeState_Unprepared(DahdsrEnvelope& envelope); //(void(*transitionTo)(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)); //(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
     ~DahdsrEnvelopeState_Unprepared();
 
     void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
   
     void noteOn() override;
-    double getNextEnvelopeSample() override;
+    virtual double getNextEnvelopeSample() override;
     void noteOff() override;
 
     void forceStop() override;
@@ -68,16 +68,16 @@ protected:
 /// <summary>
 /// implements the state of the envelope while it's idle, i.e. while the sample rate has been set, but no sound is playing yet
 /// </summary>
-class DahdsrEnvelopeState_Idle : public DahdsrEnvelopeState
+class DahdsrEnvelopeState_Idle final : public DahdsrEnvelopeState
 {
 public:
-    DahdsrEnvelopeState_Idle(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
+    DahdsrEnvelopeState_Idle(DahdsrEnvelope& envelope); //(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
     ~DahdsrEnvelopeState_Idle();
 
     void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
     void noteOn() override;
-    double getNextEnvelopeSample() override;
+    virtual double getNextEnvelopeSample() override;
     void noteOff() override;
 
     void forceStop() override;
@@ -91,16 +91,16 @@ protected:
 /// <summary>
 /// implements the delay time of the envelope
 /// </summary>
-class DahdsrEnvelopeState_Delay : public DahdsrEnvelopeState
+class DahdsrEnvelopeState_Delay final : public DahdsrEnvelopeState
 {
 public:
-    DahdsrEnvelopeState_Delay(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
+    DahdsrEnvelopeState_Delay(DahdsrEnvelope& envelope); //(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
     ~DahdsrEnvelopeState_Delay();
 
     void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
     void noteOn() override;
-    double getNextEnvelopeSample() override;
+    virtual double getNextEnvelopeSample() override;
     void noteOff() override;
 
     void forceStop() override;
@@ -125,16 +125,16 @@ private:
 /// <summary>
 /// implements the attack time of the envelope
 /// </summary>
-class DahdsrEnvelopeState_Attack : public DahdsrEnvelopeState
+class DahdsrEnvelopeState_Attack final : public DahdsrEnvelopeState
 {
 public:
-    DahdsrEnvelopeState_Attack(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
+    DahdsrEnvelopeState_Attack(DahdsrEnvelope& envelope); //(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
     ~DahdsrEnvelopeState_Attack();
 
     void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
     void noteOn() override;
-    double getNextEnvelopeSample() override;
+    virtual double getNextEnvelopeSample() override;
     void noteOff() override;
 
     void forceStop() override;
@@ -154,7 +154,7 @@ protected:
     void resetState() override;
 
 private:
-    void updateEnvelopeIncrementPerSample();
+    void updateEnvelopeIncrementPerSample() noexcept;
 
     double sampleRate = 0.0;
     double timeInSeconds = 0.0;
@@ -171,16 +171,16 @@ private:
 /// <summary>
 /// implements the hold time of the envelope
 /// </summary>
-class DahdsrEnvelopeState_Hold : public DahdsrEnvelopeState
+class DahdsrEnvelopeState_Hold final : public DahdsrEnvelopeState
 {
 public:
-    DahdsrEnvelopeState_Hold(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
+    DahdsrEnvelopeState_Hold(DahdsrEnvelope& envelope); //(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
     ~DahdsrEnvelopeState_Hold();
 
     void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
     void noteOn() override;
-    double getNextEnvelopeSample() override;
+    virtual double getNextEnvelopeSample() override;
     void noteOff() override;
 
     void forceStop() override;
@@ -211,16 +211,16 @@ private:
 /// <summary>
 /// implements the decay time of the envelope
 /// </summary>
-class DahdsrEnvelopeState_Decay : public DahdsrEnvelopeState
+class DahdsrEnvelopeState_Decay final : public DahdsrEnvelopeState
 {
 public:
-    DahdsrEnvelopeState_Decay(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
+    DahdsrEnvelopeState_Decay(DahdsrEnvelope& envelope); //(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
     ~DahdsrEnvelopeState_Decay();
 
     void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
     void noteOn() override;
-    double getNextEnvelopeSample() override;
+    virtual double getNextEnvelopeSample() override;
     void noteOff() override;
 
     void forceStop() override;
@@ -240,7 +240,7 @@ protected:
     void resetState() override;
 
 private:
-    void updateEnvelopeIncrementPerSample();
+    void updateEnvelopeIncrementPerSample() noexcept;
 
     double sampleRate = 0.0;
     double timeInSeconds = 0.0;
@@ -257,16 +257,16 @@ private:
 /// <summary>
 /// implements the sustain time of the envelope
 /// </summary>
-class DahdsrEnvelopeState_Sustain : public DahdsrEnvelopeState
+class DahdsrEnvelopeState_Sustain final : public DahdsrEnvelopeState
 {
 public:
-    DahdsrEnvelopeState_Sustain(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
+    DahdsrEnvelopeState_Sustain(DahdsrEnvelope& envelope); //(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
     ~DahdsrEnvelopeState_Sustain();
 
     void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
     void noteOn() override;
-    double getNextEnvelopeSample() override;
+    virtual double getNextEnvelopeSample() override;
     void noteOff() override;
 
     void forceStop() override;
@@ -288,16 +288,16 @@ private:
 /// <summary>
 /// implements the release time of the envelope
 /// </summary>
-class DahdsrEnvelopeState_Release : public DahdsrEnvelopeState
+class DahdsrEnvelopeState_Release final : public DahdsrEnvelopeState
 {
 public:
-    DahdsrEnvelopeState_Release(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
+    DahdsrEnvelopeState_Release(DahdsrEnvelope& envelope); //(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo);
     ~DahdsrEnvelopeState_Release();
 
     void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
     void noteOn() override;
-    double getNextEnvelopeSample() override;
+    virtual double getNextEnvelopeSample() override;
     void noteOff() override;
 
     void forceStop() override;
@@ -314,7 +314,7 @@ protected:
     void resetState() override;
 
 private:
-    void updateEnvelopeIncrementPerSample();
+    void updateEnvelopeIncrementPerSample() noexcept;
 
     double sampleRate = 0.0;
     double timeInSeconds = 0.0;

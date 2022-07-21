@@ -18,11 +18,6 @@
 #include "RegionEditorWindow.h"
 class RegionEditorWindow;
 
-//#include "RegionLfo.h"
-//#include "LfoEditor.h"
-//#include "CheckBoxList.h"
-//#include "DahdsrEnvelopeEditor.h"
-
 //==============================================================================
 /*
 */

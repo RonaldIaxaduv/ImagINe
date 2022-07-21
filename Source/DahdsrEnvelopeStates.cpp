@@ -10,17 +10,26 @@
 
 #include "DahdsrEnvelopeStates.h"
 
+
+DahdsrEnvelopeState::DahdsrEnvelopeState(DahdsrEnvelope& envelope) :
+    envelope(envelope)
+{ }
+
+
+
+
 #pragma region DahdsrEnvelopeState_Unprepared
 
-DahdsrEnvelopeState_Unprepared::DahdsrEnvelopeState_Unprepared(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
+DahdsrEnvelopeState_Unprepared::DahdsrEnvelopeState_Unprepared(DahdsrEnvelope& envelope) : //(void(*transitionTo)(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)) //(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
+    DahdsrEnvelopeState(envelope)
 {
     implementedDahdsrEnvelopeStateIndex = DahdsrEnvelopeStateIndex::unprepared;
-    this->transitionTo = transitionTo;
+    //this->transitionTo = transitionTo;
 }
 
 DahdsrEnvelopeState_Unprepared::~DahdsrEnvelopeState_Unprepared()
 {
-    transitionTo = nullptr;
+    //transitionTo = nullptr;
 }
 
 void DahdsrEnvelopeState_Unprepared::sampleRateChanged(double newSampleRate, bool triggerTransition)
@@ -28,7 +37,7 @@ void DahdsrEnvelopeState_Unprepared::sampleRateChanged(double newSampleRate, boo
     if (triggerTransition)
     {
         //transition to next state: idle
-        transitionTo(DahdsrEnvelopeStateIndex::idle, 0.0);
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::idle, 0.0);
     }
 }
 
@@ -69,15 +78,16 @@ void DahdsrEnvelopeState_Unprepared::resetState()
 
 #pragma region DahdsrEnvelopeState_Idle
 
-DahdsrEnvelopeState_Idle::DahdsrEnvelopeState_Idle(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
+DahdsrEnvelopeState_Idle::DahdsrEnvelopeState_Idle(DahdsrEnvelope& envelope) : //(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
+    DahdsrEnvelopeState(envelope)
 {
     implementedDahdsrEnvelopeStateIndex = DahdsrEnvelopeStateIndex::idle;
-    this->transitionTo = transitionTo;
+    //this->transitionTo = transitionTo;
 }
 
 DahdsrEnvelopeState_Idle::~DahdsrEnvelopeState_Idle()
 {
-    transitionTo = nullptr;
+    //transitionTo = nullptr;
 }
 
 void DahdsrEnvelopeState_Idle::sampleRateChanged(double newSampleRate, bool triggerTransition)
@@ -88,7 +98,7 @@ void DahdsrEnvelopeState_Idle::sampleRateChanged(double newSampleRate, bool trig
 void DahdsrEnvelopeState_Idle::noteOn()
 {
     //begin delay time
-    transitionTo(DahdsrEnvelopeStateIndex::delay, 0.0);
+    envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, 0.0);
 }
 
 double DahdsrEnvelopeState_Idle::getNextEnvelopeSample()
@@ -123,15 +133,16 @@ void DahdsrEnvelopeState_Idle::resetState()
 
 #pragma region DahdsrEnvelopeState_Delay
 
-DahdsrEnvelopeState_Delay::DahdsrEnvelopeState_Delay(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
+DahdsrEnvelopeState_Delay::DahdsrEnvelopeState_Delay(DahdsrEnvelope& envelope) : //(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
+    DahdsrEnvelopeState(envelope)
 {
     implementedDahdsrEnvelopeStateIndex = DahdsrEnvelopeStateIndex::delay;
-    this->transitionTo = transitionTo;
+    //this->transitionTo = transitionTo;
 }
 
 DahdsrEnvelopeState_Delay::~DahdsrEnvelopeState_Delay()
 {
-    transitionTo = nullptr;
+    //transitionTo = nullptr;
 }
 
 void DahdsrEnvelopeState_Delay::sampleRateChanged(double newSampleRate, bool triggerTransition)
@@ -145,7 +156,7 @@ void DahdsrEnvelopeState_Delay::sampleRateChanged(double newSampleRate, bool tri
         if (triggerTransition)
         {
             //return to idle state to reset
-            transitionTo(DahdsrEnvelopeStateIndex::idle, 0.0);
+            envelope.transitionToState(DahdsrEnvelopeStateIndex::idle, 0.0);
         }
     }
 }
@@ -165,7 +176,7 @@ double DahdsrEnvelopeState_Delay::getNextEnvelopeSample()
     }
     else //last sample -> transition to attack state
     {
-        transitionTo(DahdsrEnvelopeStateIndex::attack, 0.0);
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::attack, 0.0);
         resetState();
         return 0.0;
     }
@@ -174,14 +185,14 @@ double DahdsrEnvelopeState_Delay::getNextEnvelopeSample()
 void DahdsrEnvelopeState_Delay::noteOff()
 {
     //transition directly to release (since no sound is playing yet, it could also directly transition to idle, but this is more consistent and thus preferable imo)
-    transitionTo(DahdsrEnvelopeStateIndex::release, 0.0);
+    envelope.transitionToState(DahdsrEnvelopeStateIndex::release, 0.0);
     resetState();
 }
 
 void DahdsrEnvelopeState_Delay::forceStop()
 {
     //immediately return to idle
-    transitionTo(DahdsrEnvelopeStateIndex::idle, 0.0);
+    envelope.transitionToState(DahdsrEnvelopeStateIndex::idle, 0.0);
     resetState();
 }
 
@@ -218,15 +229,16 @@ void DahdsrEnvelopeState_Delay::resetState()
 
 #pragma region DahdsrEnvelopeState_Attack
 
-DahdsrEnvelopeState_Attack::DahdsrEnvelopeState_Attack(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
+DahdsrEnvelopeState_Attack::DahdsrEnvelopeState_Attack(DahdsrEnvelope& envelope) : //(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
+    DahdsrEnvelopeState(envelope)
 {
     implementedDahdsrEnvelopeStateIndex = DahdsrEnvelopeStateIndex::attack;
-    this->transitionTo = transitionTo;
+    //this->transitionTo = transitionTo;
 }
 
 DahdsrEnvelopeState_Attack::~DahdsrEnvelopeState_Attack()
 {
-    transitionTo = nullptr;
+    //transitionTo = nullptr;
 }
 
 void DahdsrEnvelopeState_Attack::sampleRateChanged(double newSampleRate, bool triggerTransition)
@@ -240,7 +252,7 @@ void DahdsrEnvelopeState_Attack::sampleRateChanged(double newSampleRate, bool tr
         if (triggerTransition)
         {
             //return to idle state to reset
-            transitionTo(DahdsrEnvelopeStateIndex::idle, 0.0);
+            envelope.transitionToState(DahdsrEnvelopeStateIndex::idle, 0.0);
         }
     }
 }
@@ -248,7 +260,7 @@ void DahdsrEnvelopeState_Attack::sampleRateChanged(double newSampleRate, bool tr
 void DahdsrEnvelopeState_Attack::noteOn()
 {
     //transition back to delay
-    transitionTo(DahdsrEnvelopeStateIndex::delay, envelopeLevelCurrent);
+    envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, envelopeLevelCurrent);
     resetState();
 }
 
@@ -263,7 +275,7 @@ double DahdsrEnvelopeState_Attack::getNextEnvelopeSample()
     }
     else //last sample -> transition to hold state
     {
-        transitionTo(DahdsrEnvelopeStateIndex::hold, envelopeLevelEnd);
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::hold, envelopeLevelEnd);
         resetState();
         return envelopeLevelEnd;
     }
@@ -272,14 +284,14 @@ double DahdsrEnvelopeState_Attack::getNextEnvelopeSample()
 void DahdsrEnvelopeState_Attack::noteOff()
 {
     //transition directly to release (release starting level is set to the current envelope level)
-    transitionTo(DahdsrEnvelopeStateIndex::release, envelopeLevelCurrent);
+    envelope.transitionToState(DahdsrEnvelopeStateIndex::release, envelopeLevelCurrent);
     resetState();
 }
 
 void DahdsrEnvelopeState_Attack::forceStop()
 {
     //immediately return to idle
-    transitionTo(DahdsrEnvelopeStateIndex::idle, envelopeLevelCurrent);
+    envelope.transitionToState(DahdsrEnvelopeStateIndex::idle, envelopeLevelCurrent);
     resetState();
 }
 
@@ -327,7 +339,7 @@ void DahdsrEnvelopeState_Attack::resetState()
     envelopeLevelCurrent = envelopeLevelStart;
 }
 
-void DahdsrEnvelopeState_Attack::updateEnvelopeIncrementPerSample()
+void DahdsrEnvelopeState_Attack::updateEnvelopeIncrementPerSample() noexcept
 {
     if (timeInSamples > 0)
     {
@@ -346,15 +358,16 @@ void DahdsrEnvelopeState_Attack::updateEnvelopeIncrementPerSample()
 
 #pragma region DahdsrEnvelopeState_Hold
 
-DahdsrEnvelopeState_Hold::DahdsrEnvelopeState_Hold(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
+DahdsrEnvelopeState_Hold::DahdsrEnvelopeState_Hold(DahdsrEnvelope& envelope) : //(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
+    DahdsrEnvelopeState(envelope)
 {
     implementedDahdsrEnvelopeStateIndex = DahdsrEnvelopeStateIndex::hold;
-    this->transitionTo = transitionTo;
+    //this->transitionTo = transitionTo;
 }
 
 DahdsrEnvelopeState_Hold::~DahdsrEnvelopeState_Hold()
 {
-    transitionTo = nullptr;
+    //transitionTo = nullptr;
 }
 
 void DahdsrEnvelopeState_Hold::sampleRateChanged(double newSampleRate, bool triggerTransition)
@@ -368,7 +381,7 @@ void DahdsrEnvelopeState_Hold::sampleRateChanged(double newSampleRate, bool trig
         if (triggerTransition)
         {
             //return to idle state to reset
-            transitionTo(DahdsrEnvelopeStateIndex::idle, 0.0);
+            envelope.transitionToState(DahdsrEnvelopeStateIndex::idle, 0.0);
         }
     }
 }
@@ -376,7 +389,7 @@ void DahdsrEnvelopeState_Hold::sampleRateChanged(double newSampleRate, bool trig
 void DahdsrEnvelopeState_Hold::noteOn()
 {
     //transition back to delay
-    transitionTo(DahdsrEnvelopeStateIndex::delay, level);
+    envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, level);
     resetState();
 }
 
@@ -389,7 +402,7 @@ double DahdsrEnvelopeState_Hold::getNextEnvelopeSample()
     }
     else //last sample -> transition to decay state
     {
-        transitionTo(DahdsrEnvelopeStateIndex::decay, level);
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::decay, level);
         resetState();
         return level;
     }
@@ -398,14 +411,14 @@ double DahdsrEnvelopeState_Hold::getNextEnvelopeSample()
 void DahdsrEnvelopeState_Hold::noteOff()
 {
     //transition directly to release (release starting level is set to the current envelope level)
-    transitionTo(DahdsrEnvelopeStateIndex::release, level);
+    envelope.transitionToState(DahdsrEnvelopeStateIndex::release, level);
     resetState();
 }
 
 void DahdsrEnvelopeState_Hold::forceStop()
 {
     //immediately return to idle
-    transitionTo(DahdsrEnvelopeStateIndex::idle, level);
+    envelope.transitionToState(DahdsrEnvelopeStateIndex::idle, level);
     resetState();
 }
 
@@ -449,15 +462,16 @@ void DahdsrEnvelopeState_Hold::resetState()
 
 #pragma region DahdsrEnvelopeState_Decay
 
-DahdsrEnvelopeState_Decay::DahdsrEnvelopeState_Decay(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
+DahdsrEnvelopeState_Decay::DahdsrEnvelopeState_Decay(DahdsrEnvelope& envelope) : //(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
+    DahdsrEnvelopeState(envelope)
 {
     implementedDahdsrEnvelopeStateIndex = DahdsrEnvelopeStateIndex::decay;
-    this->transitionTo = transitionTo;
+    //this->transitionTo = transitionTo;
 }
 
 DahdsrEnvelopeState_Decay::~DahdsrEnvelopeState_Decay()
 {
-    transitionTo = nullptr;
+    //transitionTo = nullptr;
 }
 
 void DahdsrEnvelopeState_Decay::sampleRateChanged(double newSampleRate, bool triggerTransition)
@@ -471,7 +485,7 @@ void DahdsrEnvelopeState_Decay::sampleRateChanged(double newSampleRate, bool tri
         if (triggerTransition)
         {
             //return to idle state to reset
-            transitionTo(DahdsrEnvelopeStateIndex::idle, 0.0);
+            envelope.transitionToState(DahdsrEnvelopeStateIndex::idle, 0.0);
         }
     }
 }
@@ -479,7 +493,7 @@ void DahdsrEnvelopeState_Decay::sampleRateChanged(double newSampleRate, bool tri
 void DahdsrEnvelopeState_Decay::noteOn()
 {
     //transition back to delay
-    transitionTo(DahdsrEnvelopeStateIndex::delay, envelopeLevelCurrent);
+    envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, envelopeLevelCurrent);
     resetState();
 }
 
@@ -494,7 +508,7 @@ double DahdsrEnvelopeState_Decay::getNextEnvelopeSample()
     }
     else //last sample -> transition to sustain state
     {
-        transitionTo(DahdsrEnvelopeStateIndex::sustain, envelopeLevelEnd);
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::sustain, envelopeLevelEnd);
         resetState();
         return envelopeLevelEnd;
     }
@@ -503,14 +517,14 @@ double DahdsrEnvelopeState_Decay::getNextEnvelopeSample()
 void DahdsrEnvelopeState_Decay::noteOff()
 {
     //transition directly to release (release starting level is set to the current envelope level)
-    transitionTo(DahdsrEnvelopeStateIndex::release, envelopeLevelCurrent);
+    envelope.transitionToState(DahdsrEnvelopeStateIndex::release, envelopeLevelCurrent);
     resetState();
 }
 
 void DahdsrEnvelopeState_Decay::forceStop()
 {
     //immediately return to idle
-    transitionTo(DahdsrEnvelopeStateIndex::idle, envelopeLevelCurrent);
+    envelope.transitionToState(DahdsrEnvelopeStateIndex::idle, envelopeLevelCurrent);
     resetState();
 }
 
@@ -558,7 +572,7 @@ void DahdsrEnvelopeState_Decay::resetState()
     envelopeLevelCurrent = envelopeLevelStart;
 }
 
-void DahdsrEnvelopeState_Decay::updateEnvelopeIncrementPerSample()
+void DahdsrEnvelopeState_Decay::updateEnvelopeIncrementPerSample() noexcept
 {
     if (timeInSamples > 0)
     {
@@ -577,15 +591,16 @@ void DahdsrEnvelopeState_Decay::updateEnvelopeIncrementPerSample()
 
 #pragma region DahdsrEnvelopeState_Sustain
 
-DahdsrEnvelopeState_Sustain::DahdsrEnvelopeState_Sustain(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
+DahdsrEnvelopeState_Sustain::DahdsrEnvelopeState_Sustain(DahdsrEnvelope& envelope) : //(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
+    DahdsrEnvelopeState(envelope)
 {
     implementedDahdsrEnvelopeStateIndex = DahdsrEnvelopeStateIndex::sustain;
-    this->transitionTo = transitionTo;
+    //this->transitionTo = transitionTo;
 }
 
 DahdsrEnvelopeState_Sustain::~DahdsrEnvelopeState_Sustain()
 {
-    transitionTo = nullptr;
+    //transitionTo = nullptr;
 }
 
 void DahdsrEnvelopeState_Sustain::sampleRateChanged(double newSampleRate, bool triggerTransition)
@@ -595,14 +610,14 @@ void DahdsrEnvelopeState_Sustain::sampleRateChanged(double newSampleRate, bool t
     if (triggerTransition)
     {
         //return to idle state to reset
-        transitionTo(DahdsrEnvelopeStateIndex::idle, 0.0);
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::idle, 0.0);
     }
 }
 
 void DahdsrEnvelopeState_Sustain::noteOn()
 {
     //transition back to delay
-    transitionTo(DahdsrEnvelopeStateIndex::delay, level);
+    envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, level);
 }
 
 double DahdsrEnvelopeState_Sustain::getNextEnvelopeSample()
@@ -613,13 +628,13 @@ double DahdsrEnvelopeState_Sustain::getNextEnvelopeSample()
 void DahdsrEnvelopeState_Sustain::noteOff()
 {
     //only transition to the next state (-> release) after the sound is stopping
-    transitionTo(DahdsrEnvelopeStateIndex::release, level);
+    envelope.transitionToState(DahdsrEnvelopeStateIndex::release, level);
 }
 
 void DahdsrEnvelopeState_Sustain::forceStop()
 {
     //immediately return to idle
-    transitionTo(DahdsrEnvelopeStateIndex::idle, level);
+    envelope.transitionToState(DahdsrEnvelopeStateIndex::idle, level);
 }
 
 void DahdsrEnvelopeState_Sustain::setStartingLevel(double startingLevel)
@@ -650,15 +665,16 @@ void DahdsrEnvelopeState_Sustain::resetState()
 
 #pragma region DahdsrEnvelopeState_Release
 
-DahdsrEnvelopeState_Release::DahdsrEnvelopeState_Release(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
+DahdsrEnvelopeState_Release::DahdsrEnvelopeState_Release(DahdsrEnvelope& envelope) : //(std::function<void(DahdsrEnvelopeStateIndex stateToTransitionTo, double currentEnvelopeLevel)> transitionTo)
+    DahdsrEnvelopeState(envelope)
 {
     implementedDahdsrEnvelopeStateIndex = DahdsrEnvelopeStateIndex::release;
-    this->transitionTo = transitionTo;
+    //this->transitionTo = transitionTo;
 }
 
 DahdsrEnvelopeState_Release::~DahdsrEnvelopeState_Release()
 {
-    transitionTo = nullptr;
+    //transitionTo = nullptr;
 }
 
 void DahdsrEnvelopeState_Release::sampleRateChanged(double newSampleRate, bool triggerTransition)
@@ -672,7 +688,7 @@ void DahdsrEnvelopeState_Release::sampleRateChanged(double newSampleRate, bool t
         if (triggerTransition)
         {
             //return to idle state to reset
-            transitionTo(DahdsrEnvelopeStateIndex::idle, 0.0);
+            envelope.transitionToState(DahdsrEnvelopeStateIndex::idle, 0.0);
         }
     }
 }
@@ -680,7 +696,7 @@ void DahdsrEnvelopeState_Release::sampleRateChanged(double newSampleRate, bool t
 void DahdsrEnvelopeState_Release::noteOn()
 {
     //transition back to delay
-    transitionTo(DahdsrEnvelopeStateIndex::delay, envelopeLevelCurrent);
+    envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, envelopeLevelCurrent);
     resetState();
 }
 
@@ -695,7 +711,7 @@ double DahdsrEnvelopeState_Release::getNextEnvelopeSample()
     }
     else //last sample -> back to idle state
     {
-        transitionTo(DahdsrEnvelopeStateIndex::idle, 0.0);
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::idle, 0.0);
         resetState();
         return 0.0; //end level is always zero
     }
@@ -709,7 +725,7 @@ void DahdsrEnvelopeState_Release::noteOff()
 void DahdsrEnvelopeState_Release::forceStop()
 {
     //immediately return to idle
-    transitionTo(DahdsrEnvelopeStateIndex::idle, envelopeLevelCurrent);
+    envelope.transitionToState(DahdsrEnvelopeStateIndex::idle, envelopeLevelCurrent);
     resetState();
 }
 
@@ -746,7 +762,7 @@ void DahdsrEnvelopeState_Release::resetState()
     envelopeLevelCurrent = envelopeLevelStart;
 }
 
-void DahdsrEnvelopeState_Release::updateEnvelopeIncrementPerSample()
+void DahdsrEnvelopeState_Release::updateEnvelopeIncrementPerSample() noexcept
 {
     if (timeInSamples > 0)
     {
