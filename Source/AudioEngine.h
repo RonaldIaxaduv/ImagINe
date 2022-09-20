@@ -75,18 +75,14 @@ public:
         auto* associatedLfo = getLfo(newVoice->getID());
         if (associatedLfo != nullptr)
         {
-            newVoice->setLfoAdvancer(associatedLfo->getAdvancerFunction()); //make the new voice advance the LFO associated with the same region
-            newVoice->setLfoFreqModFunction(associatedLfo->getFrequencyModulationFunction()); //allows the voice to modulate the LFO's frequency
+            //newVoice->setLfoAdvancer(associatedLfo->getAdvancerFunction()); //make the new voice advance the LFO associated with the same region
+            newVoice->setLfo(associatedLfo); //make the new voice advance the LFO associated with the same region
         }
         newVoice->prepare(specs);
 
         synth.addVoice(newVoice);
         return synth.getNumVoices() - 1;
     }
-    //void removeVoice(int index)
-    //{
-    //    synth.removeVoice(index);
-    //}
     juce::Array<Voice*> getVoicesWithID(int regionID)
     {
         juce::Array<Voice*> voiceList;
@@ -182,8 +178,8 @@ public:
                 //all voices belonging to the same region as the LFO will now advance this LFO
                 //(as long as they aren't tailing off, i.e. it's only 1 voice advancing it, but it could be any of these voices)
                 //curVoice->setLfoIndex(newLfoIndex);
-                curVoice->setLfoAdvancer(newLfo->getAdvancerFunction());
-                curVoice->setLfoFreqModFunction(newLfo->getFrequencyModulationFunction()); //allows the voice to modulate the LFO's frequency
+                //curVoice->setLfoAdvancer(newLfo->getAdvancerFunction());
+                curVoice->setLfo(newLfo);
             }
         }
     }
@@ -217,7 +213,8 @@ public:
             auto* curVoice = static_cast<Voice*>(synth.getVoice(i));
             if (curVoice->getID() == regionID)
             {
-                curVoice->setLfoAdvancer([] {; }); //clear advancer function
+                //curVoice->setLfoAdvancer([] {; }); //clear advancer function
+                curVoice->setLfo(nullptr); //clear associated LFO
             }
         }
 

@@ -225,7 +225,7 @@ void RegionEditor::selectFile()
     //shutdownAudio();
 
     fc = std::make_unique<juce::FileChooser>("Select a Wave file shorter than 2 seconds to play...",
-        juce::File{},
+        juce::File(R"(C:\Users\Aaron\Desktop\Musikproduktion\VSTs\Iris 2\Iris 2 Library\Samples)"),
         "*.wav");
     auto chooserFlags = juce::FileBrowserComponent::openMode
         | juce::FileBrowserComponent::canSelectFiles;

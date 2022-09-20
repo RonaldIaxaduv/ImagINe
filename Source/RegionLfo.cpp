@@ -25,6 +25,18 @@ RegionLfo::RegionLfo(const juce::AudioBuffer<float>& waveTable, Polarity polarit
     this->regionID = regionID;
     setWaveTable(waveTable, polarityOfPassedWaveTable); //calculates buffers for both unipolar and bipolar version of the wavetable
 }
+RegionLfo::~RegionLfo()
+{
+    affectedLfos.clear();
+    affectedVoices.clear(false);
+
+    voiceModulationFunctions.clear();
+    lfoModulationFunctions.clear();
+
+    waveTableUnipolar.setSize(0, 0);
+
+    Lfo::~Lfo();
+}
 
 void RegionLfo::setWaveTable(const juce::AudioBuffer<float>& waveTable, Polarity polarityOfPassedWaveTable)
 {
@@ -85,7 +97,7 @@ void RegionLfo::transitionToState(RegionLfoStateIndex stateToTransitionTo)
             break;
 
         case RegionLfoStateIndex::withoutModulatedParameters:
-            if (modulatedParameterIDs.size() > 0)
+            if (getNumModulatedParameterIDs() > 0)
             {
                 if (depth == 0.0f)
                     stateToTransitionTo = RegionLfoStateIndex::muted;
@@ -136,12 +148,12 @@ void RegionLfo::transitionToState(RegionLfoStateIndex stateToTransitionTo)
     currentState = states[static_cast<int>(currentStateIndex)];
 }
 
-std::function<void(float semitonesToAdd)> RegionLfo::getFrequencyModulationFunction()
-{
-    return [this](float semitonesToAdd) { modulateFrequency(semitonesToAdd); };
-
-    //return &modulateFrequency; //type: void (Lfo::*)(float)  ->  would require another include. would that work?
-}
+//std::function<void(float semitonesToAdd)> RegionLfo::getFrequencyModulationFunction()
+//{
+//    return [this](float semitonesToAdd) { modulateFrequency(semitonesToAdd); };
+//
+//    //return &modulateFrequency; //type: void (Lfo::*)(float)  ->  would require another include. would that work?
+//}
 
 juce::Array<int> RegionLfo::getAffectedRegionIDs()
 {
@@ -150,46 +162,177 @@ juce::Array<int> RegionLfo::getAffectedRegionIDs()
     {
         regionIDs.add((*it)->getFirst()->getID()); //all voices within one array are assumed to belong to the same region
     }
+    for (auto it = affectedLfos.begin(); it != affectedLfos.end(); ++it)
+    {
+        regionIDs.add((*it)->regionID);
+    }
     return regionIDs;
 }
 juce::Array<LfoModulatableParameter> RegionLfo::getModulatedParameterIDs()
 {
     juce::Array<LfoModulatableParameter> output;
-    output.addArray(modulatedParameterIDs);
+    output.addArray(modulatedVoiceParameterIDs);
+    output.addArray(modulatedLfoParameterIDs);
     return output;
 }
+int RegionLfo::getNumModulatedParameterIDs()
+{
+    return modulatedVoiceParameterIDs.size() + modulatedLfoParameterIDs.size();
+}
 
-void RegionLfo::addRegionModulation(const juce::Array<Voice*>& newRegionVoices, const std::function<void(float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)>& newModulationFunction, LfoModulatableParameter newModulatedParameterID)
+//void RegionLfo::addRegionModulation(const juce::Array<Voice*>& newRegionVoices, const std::function<void(float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)>& newModulationFunction, LfoModulatableParameter newModulatedParameterID)
+//{
+//    if (newRegionVoices.size() > 0)
+//    {
+//        int newRegionID = newRegionVoices.getFirst()->getID();
+//        removeRegionModulation(newRegionID); //remove modulation if there already is one
+//
+//        juce::Array<Voice*>* newVoices = new juce::Array<Voice*>();
+//        newVoices->addArray(newRegionVoices);
+//        affectedVoices.add(newVoices);
+//
+//        modulationFunctions.add(newModulationFunction);
+//        modulatedParameterIDs.add(newModulatedParameterID);
+//
+//        currentState->modulatedParameterCountChanged(modulatedParameterIDs.size());
+//    }
+//}
+void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParameterID, const juce::Array<Voice*>& newRegionVoices)
 {
     if (newRegionVoices.size() > 0)
     {
         int newRegionID = newRegionVoices.getFirst()->getID();
         removeRegionModulation(newRegionID); //remove modulation if there already is one
 
-        juce::Array<Voice*>* newVoices = new juce::Array<Voice*>();
+        if (newModulatedParameterID == LfoModulatableParameter::none)
+        {
+            return;
+        }
+
+        juce::Array<Voice*>* newVoices = new juce::Array<Voice*>(); //THIS MIGHT STILL CAUSE SOME MEMORY LEAKS ATM! couldn't get the delete to work properly...
         newVoices->addArray(newRegionVoices);
         affectedVoices.add(newVoices);
+        //newVoices->clear();
+        //delete newVoices;
+        //affectedVoices.addArray(newRegionVoices); //this throws an error at compile time because... hell, idek. it seems to have smth to do with how newRegionVoices is defined compared to affectedVoices, but I didn't find a fix for it so far
 
-        modulationFunctions.add(newModulationFunction);
-        modulatedParameterIDs.add(newModulatedParameterID);
+        voiceModFunctionPt voiceModulationFunction = nullptr;
+        switch (newModulatedParameterID) //this only needs to handle parameters associated with Voice members
+        {
+        case LfoModulatableParameter::volume:
+            voiceModulationFunction = [](float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)
+            {
+                v->modulateLevel(static_cast<double>(lfoValueUnipolar * depth));
+            };
+            break;
+        case LfoModulatableParameter::volume_inverted:
+            voiceModulationFunction = [](float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)
+            {
+                v->modulateLevel(1.0 - static_cast<double>(lfoValueUnipolar * depth));
+            };
+            break;
 
-        currentState->modulatedParameterCountChanged(modulatedParameterIDs.size());
+        case LfoModulatableParameter::pitch:
+            voiceModulationFunction = [](float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)
+            {
+                v->modulatePitchShift(static_cast<double>(lfoValueBipolar * depth) * 12.0);
+            };
+            break;
+        case LfoModulatableParameter::pitch_inverted:
+            voiceModulationFunction = [](float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)
+            {
+                v->modulatePitchShift(static_cast<double>(-lfoValueBipolar * depth) * 12.0);
+            };
+            break;
+
+        default:
+            throw std::exception("Unknown or unimplemented voice modulation parameter");
+        }
+
+        voiceModulationFunctions.add(voiceModulationFunction);
+        modulatedVoiceParameterIDs.add(newModulatedParameterID);
+
+        DBG("added voice modulation. new parameter count: " + juce::String(getNumModulatedParameterIDs()));
+        currentState->modulatedParameterCountChanged(getNumModulatedParameterIDs());
+    }
+}
+void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParameterID, RegionLfo* lfo)
+{
+    if (lfo != nullptr)
+    {
+        int newRegionID = lfo->regionID;
+        removeRegionModulation(newRegionID); //remove modulation if there already is one
+
+        if (newModulatedParameterID == LfoModulatableParameter::none)
+        {
+            return;
+        }
+
+        affectedLfos.add(lfo);
+
+        lfoModFunctionPt lfoModulationFunction = nullptr;
+        switch (newModulatedParameterID) //this only needs to handle parameters associated with lfo members
+        {
+        case LfoModulatableParameter::lfoRate:
+            lfoModulationFunction = [](float lfoValueUnipolar, float lfoValueBipolar, float depth, RegionLfo* lfo)
+            {
+                lfo->modulateFrequency(lfoValueBipolar * depth * 12.0f);
+            };
+            break;
+        case LfoModulatableParameter::lfoRate_inverted:
+            lfoModulationFunction = [](float lfoValueUnipolar, float lfoValueBipolar, float depth, RegionLfo* lfo)
+            {
+                lfo->modulateFrequency(-lfoValueBipolar * depth * 12.0f);
+            };
+            break;
+
+        default:
+            throw std::exception("Unknown or unimplemented lfo modulation parameter");
+        }
+
+        lfoModulationFunctions.add(lfoModulationFunction);
+        modulatedLfoParameterIDs.add(newModulatedParameterID);
+
+        DBG("added lfo modulation. new parameter count: " + juce::String(getNumModulatedParameterIDs()));
+        currentState->modulatedParameterCountChanged(getNumModulatedParameterIDs());
     }
 }
 void RegionLfo::removeRegionModulation(int regionID)
 {
     int index = 0;
-    for (auto itRegions = affectedVoices.begin(); itRegions != affectedVoices.end(); ++itRegions, ++index)
+
+    //check voices
+    auto voiceFuncIt = voiceModulationFunctions.begin();
+    for (auto itRegions = affectedVoices.begin(); itRegions != affectedVoices.end(); ++itRegions, ++index, ++voiceFuncIt)
     {
         if ((*itRegions)->getFirst()->getID() == regionID) //region found! -> remove modulation
         {
             affectedVoices.remove(index, true);
-            modulationFunctions.remove(index);
-            modulatedParameterIDs.remove(index);
+            voiceModulationFunctions.remove(index);
+            //voiceModulationFunctions.remove(*voiceFuncIt);
+            modulatedVoiceParameterIDs.remove(index);
 
-            currentState->modulatedParameterCountChanged(modulatedParameterIDs.size());
+            currentState->modulatedParameterCountChanged(getNumModulatedParameterIDs());
 
-            return; //regions can have only one entry at most
+            return; //regions can have only one entry at most (-> no other voice or LFO modulations for that region)
+        }
+    }
+
+    //check LFOs
+    index = 0;
+    auto lfoFuncIt = lfoModulationFunctions.begin();
+    for (auto itRegions = affectedLfos.begin(); itRegions != affectedLfos.end(); ++itRegions, ++index)
+    {
+        if ((*itRegions)->regionID == regionID) //region found! -> remove modulation
+        {
+            affectedLfos.remove(index);
+            lfoModulationFunctions.remove(index);
+            //lfoModulationFunctions.remove(*lfoFuncIt);
+            modulatedLfoParameterIDs.remove(index);
+
+            currentState->modulatedParameterCountChanged(getNumModulatedParameterIDs());
+
+            return; //regions can have only one entry at most (-> no other LFO modulations for that region)
         }
     }
 }
@@ -205,6 +348,8 @@ void RegionLfo::advance()
 }
 void RegionLfo::advanceUnsafeWithUpdate()
 {
+    //doesn't check whether the wavetable actually contains samples, saving one if case per sample
+
     evaluateFrequencyModulation();
 
     currentTablePos += tablePosDelta;
@@ -214,10 +359,13 @@ void RegionLfo::advanceUnsafeWithUpdate()
     }
 
     updateCurrentValues();
-    updateModulatedParameter();
+    updateModulatedParameterUnsafe(); //saves one more if case compared to the normal update
 }
 void RegionLfo::advanceUnsafeWithoutUpdate()
 {
+    //update currentTablePos without updating the current LFO value nor the modulated parameters
+    //doesn't check whether the wavetable actually contains samples, saving one if case per sample
+
     evaluateFrequencyModulation();
 
     currentTablePos += tablePosDelta;
@@ -248,15 +396,65 @@ void RegionLfo::updateModulatedParameter()
 {
     if (waveTable.getNumSamples() > 0) //WIP: might be better to create a separate LFO state (-> state model) for when the wavetable is empty. otherwise, this is called during every sample and unnecessarily takes up resources that way
     {
-        auto itFunc = modulationFunctions.begin();
-        for (auto itRegion = affectedVoices.begin(); itRegion != affectedVoices.end(); ++itRegion, ++itFunc)
+        //auto itFunc = modulationFunctions.begin();
+        //for (auto itRegion = affectedVoices.begin(); itRegion != affectedVoices.end(); ++itRegion, ++itFunc)
+        //{
+        //    auto modulationFunction = *itFunc;
+        //    for (auto itVoice = (*itRegion)->begin(); itVoice != (*itRegion)->end(); ++itVoice)
+        //    {
+        //        modulationFunction(currentValueUnipolar, currentValueBipolar, depth, *itVoice); //one modulation function per region, applied to all voices of that region
+        //    }
+        //}
+
+        //voice modulations
+        auto itVoiceFunc = voiceModulationFunctions.begin();
+        for (auto itRegion = affectedVoices.begin(); itRegion != affectedVoices.end(); ++itRegion, ++itVoiceFunc)
         {
-            auto modulationFunction = *itFunc;
-            for (auto itVoice = (*itRegion)->begin(); itVoice != (*itRegion)->end(); ++itVoice)
+            auto voiceModulationFunction = *itVoiceFunc;
+            auto regionVoices = *itRegion;
+            for (auto itVoice = regionVoices->begin(); itVoice != regionVoices->end(); ++itVoice)
             {
-                modulationFunction(currentValueUnipolar, currentValueBipolar, depth, *itVoice); //one modulation function per region, applied to all voices of that region
+                voiceModulationFunction(currentValueUnipolar, currentValueBipolar, depth, *itVoice); //one modulation function per region. voice mods are applied to all voices of that region
             }
         }
+
+        //LFO modulations
+        auto itLfoFunc = lfoModulationFunctions.begin();
+        for (auto itRegion = affectedLfos.begin(); itRegion != affectedLfos.end(); ++itRegion, ++itLfoFunc)
+        {
+            (*itLfoFunc)(currentValueUnipolar, currentValueBipolar, depth, *itRegion);
+        }
+    }
+}
+void RegionLfo::updateModulatedParameterUnsafe()
+{
+    //auto itFunc = modulationFunctions.begin();
+    //for (auto itRegion = affectedVoices.begin(); itRegion != affectedVoices.end(); ++itRegion, ++itFunc)
+    //{
+    //    auto modulationFunction = *itFunc;
+    //    for (auto itVoice = (*itRegion)->begin(); itVoice != (*itRegion)->end(); ++itVoice)
+    //    {
+    //        modulationFunction(currentValueUnipolar, currentValueBipolar, depth, *itVoice); //one modulation function per region, applied to all voices of that region
+    //    }
+    //}
+
+    //voice modulations
+    auto itVoiceFunc = voiceModulationFunctions.begin();
+    for (auto itRegion = affectedVoices.begin(); itRegion != affectedVoices.end(); ++itRegion, ++itVoiceFunc)
+    {
+        auto voiceModulationFunction = *itVoiceFunc;
+        auto regionVoices = *itRegion;
+        for (auto itVoice = regionVoices->begin(); itVoice != regionVoices->end(); ++itVoice)
+        {
+            voiceModulationFunction(currentValueUnipolar, currentValueBipolar, depth, *itVoice); //one modulation function per region. voice mods are applied to all voices of that region
+        }
+    }
+
+    //LFO modulations
+    auto itLfoFunc = lfoModulationFunctions.begin();
+    for (auto itRegion = affectedLfos.begin(); itRegion != affectedLfos.end(); ++itRegion, ++itLfoFunc)
+    {
+        (*itLfoFunc)(currentValueUnipolar, currentValueBipolar, depth, *itRegion);
     }
 }
 

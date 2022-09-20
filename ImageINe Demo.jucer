@@ -53,6 +53,7 @@
       <FILE id="Chjdrc" name="SamplerOscillator.h" compile="0" resource="0"
             file="Source/SamplerOscillator.h"/>
       <FILE id="kh1aPr" name="Voice.h" compile="0" resource="0" file="Source/Voice.h"/>
+      <FILE id="uwA6k0" name="Voice.cpp" compile="1" resource="0" file="Source/Voice.cpp"/>
       <FILE id="JWS5Od" name="AudioEngine.h" compile="0" resource="0" file="Source/AudioEngine.h"/>
       <FILE id="m8U4QV" name="SegmentableImage.h" compile="0" resource="0"
             file="Source/SegmentableImage.h"/>

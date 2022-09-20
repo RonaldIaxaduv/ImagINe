@@ -12,7 +12,9 @@
 
 #include <JuceHeader.h>
 #include "Lfo.h"
+
 #include "Voice.h"
+struct Voice;
 
 #include "RegionLfoStateIndex.h"
 
@@ -29,7 +31,7 @@ class RegionLfoState_Active;
 /// <summary>
 /// an LFO which is associated with a SegmentedRegion and its Voice(s)
 /// </summary>
-class RegionLfo : public Lfo
+class RegionLfo final : public Lfo
 {
 public:
     enum Polarity : int
@@ -39,6 +41,7 @@ public:
     };
 
     RegionLfo(const juce::AudioBuffer<float>& waveTable, Polarity polarityOfPassedWaveTable, int regionID);
+    ~RegionLfo();
 
     void setWaveTable(const juce::AudioBuffer<float>& waveTable, Polarity polarityOfPassedWaveTable);
 
@@ -46,12 +49,15 @@ public:
 
     void transitionToState(RegionLfoStateIndex stateToTransitionTo);
 
-    std::function<void(float semitonesToAdd)> getFrequencyModulationFunction();
+    //std::function<void(float semitonesToAdd)> getFrequencyModulationFunction();
 
     juce::Array<int> getAffectedRegionIDs();
     juce::Array<LfoModulatableParameter> getModulatedParameterIDs();
+    int getNumModulatedParameterIDs();
 
-    void addRegionModulation(const juce::Array<Voice*>& newRegionVoices, const std::function<void(float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)>& newModulationFunction, LfoModulatableParameter newModulatedParameterID);
+    //void addRegionModulation(const juce::Array<Voice*>& newRegionVoices, const std::function<void(float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)>& newModulationFunction, LfoModulatableParameter newModulatedParameterID);
+    void addRegionModulation(LfoModulatableParameter newModulatedParameterID, const juce::Array<Voice*>& newRegionVoices);
+    void addRegionModulation(LfoModulatableParameter newModulatedParameterID, RegionLfo* newRegionLfo);
     void removeRegionModulation(int regionID);
 
     int getRegionID();
@@ -70,11 +76,24 @@ protected:
     RegionLfoStateIndex currentStateIndex;
     RegionLfoState* currentState = nullptr; //provides at least one less array lookup during each access (i.e. every sample)
 
-    juce::OwnedArray<juce::Array<Voice*>> affectedVoices; //one array per modulated region (contains all voices of that region)
-    juce::Array<std::function<void(float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)>> modulationFunctions; //one function per modulated region; having both polarities' values in the function makes it easy and efficient (no ifs or pointers necessary!) to choose between them when defining the modulation function
-    juce::Array<LfoModulatableParameter> modulatedParameterIDs;
+    //juce::Array<std::function<void(float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)>> modulationFunctions; //one function per modulated region; having both polarities' values in the function makes it easy and efficient (no ifs or pointers necessary!) to choose between them when defining the modulation function
 
-    juce::AudioBuffer<float> waveTableUnipolar;
+    juce::Array<LfoModulatableParameter> modulatedVoiceParameterIDs;
+    typedef void(*voiceModFunctionPt)(float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v);
+    //typedef juce::HeapBlock<void(*)(float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)>::Type> voiceModFunctionElement;
+    //juce::Array<void(*)(float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)> voiceModulationFunctions; //THIS CURRENTLY GIVES EXCEPTIONS BECAUSE IT DOESN'T ACTUALLY STORE THE VOICE POINTERS FOR SOME REASON... //one function per modulated voice; having both polarities' values in the function makes it easy and efficient (no ifs or pointers necessary!) to choose between them when defining the modulation function
+    //std::list<voiceModFunctionPt> voiceModulationFunctions; //one function per modulated voice; having both polarities' values in the function makes it easy and efficient (no ifs or pointers necessary!) to choose between them when defining the modulation function
+    juce::Array<voiceModFunctionPt> voiceModulationFunctions;
+    //voiceModFunctionPt[] voiceModulationFunctions;
+    juce::OwnedArray<juce::Array<Voice*>> affectedVoices; //one array per entry of voiceModulationFunctions (contains all voices of one single region)
+
+    juce::Array<LfoModulatableParameter> modulatedLfoParameterIDs;
+    typedef void(*lfoModFunctionPt)(float lfoValueUnipolar, float lfoValueBipolar, float depth, RegionLfo* lfo);
+    juce::Array<lfoModFunctionPt> lfoModulationFunctions; //one function per modulated lfo
+    //std::list<lfoModFunctionPt> lfoModulationFunctions; //one function per modulated lfo
+    juce::Array<RegionLfo*> affectedLfos; //one per entry of lfoModulationFunctions
+
+    juce::AudioBuffer<float> waveTableUnipolar; //the Lfo::waveTable member is treated as being bipolar
 
     float currentValueUnipolar = 0.0f;
     float currentValueBipolar = 0.0f;
@@ -84,6 +103,7 @@ protected:
     void updateCurrentValues();
 
     void updateModulatedParameter() override;
+    void updateModulatedParameterUnsafe();
 
     void calculateUnipolarWaveTable();
     void calculateBipolarWaveTable();

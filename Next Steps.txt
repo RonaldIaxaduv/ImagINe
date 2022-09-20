@@ -75,11 +75,22 @@
 	-> the bug was, that the reference point used wasn't actually the focus point *relative to the size of the region*, but actually the raw focus point - i.e. the focus point was assumed to always be in the top-left corner (between (0.0, 0.0) and (1.0, 1.0)...)
 - improvements to processing speed
 	-> implementing states in a cleaner fashion would probably help the most since it'd cut down on tons of if-cases
-	# implement states for Lfo and/or(?) RegionLfo
-	- get rid of std::function in RegionLfo
-	- add a parameter "update time" (or so - just don't use frequency since it needs to be in s, not 1/s) to the Lfo class -> adjustable by the user, 0.0s (real-time updates) allowed
-	- implement states for Voice
-	- maybe switch to function templates instead of std::function -> see https://stackoverflow.com/questions/25848690/should-i-use-stdfunction-or-a-function-pointer-in-c
+	!# implement states for Lfo and/or(?) RegionLfo
+	!# get rid of std::function in RegionLfo
+		/ neither juce::Array nor std::list nor juce::OwnedArray seem to be able to store function pointers for some weird reason...
+			-> do some tests in a separate program
+				- try arrays (-> would require lots of annoying dynamic memory re-allocation, so let's hope this isn't the only way to do it...)
+				- try struct(/union?) containing the function pointer and make that the element of the list (-> less efficient?)
+				?- just define functions in the class instead of using lambdas, and store pointers to those functions instead?
+		?-> actually, juce::Array does seem to work, I believe the problem was that the switch case was skipped (wrong variable...) and that led to the error message
+	!# get rid of std::function in Voice
+		# create a cpp file and simply use a pointer to the RegionLfo instead (will currently require an additional if case, but that will be addressed through the Voice states later)
+	!- add a parameter "update time" (or so - just don't use frequency since it needs to be in s, not 1/s) to the Lfo class -> adjustable by the user, 0.0s (real-time updates) allowed
+	!- add a new generic class ModulatableParameter. this class contains the parameter's base value as well as the current modulated value. it also contains a modulator list to which LFOs can add(/remove) themselves
+		!- important trick: the class has states which show whether any modulator has updated its value. the new value is only calculated (-> lots of multiplications) when something tries to access the modulated value - instead of updating it every time any modulator updates (which would be much slower). using states (instead of a bool and an if) saves 1 if per sample per modulated value per voice/LFO, so they're crucial
+		- adding new modulators: the modulated value creates a new entry (generic value - float or double in this case) in its list of modulators. the modulator (LFO) gets a pointer to that entry (-> quick update) and also saves a reference to the ModulatableParameter class to call a method "hasUpdated" (or so) whenever the modulator updates the value
+	!- implement states for Voice
+	- switch to function templates or function pointers instead of std::function -> see https://stackoverflow.com/questions/25848690/should-i-use-stdfunction-or-a-function-pointer-in-c
 		https://vittorioromeo.info/index/blog/passing_functions_to_functions.html
 		https://stackoverflow.com/questions/43948240/sfinae-failing-when-evaluating-a-constexpr-in-a-template-parameter/43949301?noredirect=1#comment74933533_43949301
 		https://stackoverflow.com/questions/28746744/passing-capturing-lambda-as-function-pointer/28746827#28746827
@@ -102,7 +113,7 @@
 		- note also: https://stackoverflow.com/questions/51705967/advantages-of-pass-by-value-and-stdmove-over-pass-by-reference
 		- first comment of the first reply here is also important: https://stackoverflow.com/questions/21215409/does-c-pass-objects-by-value-or-reference
 			- for a more direct example: https://stackoverflow.com/questions/9293674/can-we-reassign-the-reference-in-c#9293732
-	- declare methods which don't change member variables const: https://stackoverflow.com/questions/24500909/passing-class-reference-to-function
+	- declare methods as const if they don't change member variables: https://stackoverflow.com/questions/24500909/passing-class-reference-to-function
 - bug: the LFO line doesn't keep updating while the voice is tailing off (-> just create a bool variable isPlaying in Voice that's checked for that purpose)
 - is there a way to make it so that modulation of other regions remains at the current modulation value even when the region modulating it stops playing?
 	-> example: currently, if region 1 modulates region 2's volume, the modulation stops after region 1 stops playing (i.e. region 2 plays with its base volume - not the base volume multiplied with the LFO value of region 1 that was last measured). is there a way to apply the LFO's modulation independent from a region playing?
@@ -111,7 +122,7 @@
 		- problem: this would require either the audio engine or the LFOs to keep track of which LFOs are playing, which could require additional if-cases every sample...
 			!- solution part 1: when implementing the DAHDSR envelope for the LFOs, it would require them to keep track of whether or not they are playing anyway -> two birds with one stone!
 			!- solution part 2: after implementing states for the LFOs and the DAHDSR, there might as well be "Playing" and "Not Playing" states, converting the additional if cases to quick array accesses
-			-> definitely doable! now the only remaining question is whether evaluating the LFOs before rendering the voices changes the sound too much
+			-> definitely doable! now the only remaining question is whether evaluating the LFOs before rendering the voices significantly changes the sound
 	- idea 2: maybe don't use a single variable to accumulate modulations. instad, use a list of modulation values with are multiplied/summed during every sample. when an LFO starts modulating a value, its value is inserted into the list and updated after every sample - but only removed when the LFO is deleted or starts modulating a different value. downside: more operations during every sample
 (- implement more LFO-modulatable parameters)
 - update LFO menu (might not be necessary anymore depending on what has been done at the point that this is next)

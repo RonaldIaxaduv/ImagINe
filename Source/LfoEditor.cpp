@@ -136,76 +136,22 @@ void LfoEditor::updateLfoParameter(int targetRegionID, bool shouldBeModulated, L
         return;
     }
     
-    //the remaining code is only for adding modulations
-
-    std::function<void(float, float, float, Voice* v)> func;
+    //there are different overloads for RegionLfo::addRegionModulation depending on whether a voice is modulated or an LFO
     switch (modulatedParameter)
     {
     case LfoModulatableParameter::volume:
-        func = [](float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)
-        {
-            v->modulateLevel(static_cast<double>(lfoValueUnipolar * depth));
-        };
-        break;
     case LfoModulatableParameter::volume_inverted:
-        func = [](float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)
-        {
-            v->modulateLevel(static_cast<double>((1 - lfoValueUnipolar) * depth));
-        };
-        break;
-
-
     case LfoModulatableParameter::pitch:
-        func = [](float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)
-        {
-            v->modulatePitchShift(static_cast<double>(lfoValueBipolar * depth) * 12.0);
-        };
-        break;
     case LfoModulatableParameter::pitch_inverted:
-        func = [](float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)
-        {
-            v->modulatePitchShift(static_cast<double>(-lfoValueBipolar * depth) * 12.0);
-        };
+        associatedLfo->addRegionModulation(modulatedParameter, audioEngine->getVoicesWithID(targetRegionID));
         break;
-
 
     case LfoModulatableParameter::lfoRate:
-        func = [](float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)
-        {
-            v->getLfoFreqModFunction()(static_cast<double>(lfoValueBipolar * depth) * 24.0);
-        };
-        break;
     case LfoModulatableParameter::lfoRate_inverted:
-        func = [](float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)
-        {
-            v->getLfoFreqModFunction()(static_cast<double>(-lfoValueBipolar * depth) * 24.0);
-        };
+        associatedLfo->addRegionModulation(modulatedParameter, audioEngine->getLfo(targetRegionID));
         break;
-
-
-    case LfoModulatableParameter::playbackPosition:
-        //WIP
-        break;
-    case LfoModulatableParameter::playbackPosition_inverted:
-        //WIP
-        break;
-
 
     default:
-        throw std::exception("invalid modulated parameter ID");
+        throw std::exception("Unknown or unimplemented region modulation");
     }
-
-    associatedLfo->addRegionModulation(audioEngine->getVoicesWithID(targetRegionID), func, modulatedParameter); //also overwrites existing modulation if this region had already been modulated
 }
-
-//void LfoEditor::updateLfoVoices(juce::Array<int> voiceIndices)
-//{
-//    juce::Array<Voice*> voices;
-//    for (auto it = voiceIndices.begin(); it != voiceIndices.end(); ++it)
-//    {
-//        voices.addArray(audioEngine->getVoicesWithID(*it));
-//    }
-//    associatedLfo->setVoices(voices);
-//
-//    DBG("voices updated.");
-//}

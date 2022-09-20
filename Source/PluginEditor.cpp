@@ -107,7 +107,7 @@ void ImageINeDemoAudioProcessorEditor::showLoadImageDialogue()
 {
     //image.setImage(juce::ImageFileFormat::loadFrom(juce::File("C:\\Users\\Aaron\\Desktop\\Programmierung\\GitHub\\ImageSegmentationTester\\Test Images\\Re_Legion_big+.jpg")));
 
-    fc.reset(new juce::FileChooser("Choose an image to open...", juce::File::getCurrentWorkingDirectory(),
+    fc.reset(new juce::FileChooser("Choose an image to open...", juce::File(R"(C:\Users\Aaron\Desktop\Programmierung\GitHub\ImageSegmentationTester\Test Images)") /*juce::File::getCurrentWorkingDirectory()*/,
         "*.jpg;*.jpeg;*.png;*.gif;*.bmp", true));
 
     fc->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
