@@ -121,3 +121,20 @@ public:
 
     //void updateModulatedParameter() override;
 };
+
+class RegionLfoState_ActiveRealTime final : public RegionLfoState //same as RegionLfoState_Active, except that advance() uses 1 if case less (samplesUntilUpdate needn't be checked)
+{
+public:
+    RegionLfoState_ActiveRealTime(RegionLfo& lfo);
+    ~RegionLfoState_ActiveRealTime();
+
+    void prepared(double newSampleRate) override;
+
+    void waveTableSet(int numSamples) override;
+    void modulationDepthChanged(float newDepth) override;
+    void modulatedParameterCountChanged(int newCount) override;
+
+    void advance() override;
+
+    //void updateModulatedParameter() override;
+};

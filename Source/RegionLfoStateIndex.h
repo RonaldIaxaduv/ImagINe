@@ -17,5 +17,6 @@ enum struct RegionLfoStateIndex : int
     withoutModulatedParameters,
     muted, //modulation depth is zero
     active,
+    activeRealTime,
     StateIndexCount
 };

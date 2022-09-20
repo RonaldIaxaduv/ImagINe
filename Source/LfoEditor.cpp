@@ -18,6 +18,7 @@ LfoEditor::LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo)
     this->audioEngine = audioEngine;
     this->associatedLfo = associatedLfo;
 
+    //rate
     lfoRateSlider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
     lfoRateSlider.setTextValueSuffix("Hz");
     lfoRateSlider.setRange(0.01, 100.0, 0.01);
@@ -28,6 +29,18 @@ LfoEditor::LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo)
     lfoRateLabel.setText("LFO rate: ", juce::NotificationType::dontSendNotification);
     addAndMakeVisible(lfoRateLabel);
     lfoRateLabel.attachToComponent(&lfoRateSlider, true);
+
+    //update interval
+    lfoUpdateIntervalSlider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
+    lfoUpdateIntervalSlider.setTextValueSuffix("ms");
+    lfoUpdateIntervalSlider.setRange(0.0, 10000.0, 0.01);
+    lfoUpdateIntervalSlider.setSkewFactorFromMidPoint(100.0);
+    lfoUpdateIntervalSlider.onValueChange = [this] { updateLfoUpdateInterval(); };
+    addAndMakeVisible(lfoUpdateIntervalSlider);
+
+    lfoUpdateIntervalLabel.setText("Update Interval: ", juce::NotificationType::dontSendNotification);
+    addAndMakeVisible(lfoUpdateIntervalLabel);
+    lfoUpdateIntervalLabel.attachToComponent(&lfoUpdateIntervalSlider, true);
 
     //lfoParameterChoice.addSectionHeading("Basic");
     //lfoParameterChoice.addItem("Volume", static_cast<int>(LfoModulatableParameter::volume));
@@ -69,6 +82,10 @@ void LfoEditor::resized()
     lfoRateLabel.setBounds(lfoRateArea.removeFromLeft(lfoRateArea.getWidth() / 3));
     lfoRateSlider.setBounds(lfoRateArea);
 
+    auto lfoUpdateIntervalArea = area.removeFromTop(20);
+    lfoUpdateIntervalLabel.setBounds(lfoUpdateIntervalArea.removeFromLeft(lfoUpdateIntervalArea.getWidth() / 3));
+    lfoUpdateIntervalSlider.setBounds(lfoUpdateIntervalArea);
+
     /*auto lfoParamArea = area.removeFromTop(20);
     lfoParameterLabel.setBounds(lfoParamArea.removeFromLeft(lfoParamArea.getWidth() / 3));
     lfoParameterChoice.setBounds(lfoParamArea);*/
@@ -80,6 +97,8 @@ void LfoEditor::copyParameters()
 {
     //copy rate
     lfoRateSlider.setValue(associatedLfo->getBaseFrequency(), juce::NotificationType::dontSendNotification);
+
+    lfoUpdateIntervalSlider.setValue(associatedLfo->getUpdateInterval_Milliseconds(), juce::NotificationType::dontSendNotification);
 
     //copy modulated parameters
     //if (static_cast<int>(associatedLfo->getModulatedParameterID()) > 0) //parameter IDs start with 1 (0 isn't included because of how selected item IDs work with ComboBoxes in juce)
@@ -126,6 +145,10 @@ void LfoEditor::changeListenerCallback(juce::ChangeBroadcaster* source)
 void LfoEditor::updateLfoRate()
 {
     associatedLfo->setBaseFrequency(lfoRateSlider.getValue());
+}
+void LfoEditor::updateLfoUpdateInterval()
+{
+    associatedLfo->setUpdateInterval_Milliseconds(static_cast<float>(lfoUpdateIntervalSlider.getValue()));
 }
 
 void LfoEditor::updateLfoParameter(int targetRegionID, bool shouldBeModulated, LfoModulatableParameter modulatedParameter)

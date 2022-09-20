@@ -49,13 +49,10 @@ public:
 
     void transitionToState(RegionLfoStateIndex stateToTransitionTo);
 
-    //std::function<void(float semitonesToAdd)> getFrequencyModulationFunction();
-
     juce::Array<int> getAffectedRegionIDs();
     juce::Array<LfoModulatableParameter> getModulatedParameterIDs();
     int getNumModulatedParameterIDs();
 
-    //void addRegionModulation(const juce::Array<Voice*>& newRegionVoices, const std::function<void(float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)>& newModulationFunction, LfoModulatableParameter newModulatedParameterID);
     void addRegionModulation(LfoModulatableParameter newModulatedParameterID, const juce::Array<Voice*>& newRegionVoices);
     void addRegionModulation(LfoModulatableParameter newModulatedParameterID, RegionLfo* newRegionLfo);
     void removeRegionModulation(int regionID);
@@ -65,40 +62,49 @@ public:
     void advance() override;
     void advanceUnsafeWithUpdate();
     void advanceUnsafeWithoutUpdate();
-    std::function<void()> getAdvancerFunction();
+
+    int samplesUntilUpdate = 0; //see updateInterval variable
+    void resetSamplesUntilUpdate();
+    //void setUpdateInterval_Samples(int newUpdateInterval);
+    //int getUpdateInterval_Samples();
+    void setUpdateInterval_Milliseconds(float newUpdateIntervalMs);
+    float getUpdateInterval_Milliseconds();
+    void prepareUpdateInterval();
 
 protected:
     int regionID;
 
+    //states
     RegionLfoState* states[static_cast<int>(RegionLfoStateIndex::StateIndexCount)]; //fixed size -> more efficient access
 
     static const RegionLfoStateIndex initialStateIndex = RegionLfoStateIndex::unprepared;
     RegionLfoStateIndex currentStateIndex;
     RegionLfoState* currentState = nullptr; //provides at least one less array lookup during each access (i.e. every sample)
 
-    //juce::Array<std::function<void(float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)>> modulationFunctions; //one function per modulated region; having both polarities' values in the function makes it easy and efficient (no ifs or pointers necessary!) to choose between them when defining the modulation function
+    bool isPrepared();
 
+    //modulated parameters
     juce::Array<LfoModulatableParameter> modulatedVoiceParameterIDs;
     typedef void(*voiceModFunctionPt)(float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v);
-    //typedef juce::HeapBlock<void(*)(float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)>::Type> voiceModFunctionElement;
-    //juce::Array<void(*)(float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v)> voiceModulationFunctions; //THIS CURRENTLY GIVES EXCEPTIONS BECAUSE IT DOESN'T ACTUALLY STORE THE VOICE POINTERS FOR SOME REASON... //one function per modulated voice; having both polarities' values in the function makes it easy and efficient (no ifs or pointers necessary!) to choose between them when defining the modulation function
-    //std::list<voiceModFunctionPt> voiceModulationFunctions; //one function per modulated voice; having both polarities' values in the function makes it easy and efficient (no ifs or pointers necessary!) to choose between them when defining the modulation function
     juce::Array<voiceModFunctionPt> voiceModulationFunctions;
-    //voiceModFunctionPt[] voiceModulationFunctions;
     juce::OwnedArray<juce::Array<Voice*>> affectedVoices; //one array per entry of voiceModulationFunctions (contains all voices of one single region)
 
     juce::Array<LfoModulatableParameter> modulatedLfoParameterIDs;
     typedef void(*lfoModFunctionPt)(float lfoValueUnipolar, float lfoValueBipolar, float depth, RegionLfo* lfo);
     juce::Array<lfoModFunctionPt> lfoModulationFunctions; //one function per modulated lfo
-    //std::list<lfoModFunctionPt> lfoModulationFunctions; //one function per modulated lfo
     juce::Array<RegionLfo*> affectedLfos; //one per entry of lfoModulationFunctions
 
+    //unipolar/bipolar stuff
     juce::AudioBuffer<float> waveTableUnipolar; //the Lfo::waveTable member is treated as being bipolar
 
     float currentValueUnipolar = 0.0f;
     float currentValueBipolar = 0.0f;
 
+    //other
     float depth = 1.0f; //make this modulatable later
+
+    int updateInterval = 0; //the LFO doesn't update with every sample. instead, a certain time interval (in samples) needs to pass until another update happens. higher values should generally decrease CPU usage.
+    float updateIntervalMs = 0.0f; //update interval in milliseconds
 
     void updateCurrentValues();
 

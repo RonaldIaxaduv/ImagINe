@@ -278,7 +278,15 @@ void RegionLfoState_Active::modulatedParameterCountChanged(int newCount)
 
 void RegionLfoState_Active::advance()
 {
-    lfo.advanceUnsafeWithUpdate();
+    if (lfo.samplesUntilUpdate--) //only update when samplesUntilUpdate == 0
+    {
+        lfo.advanceUnsafeWithoutUpdate();
+    }
+    else
+    {
+        lfo.advanceUnsafeWithUpdate();
+        lfo.resetSamplesUntilUpdate();
+    }
 }
 
 //void RegionLfoState_Active::updateModulatedParameter()
@@ -287,3 +295,62 @@ void RegionLfoState_Active::advance()
 //}
 
 #pragma endregion RegionLfoState_Active
+
+
+
+
+#pragma region RegionLfoState_ActiveRealTime
+
+RegionLfoState_ActiveRealTime::RegionLfoState_ActiveRealTime(RegionLfo& lfo) :
+    RegionLfoState(lfo)
+{
+    implementedRegionLfoStateIndex = RegionLfoStateIndex::active;
+}
+
+RegionLfoState_ActiveRealTime::~RegionLfoState_ActiveRealTime()
+{ }
+
+void RegionLfoState_ActiveRealTime::prepared(double newSampleRate)
+{
+    if (newSampleRate <= 0.0)
+    {
+        lfo.transitionToState(RegionLfoStateIndex::unprepared);
+    }
+}
+
+void RegionLfoState_ActiveRealTime::waveTableSet(int numSamples)
+{
+    if (numSamples == 0)
+    {
+        lfo.transitionToState(RegionLfoStateIndex::withoutWaveTable);
+    }
+}
+
+void RegionLfoState_ActiveRealTime::modulationDepthChanged(float newDepth)
+{
+    if (newDepth == 0.0f)
+    {
+        lfo.transitionToState(RegionLfoStateIndex::muted);
+    }
+}
+
+void RegionLfoState_ActiveRealTime::modulatedParameterCountChanged(int newCount)
+{
+    if (newCount == 0)
+    {
+        lfo.transitionToState(RegionLfoStateIndex::withoutModulatedParameters);
+    }
+}
+
+void RegionLfoState_ActiveRealTime::advance()
+{
+    //doesn't need to check for samplesUntilUpdate -> saves 1 if case
+    lfo.advanceUnsafeWithUpdate();
+}
+
+//void RegionLfoState_ActiveRealTime::updateModulatedParameter()
+//{
+//    updateParameterFunc();
+//}
+
+#pragma endregion RegionLfoState_ActiveRealTime

@@ -85,16 +85,21 @@
 		?-> actually, juce::Array does seem to work, I believe the problem was that the switch case was skipped (wrong variable...) and that led to the error message
 	!# get rid of std::function in Voice
 		# create a cpp file and simply use a pointer to the RegionLfo instead (will currently require an additional if case, but that will be addressed through the Voice states later)
-	!- add a parameter "update time" (or so - just don't use frequency since it needs to be in s, not 1/s) to the Lfo class -> adjustable by the user, 0.0s (real-time updates) allowed
+	!#(?) add a parameter "update time" (or so - just don't use frequency since it needs to be in s, not 1/s) to the Lfo class -> adjustable by the user, 0.0s (real-time updates) explicitly allowed!
+		# this does require another if case, but since branch prediction should be easy in this case (simple decrements will occur more often than updates), it should be fine-ish. the true performance increase will occur in combination with the ModulatableParameter class
+			(concerning the branch prediction, see https://igoro.com/archive/fast-and-slow-if-statements-branch-prediction-in-modern-processors/ )
+		# for a slight performance boost for the 0s case, make that into one or more separate RegionLfo state(s)
+		-> NOTE: this won't be audible until the ModulatableParameter class has been implemented (see below)
 	!- add a new generic class ModulatableParameter. this class contains the parameter's base value as well as the current modulated value. it also contains a modulator list to which LFOs can add(/remove) themselves
 		!- important trick: the class has states which show whether any modulator has updated its value. the new value is only calculated (-> lots of multiplications) when something tries to access the modulated value - instead of updating it every time any modulator updates (which would be much slower). using states (instead of a bool and an if) saves 1 if per sample per modulated value per voice/LFO, so they're crucial
 		- adding new modulators: the modulated value creates a new entry (generic value - float or double in this case) in its list of modulators. the modulator (LFO) gets a pointer to that entry (-> quick update) and also saves a reference to the ModulatableParameter class to call a method "hasUpdated" (or so) whenever the modulator updates the value
 	!- implement states for Voice
-	- switch to function templates or function pointers instead of std::function -> see https://stackoverflow.com/questions/25848690/should-i-use-stdfunction-or-a-function-pointer-in-c
+	# switch to function templates or function pointers instead of std::function -> see https://stackoverflow.com/questions/25848690/should-i-use-stdfunction-or-a-function-pointer-in-c
 		https://vittorioromeo.info/index/blog/passing_functions_to_functions.html
 		https://stackoverflow.com/questions/43948240/sfinae-failing-when-evaluating-a-constexpr-in-a-template-parameter/43949301?noredirect=1#comment74933533_43949301
 		https://stackoverflow.com/questions/28746744/passing-capturing-lambda-as-function-pointer/28746827#28746827
 		https://stackoverflow.com/questions/9054774/difference-between-stdfunction-and-a-standard-function-pointer/9054802#9054802
+		-> function pointers were the way to go in this case
 	- make use of certain keywords
 		- noexcept: tells the compiler that the method won't throw any exceptions -> more optimisations possible
 		- inline / __forceinline: tell the compiler that the method should be inlined

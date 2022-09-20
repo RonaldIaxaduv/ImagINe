@@ -38,12 +38,16 @@ private:
     juce::Label lfoRateLabel;
     juce::Slider lfoRateSlider;
 
+    juce::Label lfoUpdateIntervalLabel;
+    juce::Slider lfoUpdateIntervalSlider;
+
     //juce::Label lfoParameterLabel;
     //juce::ComboBox lfoParameterChoice;
 
     CheckBoxList lfoRegionsList;
 
     void updateLfoRate();
+    void updateLfoUpdateInterval();
 
     void updateLfoParameter(int targetRegionID, bool shouldBeModulated, LfoModulatableParameter modulatedParameter);
 

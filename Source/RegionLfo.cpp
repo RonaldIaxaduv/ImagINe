@@ -18,6 +18,7 @@ RegionLfo::RegionLfo(const juce::AudioBuffer<float>& waveTable, Polarity polarit
     states[static_cast<int>(RegionLfoStateIndex::withoutModulatedParameters)] = static_cast<RegionLfoState*>(new RegionLfoState_WithoutModulatedParameters(*this));
     states[static_cast<int>(RegionLfoStateIndex::muted)] = static_cast<RegionLfoState*>(new RegionLfoState_Muted(*this));
     states[static_cast<int>(RegionLfoStateIndex::active)] = static_cast<RegionLfoState*>(new RegionLfoState_Active(*this));
+    states[static_cast<int>(RegionLfoStateIndex::activeRealTime)] = static_cast<RegionLfoState*>(new RegionLfoState_ActiveRealTime(*this));
 
     currentStateIndex = initialStateIndex;
     currentState = states[static_cast<int>(currentStateIndex)];
@@ -92,11 +93,14 @@ void RegionLfo::transitionToState(RegionLfoStateIndex stateToTransitionTo)
             else
             {
                 nonInstantStateFound = true;
+                prepareUpdateInterval(); //make sure updateInterval is prepared (could be delayed if updateIntervalMs was set while the LFO was unprepared!)
                 DBG("Region lfo without wavetable");
             }
             break;
 
         case RegionLfoStateIndex::withoutModulatedParameters:
+            prepareUpdateInterval(); //make sure updateInterval is prepared (could be delayed if updateIntervalMs was set while the LFO was unprepared!)
+            
             if (getNumModulatedParameterIDs() > 0)
             {
                 if (depth == 0.0f)
@@ -133,8 +137,38 @@ void RegionLfo::transitionToState(RegionLfoStateIndex stateToTransitionTo)
             }
             else
             {
-                nonInstantStateFound = true;
-                DBG("Region lfo active");
+                if (updateInterval == 0)
+                {
+                    stateToTransitionTo = RegionLfoStateIndex::activeRealTime;
+                    continue;
+                }
+                else
+                {
+                    nonInstantStateFound = true;
+                    samplesUntilUpdate = 0; //immediately update -> should feel more responsive
+                    DBG("Region lfo active");
+                }
+            }
+            break;
+
+        case RegionLfoStateIndex::activeRealTime:
+            if (depth == 0.0f)
+            {
+                stateToTransitionTo = RegionLfoStateIndex::muted;
+                continue;
+            }
+            else
+            {
+                if (updateInterval != 0)
+                {
+                    stateToTransitionTo = RegionLfoStateIndex::active;
+                    continue;
+                }
+                else
+                {
+                    nonInstantStateFound = true;
+                    DBG("Region lfo active (real time)");
+                }
             }
             break;
 
@@ -374,9 +408,42 @@ void RegionLfo::advanceUnsafeWithoutUpdate()
         currentTablePos -= static_cast<float>(waveTable.getNumSamples() - 1);
     }
 }
-std::function<void()> RegionLfo::getAdvancerFunction()
+
+void RegionLfo::resetSamplesUntilUpdate()
 {
-    return [this] { advance(); };
+    samplesUntilUpdate = updateInterval;
+}
+void RegionLfo::setUpdateInterval_Milliseconds(float newUpdateIntervalMs)
+{
+    updateIntervalMs = newUpdateIntervalMs;
+    
+    if (isPrepared())
+    {
+        prepareUpdateInterval();
+    }
+}
+float RegionLfo::getUpdateInterval_Milliseconds()
+{
+    return updateIntervalMs;
+}
+void RegionLfo::prepareUpdateInterval()
+{
+    updateInterval = static_cast<int>(updateIntervalMs * 0.001f * static_cast<float>(sampleRate));
+    resetSamplesUntilUpdate();
+
+    if (currentStateIndex == RegionLfoStateIndex::active && updateInterval == 0)
+    {
+        transitionToState(RegionLfoStateIndex::activeRealTime); //improves performance (disables evaluation of samplesUntilUpdate)
+    }
+    else if (currentStateIndex == RegionLfoStateIndex::activeRealTime && updateInterval > 0)
+    {
+        transitionToState(RegionLfoStateIndex::active); //re-enables evaluation of samplesUntilUpdate
+    }
+}
+
+bool RegionLfo::isPrepared()
+{
+    return currentStateIndex > RegionLfoStateIndex::unprepared; //this yields the desired result, because all states that follow this one will have had to be prepared beforehand
 }
 
 void RegionLfo::updateCurrentValues() //pre-calculates the current LFO values (unipolar, bipolar) for quicker repeated access
