@@ -41,14 +41,26 @@
               file="Source/DahdsrEnvelopeStateIndex.h"/>
         <FILE id="EB1Osv" name="DahdsrEnvelopeStates.cpp" compile="1" resource="0"
               file="Source/DahdsrEnvelopeStates.cpp"/>
-        <FILE id="zxx6nU" name="DahdsrEnvelope.cpp" compile="1" resource="0"
-              file="Source/DahdsrEnvelope.cpp"/>
-        <FILE id="QESKw0" name="DahdsrEnvelopeEditor.h" compile="0" resource="0"
-              file="Source/DahdsrEnvelopeEditor.h"/>
         <FILE id="fz1B9Y" name="DahdsrEnvelopeStates.h" compile="0" resource="0"
               file="Source/DahdsrEnvelopeStates.h"/>
         <FILE id="RWAEsS" name="DahdsrEnvelope.h" compile="0" resource="0"
               file="Source/DahdsrEnvelope.h"/>
+        <FILE id="zxx6nU" name="DahdsrEnvelope.cpp" compile="1" resource="0"
+              file="Source/DahdsrEnvelope.cpp"/>
+        <FILE id="QESKw0" name="DahdsrEnvelopeEditor.h" compile="0" resource="0"
+              file="Source/DahdsrEnvelopeEditor.h"/>
+      </GROUP>
+      <GROUP id="{A1845E71-5919-71B5-36A1-3AF76EC86B11}" name="Modulatable Parameter">
+        <FILE id="xZeN29" name="ModulatableParameter.cpp" compile="1" resource="0"
+              file="Source/ModulatableParameter.cpp"/>
+        <FILE id="kfTqZN" name="ModulatableParameter.h" compile="0" resource="0"
+              file="Source/ModulatableParameter.h"/>
+        <FILE id="SBVSll" name="ModulatableParameterStateIndex.h" compile="0"
+              resource="0" file="Source/ModulatableParameterStateIndex.h"/>
+        <FILE id="UGiR3n" name="ModulatableParameterStates.cpp" compile="1"
+              resource="0" file="Source/ModulatableParameterStates.cpp"/>
+        <FILE id="iOx8RN" name="ModulatableParameterStates.h" compile="0" resource="0"
+              file="Source/ModulatableParameterStates.h"/>
       </GROUP>
       <FILE id="Chjdrc" name="SamplerOscillator.h" compile="0" resource="0"
             file="Source/SamplerOscillator.h"/>

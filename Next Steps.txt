@@ -38,6 +38,7 @@
  !		- voices' playback positions (incl. its own)
 			- would require adding a "slow update" mode to the LFO where it doesn't update during every single sample
 			- also add a base start position slider to the settings menu (0.0 ... 100.0 ?)
+ !		- LFOs' update intervals (not very useful performance-wise, but should sound cool especially with LFOs that modulate pitch!)
 	/ implement changing the LFO's modulation depth in the settings menu
  !		!- make it depend on the shape's size, actually
 			- use the shape's area (bounds) in relation to that of the full image -> being >=2/3 of the image's area should result in full modulation depth
@@ -91,8 +92,14 @@
 		# for a slight performance boost for the 0s case, make that into one or more separate RegionLfo state(s)
 		-> NOTE: this won't be audible until the ModulatableParameter class has been implemented (see below)
 	!- add a new generic class ModulatableParameter. this class contains the parameter's base value as well as the current modulated value. it also contains a modulator list to which LFOs can add(/remove) themselves
-		!- important trick: the class has states which show whether any modulator has updated its value. the new value is only calculated (-> lots of multiplications) when something tries to access the modulated value - instead of updating it every time any modulator updates (which would be much slower). using states (instead of a bool and an if) saves 1 if per sample per modulated value per voice/LFO, so they're crucial
-		- adding new modulators: the modulated value creates a new entry (generic value - float or double in this case) in its list of modulators. the modulator (LFO) gets a pointer to that entry (-> quick update) and also saves a reference to the ModulatableParameter class to call a method "hasUpdated" (or so) whenever the modulator updates the value
+		!# important trick: the class has states which show whether any modulator has updated its value. the new value is only calculated (-> potentially lots of multiplications) when something tries to access the modulated value - instead of updating it every time any modulator updates (which would be much slower). using states (instead of a bool and an if) saves 1 if per sample per modulated value per voice/LFO, so they're crucial
+		# adding new modulators: the modulated value creates a new entry (generic value - float or double in this case) in its list of modulators. the modulator (LFO) gets a pointer to that entry (-> quick update) and also saves a reference to the ModulatableParameter class to call a method "hasUpdated" (or so) whenever the modulator updates the value
+		# exchange modulation functions for pointers to modulated parameters in RegionLfo, adjust adding/removing modulations (those will now handle defining lfoEvalFuncPt for ModulatableParameter!)
+		# when RegionLfo updates, only call signalModulatorUpdated() in each ModulatableParameter instead of all the calculations until now
+		- add methods to Voice/RegionLfo for getting pointers to their ModulatableParameter members (required for registering/unregistering modulations in RegionLfo)
+		- use ModulatableParameter for Voice parameters
+		- use ModulatableParameter for RegionLfo parameters
+		- if everything works, clean up commented code in RegionLfo and Voice
 	!- implement states for Voice
 	# switch to function templates or function pointers instead of std::function -> see https://stackoverflow.com/questions/25848690/should-i-use-stdfunction-or-a-function-pointer-in-c
 		https://vittorioromeo.info/index/blog/passing_functions_to_functions.html

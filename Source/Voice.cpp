@@ -12,7 +12,8 @@
 
 Voice::Voice() :
     playbackMultApprox([](double semis) { return std::pow(2.0, semis / 12.0); }, -60.0, 60.0, 60 + 60 + 1), //1 point per semi should be enough
-    envelope()
+    envelope(),
+    levelParameter(0.25), pitchShiftParameter(0.0)
 {
     osc = nullptr;
     //advanceLfoFunction = [] {; };
@@ -20,7 +21,8 @@ Voice::Voice() :
 
 Voice::Voice(juce::AudioSampleBuffer buffer, int origSampleRate, int regionID) :
     playbackMultApprox([](double semis) { return std::pow(2.0, semis / 12.0); }, -60.0, 60.0, 60 + 60 + 1), //1 point per semi should be enough
-    envelope()
+    envelope(),
+    levelParameter(0.25), pitchShiftParameter(0.0)
 {
     osc = new SamplerOscillator(buffer, origSampleRate);
     ID = regionID;
@@ -46,8 +48,8 @@ void Voice::prepare(const juce::dsp::ProcessSpec& spec)
         associatedLfo->prepare(spec);*/
 
         //reset modulated modifiers for the first time (afterwards, they'll be reset after every rendered sample)
-    totalLevelMultiplier = 1.0;
-    totalPitchShiftModulation = 0.0;
+    //totalLevelMultiplier = 1.0;
+    //totalPitchShiftModulation = 0.0;
 }
 
 bool Voice::canPlaySound(juce::SynthesiserSound* sound)
@@ -131,7 +133,8 @@ void Voice::renderNextBlock(juce::AudioSampleBuffer& outputBuffer, int startSamp
 
             //double envelopeLevel = envelope.getNextEnvelopeSample();
             //double levelModulation = level * totalLevelMultiplier;
-            double gainAdjustment = envelope.getNextEnvelopeSample() * level * totalLevelMultiplier; //= envelopeLevel * levelModulation
+            //double gainAdjustment = envelope.getNextEnvelopeSample() * level * totalLevelMultiplier; //= envelopeLevel * levelModulation
+            double gainAdjustment = envelope.getNextEnvelopeSample() * levelParameter.getModulatedValue(); //= envelopeLevel * level (with all modulations)
             for (auto i = outputBuffer.getNumChannels() - 1; i >= 0; --i)
             {
                 auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)currentBufferPos)) * gainAdjustment;
@@ -145,8 +148,8 @@ void Voice::renderNextBlock(juce::AudioSampleBuffer& outputBuffer, int startSamp
             }
 
             //reset parameter modulator values after each sample
-            totalLevelMultiplier = 1.0;
-            totalPitchShiftModulation = 0.0;
+            //totalLevelMultiplier = 1.0;
+            //totalPitchShiftModulation = 0.0;
 
             if (associatedLfo != nullptr)
                 associatedLfo->advance(); //update LFO after every sample
@@ -165,40 +168,53 @@ void Voice::renderNextBlock(juce::AudioSampleBuffer& outputBuffer, int startSamp
     }
 }
 
+ModulatableMultiplicativeParameter<double>* Voice::getLevelParameter()
+{
+    return &levelParameter;
+}
 void Voice::setBaseLevel(double newLevel)
 {
-    level = newLevel;
+    //level = newLevel;
+    levelParameter.setBaseValue(newLevel);
 }
 double Voice::getBaseLevel()
 {
-    return level;
+    //return level;
+    return levelParameter.getBaseValue();
 }
-void Voice::modulateLevel(double newMultiplier)
-{
-    //totalLevelMultiplier is reset after every rendered sample
-    //it's done this way since LFOs can manipulate voices of other regions, not only that of their own
-    totalLevelMultiplier *= newMultiplier;
-}
+//void Voice::modulateLevel(double newMultiplier)
+//{
+//    //totalLevelMultiplier is reset after every rendered sample
+//    //it's done this way since LFOs can manipulate voices of other regions, not only that of their own
+//    totalLevelMultiplier *= newMultiplier;
+//}
 
+ModulatableAdditiveParameter<double>* Voice::getPitchShiftParameter()
+{
+    return &pitchShiftParameter;
+}
 void Voice::setBasePitchShift(double newPitchShift)
 {
-    pitchShiftBase = newPitchShift;
+    //pitchShiftBase = newPitchShift;
+    pitchShiftParameter.setBaseValue(newPitchShift);
 }
 double Voice::getBasePitchShift()
 {
-    return pitchShiftBase;
+    //return pitchShiftBase;
+    return pitchShiftParameter.getBaseValue();
 }
-void Voice::modulatePitchShift(double semitonesToAdd)
-{
-    totalPitchShiftModulation += semitonesToAdd;
-}
+//void Voice::modulatePitchShift(double semitonesToAdd)
+//{
+//    totalPitchShiftModulation += semitonesToAdd;
+//}
 void Voice::updateBufferPosDelta()
 {
     if (osc != nullptr) //(currentSound != nullptr)
     {
         bufferPosDelta = osc->origSampleRate / getSampleRate(); //normal playback speed
 
-        double modulationSemis = pitchShiftBase + totalPitchShiftModulation;
+        //double modulationSemis = pitchShiftBase + totalPitchShiftModulation;
+        double modulationSemis = pitchShiftParameter.getModulatedValue(); //= pitch shift with all modulations
 
         //for positive numbers: doubled per octave; for negative numbers: halved per octave
         //bufferPosDelta *= //std::pow(2.0, modulationSemis / 12.0);

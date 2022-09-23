@@ -13,9 +13,10 @@
 #include <JuceHeader.h>
 #include "SamplerOscillator.h"
 #include "DahdsrEnvelope.h"
+#include "ModulatableParameter.h"
 
-#include "RegionLfo.h"
-class RegionLfo;
+#include "RegionLfo.h" //uses pointer + needs access to methods -> full build required -> no forwarding(?)
+//class RegionLfo;
 
 
 //==============================================================================
@@ -51,13 +52,15 @@ struct Voice : public juce::SynthesiserVoice
     //==============================================================================
     void renderNextBlock(juce::AudioSampleBuffer& outputBuffer, int startSample, int numSamples) override;
 
+    ModulatableMultiplicativeParameter<double>* getLevelParameter();
     void setBaseLevel(double newLevel);
     double getBaseLevel();
-    void modulateLevel(double newMultiplier);
+    //void modulateLevel(double newMultiplier);
 
+    ModulatableAdditiveParameter<double>* getPitchShiftParameter();
     void setBasePitchShift(double newPitchShift);
     double getBasePitchShift();
-    void modulatePitchShift(double semitonesToAdd);
+    //void modulatePitchShift(double semitonesToAdd);
     void updateBufferPosDelta();
 
     //void setLfoAdvancer(std::function<void()> newAdvanceLfoFunction);
@@ -72,11 +75,13 @@ private:
 
     double currentBufferPos = 0.0, bufferPosDelta = 0.0;
 
-    double level = 0.25;
-    double totalLevelMultiplier = 1.0;
+    //double level = 0.25;
+    //double totalLevelMultiplier = 1.0;
+    ModulatableMultiplicativeParameter<double> levelParameter;
 
-    double pitchShiftBase = 0.0; //in semitones difference to the normal bufferPosDelta
-    double totalPitchShiftModulation = 0.0; //in semitones (can also be negative)
+    //double pitchShiftBase = 0.0; //in semitones difference to the normal bufferPosDelta
+    //double totalPitchShiftModulation = 0.0; //in semitones (can also be negative)
+    ModulatableAdditiveParameter<double> pitchShiftParameter;
     juce::dsp::LookupTableTransform<double> playbackMultApprox; //calculating the resulting playback speed from the semitones of pitch shift needs the power function (2^(semis/12)) which is expensive. this pre-calculates values within a certain range (-60...+60)
 
     SamplerOscillator* osc;

@@ -1,0 +1,68 @@
+/*
+  ==============================================================================
+
+    ModulatableParameterStates.h
+    Created: 21 Sep 2022 9:26:12am
+    Author:  Aaron
+
+  ==============================================================================
+*/
+
+#pragma once
+
+#include "ModulatableParameter.h"
+template <typename T>
+class ModulatableParameter;
+
+
+/// <summary>
+/// Abstract class which describes states of the ModulatableParameter class
+/// </summary>
+/// <typeparam name="T">Type of the modulated parameter</typeparam>
+template <typename T>
+class ModulatableParameterState
+{
+public:
+    ModulatableParameterState(ModulatableParameter<T>& parameter);
+
+    virtual void modulatorHasUpdated() = 0;
+    virtual void ensureModulatorIsUpToDate() = 0;
+
+protected:
+    ModulatableParameter<T>& parameter;
+    ModulatableParameterStateIndex implementedStateIndex = ModulatableParameterStateIndex::StateIndexCount;
+};
+
+
+
+
+/// <summary>
+/// Implements the state of a modulatable parameter when the value of its modulated parameter is outdated and needs to be updated the next time it's accessed.
+/// </summary>
+/// <typeparam name="T">Type of the modulated parameter</typeparam>
+template <typename T>
+class ModulatableParameterState_Outdated final : public ModulatableParameterState<T>
+{
+public:
+    ModulatableParameterState_Outdated(ModulatableParameter<T>& parameter);
+
+    void modulatorHasUpdated() override;
+    void ensureModulatorIsUpToDate() override; //called every time before the parameter accesses the modulated value
+};
+
+
+
+
+/// <summary>
+/// Implements the state of a modulatable parameter when the value of its modulated parameter is up-to-date and needn't be updated during its access, until any modulator updates.
+/// </summary>
+/// <typeparam name="T"></typeparam>
+template <typename T>
+class ModulatableParameterState_UpToDate final : public ModulatableParameterState<T>
+{
+public:
+    ModulatableParameterState_UpToDate(ModulatableParameter<T>& parameter);
+
+    void modulatorHasUpdated() override;
+    void ensureModulatorIsUpToDate() override;
+};

@@ -12,8 +12,12 @@
 
 #include <JuceHeader.h>
 #include "SegmentedRegionState.h"
+
 #include "AudioEngine.h"
+class AudioEngine;
+
 #include "Voice.h"
+struct Voice;
 
 #include "RegionEditorWindow.h"
 class RegionEditorWindow;

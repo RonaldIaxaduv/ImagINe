@@ -13,6 +13,7 @@
 #include <JuceHeader.h>
 #include "Voice.h"
 #include "SamplerOscillator.h"
+#include "ModulatableParameter.h"
 #include "RegionLfo.h"
 
 struct TempSound : public juce::SynthesiserSound
@@ -117,6 +118,43 @@ public:
                 --i;
             }
         }
+    }
+
+    juce::Array<ModulatableParameter<double>*> getParameterOfRegion_Volume(int regionID)
+    {
+        juce::Array<Voice*> voices = getVoicesWithID(regionID);
+        juce::Array<ModulatableParameter<double>*> parameters;
+
+        for (auto* it = voices.begin(); it != voices.end(); it++)
+        {
+            parameters.add((*it)->getLevelParameter());
+        }
+
+        return parameters;
+    }
+    juce::Array<ModulatableParameter<double>*> getParameterOfRegion_Pitch(int regionID)
+    {
+        juce::Array<Voice*> voices = getVoicesWithID(regionID);
+        juce::Array<ModulatableParameter<double>*> parameters;
+
+        for (auto* it = voices.begin(); it != voices.end(); it++)
+        {
+            parameters.add((*it)->getPitchShiftParameter());
+        }
+
+        return parameters;
+    }
+    juce::Array<ModulatableParameter<double>*> getParameterOfRegion_LfoRate(int regionID)
+    {
+        juce::Array<ModulatableParameter<double>*> parameters;
+
+        RegionLfo* lfo = getLfo(regionID);
+        if (lfo != nullptr)
+        {
+            parameters.add(lfo->getFrequencyModParameter()); //only one LFO per region, so only one entry in parameters necessary
+        }
+
+        return parameters;
     }
 
     void prepareToPlay(int /*samplesPerBlockExpected*/, double sampleRate) override

@@ -11,10 +11,10 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "LfoModulatableParameter.h"
 #include "CheckBoxList.h"
 #include "AudioEngine.h"
 #include "RegionLfo.h"
+#include "LfoModulatableParameter.h"
 
 class LfoEditor : public juce::Component, public juce::ChangeListener
 {

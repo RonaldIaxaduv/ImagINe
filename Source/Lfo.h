@@ -52,12 +52,12 @@ public:
         resetPhase(false);
     }
 
-    void setBaseFrequency(float newBaseFrequency)
+    virtual void setBaseFrequency(float newBaseFrequency)
     {
         baseFrequency = newBaseFrequency;
         evaluateFrequencyModulation();
     }
-    float getBaseFrequency()
+    virtual float getBaseFrequency()
     {
         return baseFrequency;
     }
@@ -169,7 +169,7 @@ protected:
         }
     }
 
-    void evaluateFrequencyModulation()
+    virtual void evaluateFrequencyModulation()
     {
         auto cyclesPerSample = baseFrequency / static_cast<float>(sampleRate); //0.0f if frequency is 0
         tablePosDelta = static_cast<float>(waveTable.getNumSamples()) * cyclesPerSample; //0.0f if waveTable empty

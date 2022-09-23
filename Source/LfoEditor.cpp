@@ -164,14 +164,19 @@ void LfoEditor::updateLfoParameter(int targetRegionID, bool shouldBeModulated, L
     {
     case LfoModulatableParameter::volume:
     case LfoModulatableParameter::volume_inverted:
+        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_Volume(targetRegionID));
+        break;
+
     case LfoModulatableParameter::pitch:
     case LfoModulatableParameter::pitch_inverted:
-        associatedLfo->addRegionModulation(modulatedParameter, audioEngine->getVoicesWithID(targetRegionID));
+        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_Pitch(targetRegionID));
+        //associatedLfo->addRegionModulation(modulatedParameter, audioEngine->getVoicesWithID(targetRegionID));
         break;
 
     case LfoModulatableParameter::lfoRate:
     case LfoModulatableParameter::lfoRate_inverted:
-        associatedLfo->addRegionModulation(modulatedParameter, audioEngine->getLfo(targetRegionID));
+        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_LfoRate(targetRegionID));
+        //associatedLfo->addRegionModulation(modulatedParameter, audioEngine->getLfo(targetRegionID));
         break;
 
     default:
