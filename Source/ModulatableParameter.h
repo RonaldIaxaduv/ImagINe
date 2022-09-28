@@ -193,16 +193,6 @@ public:
     }
 };
 
-//class ModulatableAdditiveParameter final : public ModulatableParameter<double>
-//{
-//public:
-//    ModulatableAdditiveParameter(double baseValue);
-//    ~ModulatableAdditiveParameter();
-//
-//    void calculateModulatedValue() override;
-//};
-
-
 
 
 /// <summary>
@@ -236,12 +226,3 @@ public:
         transitionToState(ModulatableParameterStateIndex::upToDate);
     }
 };
-
-//class ModulatableMultiplicativeParameter final : public ModulatableParameter<double>
-//{
-//public:
-//    ModulatableMultiplicativeParameter(double baseValue);
-//    ~ModulatableMultiplicativeParameter();
-//
-//    void calculateModulatedValue() override;
-//};

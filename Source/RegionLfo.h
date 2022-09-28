@@ -24,18 +24,7 @@ class RegionLfoState_WithoutModulatedParameters;
 class RegionLfoState_Muted;
 class RegionLfoState_Active;
 
-//#include "Voice.h"
-//struct Voice;
-
-#include "ModulatableParameter.h" //don't use forward declaration here! see https://isocpp.org/wiki/faq/misc-technical-issues#forward-decl-members (class needs to be fully defined before it may be used as a member!)
-                                  //^- this is wrong actually since RegionLfo has a cpp file. the above link only refers to classes with inline methods (i.e. those already defined in the header file)
-template <typename T> class ModulatableParameter;
-template <typename T> class ModulatableAdditiveParameter;
-template <typename T> class ModulatableMultiplicativeParameter;
-#include "ModulatableParameter.cpp"
-
-//template class ModulatableAdditiveParameter<double>; //forces the double implementation of ModulatableAdditiveParameter to be compiled before compiling this class (see https://stackoverflow.com/questions/2152002/how-do-i-force-a-particular-instance-of-a-c-template-to-instantiate) -> needs to be done to compile the member of that class
-                                                       //^- for some reason, it doesn't actually do that... that's very weird o.ô
+#include "ModulatableParameter.h"
 
 
 /// <summary>
@@ -67,8 +56,6 @@ public:
 
     float getModulationDepth();
 
-    //void addRegionModulation(LfoModulatableParameter newModulatedParameterID, const juce::Array<Voice*>& newRegionVoices);
-    //void addRegionModulation(LfoModulatableParameter newModulatedParameterID, RegionLfo* newRegionLfo);
     void addRegionModulation(LfoModulatableParameter newModulatedParameterID, int newRegionID, const juce::Array<ModulatableParameter<double>*>& newParameters);
     void removeRegionModulation(int regionID);
 
@@ -83,8 +70,6 @@ public:
 
     int samplesUntilUpdate = 0; //see updateInterval variable
     void resetSamplesUntilUpdate();
-    //void setUpdateInterval_Samples(int newUpdateInterval);
-    //int getUpdateInterval_Samples();
     void setUpdateInterval_Milliseconds(float newUpdateIntervalMs);
     float getUpdateInterval_Milliseconds();
     void prepareUpdateInterval();
@@ -102,16 +87,6 @@ protected:
     bool isPrepared();
 
     //modulated parameters
-    //juce::Array<LfoModulatableParameter> modulatedVoiceParameterIDs;
-    //typedef void(*voiceModFunctionPt)(float lfoValueUnipolar, float lfoValueBipolar, float depth, Voice* v);
-    //juce::Array<voiceModFunctionPt> voiceModulationFunctions;
-    //juce::OwnedArray<juce::Array<Voice*>> affectedVoices; //one array per entry of voiceModulationFunctions (contains all voices of one single region)
-
-    //juce::Array<LfoModulatableParameter> modulatedLfoParameterIDs;
-    //typedef void(*lfoModFunctionPt)(float lfoValueUnipolar, float lfoValueBipolar, float depth, RegionLfo* lfo);
-    //juce::Array<lfoModFunctionPt> lfoModulationFunctions; //one function per modulated lfo
-    //juce::Array<RegionLfo*> affectedLfos; //one per entry of lfoModulationFunctions
-
     juce::OwnedArray<juce::Array<ModulatableParameter<double>*>> modulatedParameters; //may modulate several voices of one region - hence, the additional wrapping array
     juce::Array<LfoModulatableParameter> modulatedParameterIDs;
     juce::Array<int> affectedRegionIDs;
@@ -126,7 +101,7 @@ protected:
     ModulatableAdditiveParameter<double> frequencyModParameter; //replaces the frequency modulation members of LFO
     void evaluateFrequencyModulation() override;
 
-    float depth = 1.0f; //make this modulatable later
+    float depth = 1.0f; //intensity of the modulation
 
     int updateInterval = 0; //the LFO doesn't update with every sample. instead, a certain time interval (in samples) needs to pass until another update happens. higher values should generally decrease CPU usage.
     float updateIntervalMs = 0.0f; //update interval in milliseconds

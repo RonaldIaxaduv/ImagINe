@@ -11,11 +11,21 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "VoiceStates.h"
+class VoiceState;
+class VoiceState_Unprepared;
+class VoiceState_NoWavefile_NoLfo;
+class VoiceState_NoWavefile_Lfo;
+class VoiceState_Stopped_NoLfo;
+class VoiceState_Stopped_Lfo;
+class VoiceState_Playable_NoLfo;
+class VoiceState_Playable_Lfo;
+#include "VoiceStateIndex.h"
+
 #include "SamplerOscillator.h"
 #include "DahdsrEnvelope.h"
 #include "ModulatableParameter.h"
-#include "RegionLfo.h" //uses pointer + needs access to methods -> full build required -> no forwarding(?)
-//class RegionLfo;
+#include "RegionLfo.h"
 
 
 //==============================================================================
@@ -23,6 +33,7 @@
 */
 struct Voice : public juce::SynthesiserVoice
 {
+public:
     Voice();
     Voice(juce::AudioSampleBuffer buffer, int origSampleRate, int regionID);
 
@@ -51,18 +62,27 @@ struct Voice : public juce::SynthesiserVoice
     //==============================================================================
     void renderNextBlock(juce::AudioSampleBuffer& outputBuffer, int startSample, int numSamples) override;
 
+    void renderNextBlock_empty();
+    void renderNextBlock_onlyLfo();
+    void renderNextBlock_wave(juce::AudioSampleBuffer& outputBuffer, int sampleIndex);
+    void renderNextBlock_waveAndLfo(juce::AudioSampleBuffer& outputBuffer, int sampleIndex);
+
+    //==============================================================================
+    void transitionToState(VoiceStateIndex stateToTransitionTo);
+
+    //==============================================================================
     ModulatableMultiplicativeParameter<double>* getLevelParameter();
     void setBaseLevel(double newLevel);
     double getBaseLevel();
-    //void modulateLevel(double newMultiplier);
 
     ModulatableAdditiveParameter<double>* getPitchShiftParameter();
     void setBasePitchShift(double newPitchShift);
     double getBasePitchShift();
-    //void modulatePitchShift(double semitonesToAdd);
-    void updateBufferPosDelta();
 
-    //void setLfoAdvancer(std::function<void()> newAdvanceLfoFunction);
+    void updateBufferPosDelta();
+    void updateBufferPosDelta_NotPlayable();
+    void updateBufferPosDelta_Playable();
+
     void setLfo(RegionLfo* newAssociatedLfo);
 
     int getID();
@@ -70,24 +90,26 @@ struct Voice : public juce::SynthesiserVoice
     DahdsrEnvelope* getEnvelope();
 
 private:
+    //states
+    VoiceState* states[static_cast<int>(VoiceStateIndex::StateIndexCount)]; //fixed size -> more efficient access
+    
+    static const VoiceStateIndex initialStateIndex = VoiceStateIndex::unprepared;
+    VoiceStateIndex currentStateIndex;
+    VoiceState* currentState = nullptr; //provides at least one less array lookup during each access (i.e. every sample)
+
+    //other
     int ID = -1;
 
     double currentBufferPos = 0.0, bufferPosDelta = 0.0;
 
-    //double level = 0.25;
-    //double totalLevelMultiplier = 1.0;
     ModulatableMultiplicativeParameter<double> levelParameter;
 
-    //double pitchShiftBase = 0.0; //in semitones difference to the normal bufferPosDelta
-    //double totalPitchShiftModulation = 0.0; //in semitones (can also be negative)
     ModulatableAdditiveParameter<double> pitchShiftParameter;
     juce::dsp::LookupTableTransform<double> playbackMultApprox; //calculating the resulting playback speed from the semitones of pitch shift needs the power function (2^(semis/12)) which is expensive. this pre-calculates values within a certain range (-60...+60)
 
     SamplerOscillator* osc;
 
     RegionLfo* associatedLfo = nullptr;
-    //int associatedLfoIndex = -1; //must be handled like this and NOT via a RegionLfo pointer, because otherwise the RegionLfo class and Voice class would cross-reference each other -> not compilable
-    //std::function<void()> advanceLfoFunction; //nvm, referencing AudioEngine would cause the same problem. guess it's gotta be a function then. noooot messy at all xD
 
     DahdsrEnvelope envelope;
 

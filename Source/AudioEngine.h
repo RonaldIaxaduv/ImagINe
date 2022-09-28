@@ -13,10 +13,6 @@
 #include <JuceHeader.h>
 #include "SamplerOscillator.h"
 #include "ModulatableParameter.h"
-//template <typename T> class ModulatableParameter;
-//template <typename T> class ModulatableAdditiveParameter;
-//template <typename T> class ModulatableMultiplicativeParameter;
-
 #include "Voice.h"
 #include "RegionLfo.h"
 

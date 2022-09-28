@@ -16,23 +16,41 @@ Voice::Voice() :
     levelParameter(0.25), pitchShiftParameter(0.0)
 {
     osc = nullptr;
-    //advanceLfoFunction = [] {; };
+
+    //inititalise states
+    states[static_cast<int>(VoiceStateIndex::unprepared)] = static_cast<VoiceState*>(new VoiceState_Unprepared(*this));
+    states[static_cast<int>(VoiceStateIndex::noWavefile_noLfo)] = static_cast<VoiceState*>(new VoiceState_NoWavefile_NoLfo(*this));
+    states[static_cast<int>(VoiceStateIndex::noWavefile_Lfo)] = static_cast<VoiceState*>(new VoiceState_NoWavefile_Lfo(*this));
+    states[static_cast<int>(VoiceStateIndex::stopped_noLfo)] = static_cast<VoiceState*>(new VoiceState_Stopped_NoLfo(*this));
+    states[static_cast<int>(VoiceStateIndex::stopped_Lfo)] = static_cast<VoiceState*>(new VoiceState_Stopped_Lfo(*this));
+    states[static_cast<int>(VoiceStateIndex::playable_noLfo)] = static_cast<VoiceState*>(new VoiceState_Playable_NoLfo(*this));
+    states[static_cast<int>(VoiceStateIndex::playable_Lfo)] = static_cast<VoiceState*>(new VoiceState_Playable_Lfo(*this));
+    
+    currentStateIndex = initialStateIndex;
+    currentState = states[static_cast<int>(currentStateIndex)];
 }
 
 Voice::Voice(juce::AudioSampleBuffer buffer, int origSampleRate, int regionID) :
-    playbackMultApprox([](double semis) { return std::pow(2.0, semis / 12.0); }, -60.0, 60.0, 60 + 60 + 1), //1 point per semi should be enough
-    envelope(),
-    levelParameter(0.25), pitchShiftParameter(0.0)
+    Voice::Voice()
 {
     osc = new SamplerOscillator(buffer, origSampleRate);
     ID = regionID;
-    //advanceLfoFunction = [] {; };
 }
 
 Voice::~Voice()
 {
     delete osc;
     osc = nullptr;
+
+    //release states
+    currentState = nullptr;
+    delete states[static_cast<int>(VoiceStateIndex::unprepared)];
+    delete states[static_cast<int>(VoiceStateIndex::noWavefile_noLfo)];
+    delete states[static_cast<int>(VoiceStateIndex::noWavefile_Lfo)];
+    delete states[static_cast<int>(VoiceStateIndex::stopped_noLfo)];
+    delete states[static_cast<int>(VoiceStateIndex::stopped_Lfo)];
+    delete states[static_cast<int>(VoiceStateIndex::playable_noLfo)];
+    delete states[static_cast<int>(VoiceStateIndex::playable_Lfo)];
 }
 
 //==============================================================================
@@ -40,16 +58,10 @@ void Voice::prepare(const juce::dsp::ProcessSpec& spec)
 {
     DBG("preparing voice");
 
-    //tempBlock = juce::dsp::AudioBlock<float>(heapBlock, spec.numChannels, spec.maximumBlockSize);
     setCurrentPlaybackSampleRate(spec.sampleRate);
     envelope.setSampleRate(spec.sampleRate);
 
-    /*if (associatedLfo != nullptr)
-        associatedLfo->prepare(spec);*/
-
-        //reset modulated modifiers for the first time (afterwards, they'll be reset after every rendered sample)
-    //totalLevelMultiplier = 1.0;
-    //totalPitchShiftModulation = 0.0;
+    currentState->prepared(spec.sampleRate);
 }
 
 bool Voice::canPlaySound(juce::SynthesiserSound* sound)
@@ -81,6 +93,7 @@ void Voice::startNote(int midiNoteNumber, float velocity,
     //currentSound = dynamic_cast<SamplerOscillator*>(sound);
 
     envelope.noteOn();
+    currentState->playableChanged(true);
 
     updateBufferPosDelta();
 }
@@ -98,6 +111,7 @@ void Voice::stopNote(float /*velocity*/, bool allowTailOff)
         clearCurrentNote();
         bufferPosDelta = 0.0;
         envelope.forceStop();
+        currentState->playableChanged(false);
     }
 }
 
@@ -118,76 +132,238 @@ void Voice::controllerMoved(int, int) {}
 //==============================================================================
 void Voice::renderNextBlock(juce::AudioSampleBuffer& outputBuffer, int startSample, int numSamples)
 {
-    if (bufferPosDelta != 0.0)
+    currentState->renderNextBlock(outputBuffer, startSample);
+
+    //if (bufferPosDelta != 0.0)
+    //{
+    //    if (/*currentSound*/ osc == nullptr || /*currentSound*/osc->fileBuffer.getNumSamples() == 0)
+    //    {
+    //        outputBuffer.clear();
+    //        return;
+    //    }
+
+    //    while (--numSamples >= 0)
+    //    {
+    //        //evaluate modulated values
+    //        updateBufferPosDelta(); //determines pitch shift
+
+    //        double gainAdjustment = envelope.getNextEnvelopeSample() * levelParameter.getModulatedValue(); //= envelopeLevel * level (with all modulations)
+    //        for (auto i = outputBuffer.getNumChannels() - 1; i >= 0; --i)
+    //        {
+    //            auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)currentBufferPos)) * gainAdjustment;
+    //            outputBuffer.addSample(i, startSample, (float)currentSample);
+    //        }
+
+    //        currentBufferPos += bufferPosDelta;
+    //        if (currentBufferPos >= osc->fileBuffer.getNumSamples())
+    //        {
+    //            currentBufferPos -= osc->fileBuffer.getNumSamples();
+    //        }
+
+    //        if (associatedLfo != nullptr)
+    //            associatedLfo->advance(); //update LFO after every sample
+
+    //        ++startSample;
+    //    }
+
+    //    if (envelope.isIdle()) //has finished playing (including release). may also occur if the sample rate suddenly changed, but in theory, that shouldn't happen I think
+    //    {
+    //        //stop note
+    //        clearCurrentNote();
+    //        bufferPosDelta = 0.0;
+    //    }
+
+    //}
+}
+
+void Voice::renderNextBlock_empty()
+{
+    //nothing set -> nothing happens
+}
+void Voice::renderNextBlock_onlyLfo()
+{
+    //bufferPosDelta = 0.0 or no wave set -> needn't render sound
+
+    associatedLfo->advance();
+}
+void Voice::renderNextBlock_wave(juce::AudioSampleBuffer& outputBuffer, int sampleIndex)
+{
+    //while (--numSamples >= 0) //only rendered one sample at the time now
+    //{
+
+    //evaluate modulated values
+    updateBufferPosDelta(); //determines pitch shift
+
+    double gainAdjustment = envelope.getNextEnvelopeSample() * levelParameter.getModulatedValue(); //= envelopeLevel * level (with all modulations)
+    for (auto i = outputBuffer.getNumChannels() - 1; i >= 0; --i)
     {
-        if (/*currentSound*/ osc == nullptr || /*currentSound*/osc->fileBuffer.getNumSamples() == 0)
-        {
-            outputBuffer.clear();
-            return;
-        }
+        auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)currentBufferPos)) * gainAdjustment;
+        outputBuffer.addSample(i, sampleIndex, (float)currentSample);
+    }
 
-        while (--numSamples >= 0)
-        {
-            //evaluate modulated values
-            updateBufferPosDelta(); //determines pitch shift
+    currentBufferPos += bufferPosDelta;
+    if (currentBufferPos >= osc->fileBuffer.getNumSamples())
+    {
+        currentBufferPos -= osc->fileBuffer.getNumSamples();
+    }
 
-            //double envelopeLevel = envelope.getNextEnvelopeSample();
-            //double levelModulation = level * totalLevelMultiplier;
-            //double gainAdjustment = envelope.getNextEnvelopeSample() * level * totalLevelMultiplier; //= envelopeLevel * levelModulation
-            double gainAdjustment = envelope.getNextEnvelopeSample() * levelParameter.getModulatedValue(); //= envelopeLevel * level (with all modulations)
-            for (auto i = outputBuffer.getNumChannels() - 1; i >= 0; --i)
-            {
-                auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)currentBufferPos)) * gainAdjustment;
-                outputBuffer.addSample(i, startSample, (float)currentSample);
-            }
+    //no LFO set -> needn't advance
 
-            currentBufferPos += bufferPosDelta;
-            if (currentBufferPos >= osc->fileBuffer.getNumSamples())
-            {
-                currentBufferPos -= osc->fileBuffer.getNumSamples();
-            }
+    //}
 
-            //reset parameter modulator values after each sample
-            //totalLevelMultiplier = 1.0;
-            //totalPitchShiftModulation = 0.0;
+    if (envelope.isIdle()) //has finished playing (including release). may also occur if the sample rate suddenly changed, but in theory, that shouldn't happen I think
+    {
+        //stop note
+        clearCurrentNote();
+        bufferPosDelta = 0.0;
+        currentState->playableChanged(false);
+    }
+}
+void Voice::renderNextBlock_waveAndLfo(juce::AudioSampleBuffer& outputBuffer, int sampleIndex)
+{
+    //while (--numSamples >= 0) //only rendered one sample at the time now
+    //{
+    
+    //evaluate modulated values
+    updateBufferPosDelta(); //determines pitch shift
 
-            if (associatedLfo != nullptr)
-                associatedLfo->advance(); //update LFO after every sample
-            //advanceLfoFunction(); //re-updates the multipliers, also automatically calls RegionLfo::evaluateFrequencyModulation() beforehand to reset the Lfo freq modulation (otherwise that would require another std::function...)
+    double gainAdjustment = envelope.getNextEnvelopeSample() * levelParameter.getModulatedValue(); //= envelopeLevel * level (with all modulations)
+    for (auto i = outputBuffer.getNumChannels() - 1; i >= 0; --i)
+    {
+        auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)currentBufferPos)) * gainAdjustment;
+        outputBuffer.addSample(i, sampleIndex, (float)currentSample);
+    }
 
-            ++startSample;
-        }
+    currentBufferPos += bufferPosDelta;
+    if (currentBufferPos >= osc->fileBuffer.getNumSamples())
+    {
+        currentBufferPos -= osc->fileBuffer.getNumSamples();
+    }
 
-        if (envelope.isIdle()) //has finished playing (including release). may also occur if the sample rate suddenly changed, but in theory, that shouldn't happen I think
-        {
-            //stop note
-            clearCurrentNote();
-            bufferPosDelta = 0.0;
-        }
+    associatedLfo->advance();
 
+    //}
+
+    if (envelope.isIdle()) //has finished playing (including release). may also occur if the sample rate suddenly changed, but in theory, that shouldn't happen I think
+    {
+        //stop note
+        clearCurrentNote();
+        bufferPosDelta = 0.0;
+        currentState->playableChanged(false);
     }
 }
 
+//==============================================================================
+void Voice::transitionToState(VoiceStateIndex stateToTransitionTo)
+{
+    bool nonInstantStateFound = false;
+
+    while (!nonInstantStateFound) //check if any states can be skipped (might be the case depending on what has been prepared already)
+    {
+        switch (stateToTransitionTo)
+        {
+        case VoiceStateIndex::unprepared:
+            if (getSampleRate() > 0.0)
+            {
+                stateToTransitionTo = VoiceStateIndex::stopped_noLfo;
+                continue;
+            }
+
+            nonInstantStateFound = true;
+            DBG("Voice unprepared");
+            break;
+
+        case VoiceStateIndex::noWavefile_noLfo:
+            if (osc != nullptr && osc->fileBuffer.getNumSamples() > 0)
+            {
+                if (associatedLfo != nullptr)
+                {
+                    stateToTransitionTo = VoiceStateIndex::stopped_Lfo;
+                    continue;
+                }
+                else
+                {
+                    stateToTransitionTo = VoiceStateIndex::stopped_noLfo;
+                    continue;
+                }
+            }
+            if (associatedLfo != nullptr)
+            {
+                stateToTransitionTo = VoiceStateIndex::noWavefile_Lfo;
+                continue;
+            }
+
+            nonInstantStateFound = true;
+            DBG("Voice without wavefile and without LFO");
+            break;
+
+        case VoiceStateIndex::noWavefile_Lfo:
+            if (osc != nullptr && osc->fileBuffer.getNumSamples() > 0)
+            {
+                if (associatedLfo == nullptr)
+                {
+                    stateToTransitionTo = VoiceStateIndex::stopped_noLfo;
+                    continue;
+                }
+                else
+                {
+                    stateToTransitionTo = VoiceStateIndex::stopped_Lfo;
+                    continue;
+                }
+            }
+            if (associatedLfo == nullptr)
+            {
+                stateToTransitionTo = VoiceStateIndex::noWavefile_noLfo;
+                continue;
+            }
+
+            nonInstantStateFound = true;
+            DBG("Voice without wavefile and with LFO");
+            break;
+
+        case VoiceStateIndex::stopped_noLfo:
+            nonInstantStateFound = true;
+            DBG("Voice stopped and without LFO");
+            break;
+
+        case VoiceStateIndex::stopped_Lfo:
+            nonInstantStateFound = true;
+            DBG("Voice stopped and with LFO");
+            break;
+
+        case VoiceStateIndex::playable_noLfo:
+            nonInstantStateFound = true;
+            DBG("Voice playable and without LFO");
+            break;
+
+        case VoiceStateIndex::playable_Lfo:
+            nonInstantStateFound = true;
+            DBG("Voice playable and with LFO");
+            break;
+
+        default:
+            throw std::exception("unhandled state index");
+        }
+    }
+
+    //finally, update the current state index
+    currentStateIndex = stateToTransitionTo;
+    currentState = states[static_cast<int>(currentStateIndex)];
+}
+
+//==============================================================================
 ModulatableMultiplicativeParameter<double>* Voice::getLevelParameter()
 {
     return &levelParameter;
 }
 void Voice::setBaseLevel(double newLevel)
 {
-    //level = newLevel;
     levelParameter.setBaseValue(newLevel);
 }
 double Voice::getBaseLevel()
 {
-    //return level;
     return levelParameter.getBaseValue();
 }
-//void Voice::modulateLevel(double newMultiplier)
-//{
-//    //totalLevelMultiplier is reset after every rendered sample
-//    //it's done this way since LFOs can manipulate voices of other regions, not only that of their own
-//    totalLevelMultiplier *= newMultiplier;
-//}
 
 ModulatableAdditiveParameter<double>* Voice::getPitchShiftParameter()
 {
@@ -195,45 +371,42 @@ ModulatableAdditiveParameter<double>* Voice::getPitchShiftParameter()
 }
 void Voice::setBasePitchShift(double newPitchShift)
 {
-    //pitchShiftBase = newPitchShift;
     pitchShiftParameter.setBaseValue(newPitchShift);
 }
 double Voice::getBasePitchShift()
 {
-    //return pitchShiftBase;
     return pitchShiftParameter.getBaseValue();
 }
-//void Voice::modulatePitchShift(double semitonesToAdd)
-//{
-//    totalPitchShiftModulation += semitonesToAdd;
-//}
+
 void Voice::updateBufferPosDelta()
 {
-    if (osc != nullptr) //(currentSound != nullptr)
-    {
-        bufferPosDelta = osc->origSampleRate / getSampleRate(); //normal playback speed
+    currentState->updateBufferPosDelta();
+}
+void Voice::updateBufferPosDelta_NotPlayable()
+{
+    bufferPosDelta = 0.0;
+    //currentState->playableChanged(false);
+    
+    //DBG("bufferPosDelta: " + juce::String(bufferPosDelta));
+}
+void Voice::updateBufferPosDelta_Playable()
+{
+    bufferPosDelta = osc->origSampleRate / getSampleRate(); //normal playback speed
 
-        //double modulationSemis = pitchShiftBase + totalPitchShiftModulation;
-        double modulationSemis = pitchShiftParameter.getModulatedValue(); //= pitch shift with all modulations
+    double modulationSemis = pitchShiftParameter.getModulatedValue(); //= pitch shift with all modulations
 
-        //for positive numbers: doubled per octave; for negative numbers: halved per octave
-        //bufferPosDelta *= //std::pow(2.0, modulationSemis / 12.0);
-        bufferPosDelta *= playbackMultApprox(modulationSemis); //approximation -> faster (one power function per sample per voice would be madness efficiency-wise)
-    }
-    else
-    {
-        bufferPosDelta = 0.0;
-    }
+    //for positive numbers: doubled per octave; for negative numbers: halved per octave
+    //bufferPosDelta *= //std::pow(2.0, modulationSemis / 12.0); //exact calculation -> very slow!
+    bufferPosDelta *= playbackMultApprox(modulationSemis); //approximation -> faster (one power function per sample per voice would be madness efficiency-wise)
+    //currentState->playableChanged(true);
+
     //DBG("bufferPosDelta: " + juce::String(bufferPosDelta));
 }
 
-//void Voice::setLfoAdvancer(std::function<void()> newAdvanceLfoFunction)
-//{
-//    advanceLfoFunction = newAdvanceLfoFunction;
-//}
 void Voice::setLfo(RegionLfo* newAssociatedLfo)
 {
     associatedLfo = newAssociatedLfo;
+    currentState->associatedLfoChanged(associatedLfo);
 }
 
 int Voice::getID()

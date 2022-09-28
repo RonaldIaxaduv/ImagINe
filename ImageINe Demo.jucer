@@ -51,8 +51,6 @@
               file="Source/DahdsrEnvelopeEditor.h"/>
       </GROUP>
       <GROUP id="{A1845E71-5919-71B5-36A1-3AF76EC86B11}" name="Modulatable Parameter">
-        <FILE id="xZeN29" name="ModulatableParameter.cpp" compile="1" resource="0"
-              file="Source/ModulatableParameter.cpp"/>
         <FILE id="kfTqZN" name="ModulatableParameter.h" compile="0" resource="0"
               file="Source/ModulatableParameter.h"/>
         <FILE id="SBVSll" name="ModulatableParameterStateIndex.h" compile="0"
@@ -62,10 +60,16 @@
         <FILE id="iOx8RN" name="ModulatableParameterStates.h" compile="0" resource="0"
               file="Source/ModulatableParameterStates.h"/>
       </GROUP>
+      <GROUP id="{6D7C3A52-8893-DA86-8F0C-5E047ECE3C39}" name="Voice">
+        <FILE id="E7lClh" name="VoiceStateIndex.h" compile="0" resource="0"
+              file="Source/VoiceStateIndex.h"/>
+        <FILE id="O5YOcj" name="VoiceStates.h" compile="0" resource="0" file="Source/VoiceStates.h"/>
+        <FILE id="xCFupN" name="VoiceStates.cpp" compile="1" resource="0" file="Source/VoiceStates.cpp"/>
+        <FILE id="kh1aPr" name="Voice.h" compile="0" resource="0" file="Source/Voice.h"/>
+        <FILE id="uwA6k0" name="Voice.cpp" compile="1" resource="0" file="Source/Voice.cpp"/>
+      </GROUP>
       <FILE id="Chjdrc" name="SamplerOscillator.h" compile="0" resource="0"
             file="Source/SamplerOscillator.h"/>
-      <FILE id="kh1aPr" name="Voice.h" compile="0" resource="0" file="Source/Voice.h"/>
-      <FILE id="uwA6k0" name="Voice.cpp" compile="1" resource="0" file="Source/Voice.cpp"/>
       <FILE id="JWS5Od" name="AudioEngine.h" compile="0" resource="0" file="Source/AudioEngine.h"/>
       <FILE id="k42OGO" name="AudioEngine.cpp" compile="1" resource="0" file="Source/AudioEngine.cpp"/>
       <FILE id="m8U4QV" name="SegmentableImage.h" compile="0" resource="0"
