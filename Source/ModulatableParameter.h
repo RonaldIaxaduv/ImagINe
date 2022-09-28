@@ -21,8 +21,8 @@ class ModulatableParameterState_Outdated;
 template <typename T>
 class ModulatableParameterState_UpToDate;
 
-#include "RegionLfo.h"
-class RegionLfo;
+//#include "RegionLfo.h" //do NOT include this! since RegionLfo has a ModulatableAdditiveParameter member and including RegionLfo's header would require ModulatableAdditiveParameter<double> to already have been initialised, that creates a cyclic compilation error!
+class RegionLfo; //this is enough for ModulatableParameter to be compiled since it only needs pointers to RegionLfo (-> known size in memory) and no methods
 
 /// <summary>
 /// Wrapper class for modulatable parameters. Contains the parameter's base value as well as the current modulated value.
@@ -34,22 +34,110 @@ template <typename T>
 class ModulatableParameter
 {
 public:
-    ModulatableParameter(T baseValue);
-    ~ModulatableParameter();
+    ModulatableParameter(T baseValue) :
+        baseValue(baseValue)
+    {
+        currentModulatedValue = baseValue;
 
-    typedef double(*lfoEvalFuncPt)(RegionLfo* lfo);
+        //prepare states
+        states[static_cast<int>(ModulatableParameterStateIndex::outdated)] = static_cast<ModulatableParameterState<T>*>(new ModulatableParameterState_Outdated<T>(*this));
+        states[static_cast<int>(ModulatableParameterStateIndex::upToDate)] = static_cast<ModulatableParameterState<T>*>(new ModulatableParameterState_UpToDate<T>(*this));
 
-    void addModulator(RegionLfo* newModulatingLfo, int newRegionID, lfoEvalFuncPt newEvalFuncPt);
+        currentStateIndex = initialStateIndex;
+        currentState = states[static_cast<int>(currentStateIndex)];
+    }
+    ~ModulatableParameter()
+    {
+        modulatingLfos.clear();
+        modulatingRegionIDs.clear();
+        lfoEvaluationFunctions.clear();
+
+        //release states
+        delete states[static_cast<int>(ModulatableParameterStateIndex::outdated)];
+        delete states[static_cast<int>(ModulatableParameterStateIndex::upToDate)];
+    }
+
+    typedef double(*lfoEvalFuncPt)(RegionLfo* lfo); //pointer to a function that evaluates the current value of an LFO
+
+    void addModulator(RegionLfo* newModulatingLfo, int newRegionID, lfoEvalFuncPt newEvalFuncPt)
+    {
+        for (auto* it = modulatingRegionIDs.begin(); it != modulatingRegionIDs.end(); it++)
+        {
+            if (*it == newRegionID)
+            {
+                //new LFO already exists in the list -> done
+                return;
+            }
+        }
+
+        //new LFO does not yet exist in the list
+        modulatingLfos.add(newModulatingLfo);
+        modulatingRegionIDs.add(newRegionID);
+        lfoEvaluationFunctions.add(newEvalFuncPt);
+        transitionToState(ModulatableParameterStateIndex::outdated);
+    }
     //void removeModulator(RegionLfo* modulatingLfo);
-    void removeModulator(int regionID);
+    void removeModulator(int regionID)
+    {
+        int i = 0;
+        for (auto* itRegionID = modulatingRegionIDs.begin(); itRegionID != modulatingRegionIDs.end(); itRegionID++, i++)
+        {
+            if (*itRegionID == regionID)
+            {
+                //LFO found
+                modulatingLfos.remove(i);
+                modulatingRegionIDs.remove(i);
+                lfoEvaluationFunctions.remove(i);
+                transitionToState(ModulatableParameterStateIndex::outdated);
+                return;
+            }
+        }
 
-    T getBaseValue();
-    void setBaseValue(T newBaseValue);
+        //LFO does not exist in the list -> done
+    }
 
-    T getModulatedValue();
-    void signalModulatorUpdated(); //transitions into a pending state, so that next time getModulatedValue() is called, currentModulatedValue is re-calculated
+    T getBaseValue()
+    {
+        return baseValue;
+    }
+    void setBaseValue(T newBaseValue)
+    {
+        baseValue = newBaseValue;
+        transitionToState(ModulatableParameterStateIndex::outdated);
+    }
 
-    void transitionToState(ModulatableParameterStateIndex stateToTransitionTo);
+    T getModulatedValue()
+    {
+        currentState->ensureModulatorIsUpToDate(); //re-calculates the modulated value if it's outdated
+        return currentModulatedValue;
+    }
+    void signalModulatorUpdated() //transitions into a pending state, so that next time getModulatedValue() is called, currentModulatedValue is re-calculated
+    {
+        //transitionToState(ModulatableParameterStateIndex::outdated);
+        currentState->modulatorHasUpdated(); //should be sliiiightly quicker than the line above, because for the outdated state, this function is empty. and since this function will be called several times during the outdated state except if there's only 1 modulator, it'll be more efficient. and if there's only 1 modulator, not a lot of CPU is used anyway.
+    }
+
+    void transitionToState(ModulatableParameterStateIndex stateToTransitionTo)
+    {
+        //states cannot be skipped here, so in contrast to the state implementation of RegionLfo or the DAHDSR envelope and such, no while-loop is needed here
+        switch (stateToTransitionTo)
+        {
+        case ModulatableParameterStateIndex::outdated:
+            //DBG("parameter outdated");
+            break;
+
+        case ModulatableParameterStateIndex::upToDate:
+            //DBG("parameter up-to-date")
+            break;
+
+        default:
+            throw std::exception("unhandled state index");
+        }
+
+        //finally, update the current state index
+        currentStateIndex = stateToTransitionTo;
+        currentState = states[static_cast<int>(currentStateIndex)];
+    }
 
     T currentModulatedValue; //required to be public for the implementation of the states - exclusively use getModulatedValue otherwise!
     virtual void calculateModulatedValue() = 0;
@@ -82,11 +170,29 @@ template <typename T>
 class ModulatableAdditiveParameter final : public ModulatableParameter<T>
 {
 public:
-    ModulatableAdditiveParameter(T baseValue);
-    ~ModulatableAdditiveParameter();
+    ModulatableAdditiveParameter(T baseValue) :
+        ModulatableParameter<T>(baseValue)
+    { }
+    ~ModulatableAdditiveParameter()
+    {
+        ModulatableParameter<T>::~ModulatableParameter<T>();
+    }
 
-    void calculateModulatedValue() override;
+    void calculateModulatedValue() override
+    {
+        currentModulatedValue = baseValue;
+
+        auto* itFunc = lfoEvaluationFunctions.begin();
+        for (auto* itLfo = modulatingLfos.begin(); itLfo != modulatingLfos.end(); itLfo++, itFunc++)
+        {
+            currentModulatedValue += (*itFunc)(*itLfo); //handles unipolar vs. bipolar values, scalings, inversions, etc.
+        }
+
+        //parameter is now up-to-date again
+        transitionToState(ModulatableParameterStateIndex::upToDate);
+    }
 };
+
 //class ModulatableAdditiveParameter final : public ModulatableParameter<double>
 //{
 //public:
@@ -108,11 +214,29 @@ template <typename T>
 class ModulatableMultiplicativeParameter final : public ModulatableParameter<T>
 {
 public:
-    ModulatableMultiplicativeParameter(T baseValue);
-    ~ModulatableMultiplicativeParameter();
+    ModulatableMultiplicativeParameter(T baseValue) :
+        ModulatableParameter<T>(baseValue)
+    { }
+    ~ModulatableMultiplicativeParameter()
+    {
+        ModulatableParameter<T>::~ModulatableParameter<T>();
+    }
 
-    void calculateModulatedValue() override;
+    void calculateModulatedValue() override
+    {
+        currentModulatedValue = baseValue;
+
+        auto* itFunc = lfoEvaluationFunctions.begin();
+        for (auto* itLfo = modulatingLfos.begin(); itLfo != modulatingLfos.end(); itLfo++, itFunc++)
+        {
+            currentModulatedValue += (*itFunc)(*itLfo); //handles unipolar vs. bipolar values, scalings, inversions, etc.
+        }
+
+        //parameter is now up-to-date again
+        transitionToState(ModulatableParameterStateIndex::upToDate);
+    }
 };
+
 //class ModulatableMultiplicativeParameter final : public ModulatableParameter<double>
 //{
 //public:

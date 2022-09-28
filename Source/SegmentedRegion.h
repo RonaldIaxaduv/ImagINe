@@ -22,6 +22,8 @@ struct Voice;
 #include "RegionEditorWindow.h"
 class RegionEditorWindow;
 
+#include "RegionLfo.h"
+
 //==============================================================================
 /*
 */

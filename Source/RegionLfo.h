@@ -28,14 +28,14 @@ class RegionLfoState_Active;
 //struct Voice;
 
 #include "ModulatableParameter.h" //don't use forward declaration here! see https://isocpp.org/wiki/faq/misc-technical-issues#forward-decl-members (class needs to be fully defined before it may be used as a member!)
-//template <typename T>
-//class ModulatableParameter;
-//
-//template <typename T>
-//class ModulatableAdditiveParameter;
-//
-//template <typename T>
-//class ModulatableMultiplicativeParameter;
+                                  //^- this is wrong actually since RegionLfo has a cpp file. the above link only refers to classes with inline methods (i.e. those already defined in the header file)
+template <typename T> class ModulatableParameter;
+template <typename T> class ModulatableAdditiveParameter;
+template <typename T> class ModulatableMultiplicativeParameter;
+#include "ModulatableParameter.cpp"
+
+//template class ModulatableAdditiveParameter<double>; //forces the double implementation of ModulatableAdditiveParameter to be compiled before compiling this class (see https://stackoverflow.com/questions/2152002/how-do-i-force-a-particular-instance-of-a-c-template-to-instantiate) -> needs to be done to compile the member of that class
+                                                       //^- for some reason, it doesn't actually do that... that's very weird o.ô
 
 
 /// <summary>

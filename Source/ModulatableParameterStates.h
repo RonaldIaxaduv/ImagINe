@@ -11,6 +11,7 @@
 #pragma once
 
 #include "ModulatableParameter.h"
+#include "ModulatableParameterStateIndex.h"
 template <typename T>
 class ModulatableParameter;
 
@@ -23,7 +24,9 @@ template <typename T>
 class ModulatableParameterState
 {
 public:
-    ModulatableParameterState(ModulatableParameter<T>& parameter);
+    ModulatableParameterState(ModulatableParameter<T>& parameter) :
+        parameter(parameter)
+    { }
 
     virtual void modulatorHasUpdated() = 0;
     virtual void ensureModulatorIsUpToDate() = 0;
@@ -44,10 +47,23 @@ template <typename T>
 class ModulatableParameterState_Outdated final : public ModulatableParameterState<T>
 {
 public:
-    ModulatableParameterState_Outdated(ModulatableParameter<T>& parameter);
+    ModulatableParameterState_Outdated(ModulatableParameter<T>& parameter) :
+        ModulatableParameterState(parameter)
+    {
+        implementedStateIndex = ModulatableParameterStateIndex::outdated;
+    }
 
-    void modulatorHasUpdated() override;
-    void ensureModulatorIsUpToDate() override; //called every time before the parameter accesses the modulated value
+    void modulatorHasUpdated() override
+    {
+        //nothing happens; already marked as outdated
+    }
+    void ensureModulatorIsUpToDate() override //called every time before the parameter accesses the modulated value
+    {
+        //previous value is outdated -> update
+        parameter.calculateModulatedValue();
+
+        //automatically switches to upToDate afterwards
+    }
 };
 
 
@@ -61,8 +77,19 @@ template <typename T>
 class ModulatableParameterState_UpToDate final : public ModulatableParameterState<T>
 {
 public:
-    ModulatableParameterState_UpToDate(ModulatableParameter<T>& parameter);
+    ModulatableParameterState_UpToDate(ModulatableParameter<T>& parameter) :
+        ModulatableParameterState(parameter)
+    {
+        implementedStateIndex = ModulatableParameterStateIndex::upToDate;
+    }
 
-    void modulatorHasUpdated() override;
-    void ensureModulatorIsUpToDate() override;
+    void modulatorHasUpdated() override
+    {
+        //-> value of modulatedParameter is no longer up-to-date
+        parameter.transitionToState(ModulatableParameterStateIndex::outdated);
+    }
+    void ensureModulatorIsUpToDate() override
+    {
+        //previous value is still up-to-date -> do nothing
+    }
 };

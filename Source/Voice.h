@@ -14,7 +14,6 @@
 #include "SamplerOscillator.h"
 #include "DahdsrEnvelope.h"
 #include "ModulatableParameter.h"
-
 #include "RegionLfo.h" //uses pointer + needs access to methods -> full build required -> no forwarding(?)
 //class RegionLfo;
 

@@ -96,9 +96,29 @@
 		# adding new modulators: the modulated value creates a new entry (generic value - float or double in this case) in its list of modulators. the modulator (LFO) gets a pointer to that entry (-> quick update) and also saves a reference to the ModulatableParameter class to call a method "hasUpdated" (or so) whenever the modulator updates the value
 		# exchange modulation functions for pointers to modulated parameters in RegionLfo, adjust adding/removing modulations (those will now handle defining lfoEvalFuncPt for ModulatableParameter!)
 		# when RegionLfo updates, only call signalModulatorUpdated() in each ModulatableParameter instead of all the calculations until now
-		- add methods to Voice/RegionLfo for getting pointers to their ModulatableParameter members (required for registering/unregistering modulations in RegionLfo)
-		- use ModulatableParameter for Voice parameters
-		- use ModulatableParameter for RegionLfo parameters
+		# add methods to Voice/RegionLfo for getting pointers to their ModulatableParameter members (required for registering/unregistering modulations in RegionLfo)
+		# use ModulatableParameter for Voice parameters
+		# use ModulatableParameter for RegionLfo parameters
+		!- currently throws a compile error. might be a circular reference problem, but i'm also beginning to suspect some kind of implementation error in ModulatableParameter that intellisense didn't catch (it failed to recognise a non-existing variable last time i checked - might have smth to do with the generics...)
+			# plan A: try commenting out every method in ModulatableParameter and then building -> if it builds successfully, the problem lies somewhere in ModulatableParameter!
+				- did not fix it
+			# plan B: change RegionLfo back so that it doesn't use ModulatableParameter for its own frequency anymore. if it builds... well then at least it's clear where the problem was, maybe it helps. if it doesn't build, reload the last commit for a quicker rollback
+				- did not fix it. it doesn't recognise the <double> parameter for the remaining ModulatableParameters then (again still a sign that the cyclic reference doesn't compile...)
+			- plan C: apparently, .cpp implementations of a generic class are not necessary or even wrong! -> define ModulatableParameter fully in the header file and check whether that solves it!
+				see https://stackoverflow.com/questions/62359169/c-generic-class-why-do-i-need-cpp-file
+				- did not fix it
+			- plan D: apparently, compiling individual cpp files might give better (or at least less cluttered) error messages -> try it for a few cpp files and see if anything becomes clearer
+				-> maybe AudioEngine needs a cpp? -> nope, didn't change anything (probably not a bad thing to leave it in though since compiling individual files is actually pretty neat)
+					- actually, it *did* fix a (minor) compilation error in SegmentedRegion.cpp, so that's good
+				-> it might be necessary to make the ModulatableParameters in RegionLfo into pointers: https://readforlearn.com/implicit-instantiation-of-undefined-template-when-forward-declaring-template-class/
+					(or ModulatableAdditiveParameter<double> has to be defined somewhere before --> an alternative would be to predefine ModulatableAdditiveParameter as being a subclass of ModulatableParameter<double> again)
+			- plan D: write out the cpp files with expanded headers for ModulatableParameter, RegionLfo and Voice. is any one of them missing a forward reference? do they have the requirements to use methods if they need to do so?
+				see https://isocpp.org/wiki/faq/misc-technical-issues#forward-decl-members (scroll up a little, anchor doesn't work properly),
+				    https://stackoverflow.com/questions/625799/resolve-build-errors-due-to-circular-dependency-amongst-classes
+			- plan E: remove ModulatableParameter use entirely from RegionLfo, Voice, LfoEditor and AudioEngine. If it doesn't build, the error lies somewhere in the code of ModulatableParameter
+				/ maybe this could also be done by only compiling ModulatableParameter? is it possible to do that?
+					- apparently that's possible, but it didn't fix it it still tries to compile RegionLfo...
+			- plan F: try running the connections over AudioEngine, i.e. ModulatableParameters exist only in AudioEngine instead of as class members - would that work? And even if it does, would it be efficient enough?
 		- if everything works, clean up commented code in RegionLfo and Voice
 	!- implement states for Voice
 	# switch to function templates or function pointers instead of std::function -> see https://stackoverflow.com/questions/25848690/should-i-use-stdfunction-or-a-function-pointer-in-c

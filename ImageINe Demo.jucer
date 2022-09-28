@@ -67,6 +67,7 @@
       <FILE id="kh1aPr" name="Voice.h" compile="0" resource="0" file="Source/Voice.h"/>
       <FILE id="uwA6k0" name="Voice.cpp" compile="1" resource="0" file="Source/Voice.cpp"/>
       <FILE id="JWS5Od" name="AudioEngine.h" compile="0" resource="0" file="Source/AudioEngine.h"/>
+      <FILE id="k42OGO" name="AudioEngine.cpp" compile="1" resource="0" file="Source/AudioEngine.cpp"/>
       <FILE id="m8U4QV" name="SegmentableImage.h" compile="0" resource="0"
             file="Source/SegmentableImage.h"/>
       <FILE id="AnGmtW" name="SegmentableImage.cpp" compile="1" resource="0"
