@@ -19,12 +19,15 @@ enum class LfoModulatableParameter : int
     pitch_inverted,
     //panning,
     //panning_inverted,
+    playbackPosition,
+    playbackPosition_inverted,
 
     lfoRate,
     lfoRate_inverted,
     //lfoDepth,
     //lfoDepth_inverted,
-
-    playbackPosition,
-    playbackPosition_inverted
+    lfoPhase,
+    lfoPhase_inverted,
+    lfoUpdateInterval,
+    lfoUpdateInterval_inverted
 };

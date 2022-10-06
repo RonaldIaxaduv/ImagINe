@@ -13,7 +13,7 @@
 Voice::Voice() :
     playbackMultApprox([](double semis) { return std::pow(2.0, semis / 12.0); }, -60.0, 60.0, 60 + 60 + 1), //1 point per semi should be enough
     envelope(),
-    levelParameter(0.25), pitchShiftParameter(0.0)
+    levelParameter(0.25), pitchShiftParameter(0.0), playbackPositionParameter(1.0)
 {
     osc = nullptr;
 
@@ -28,6 +28,9 @@ Voice::Voice() :
     
     currentStateIndex = initialStateIndex;
     currentState = states[static_cast<int>(currentStateIndex)];
+
+    //DBG("init base level: " + juce::String(levelParameter.getBaseValue()));
+    //DBG("init base playback pos: " + juce::String(playbackPositionParameter.getBaseValue()));
 }
 
 Voice::Voice(juce::AudioSampleBuffer buffer, int origSampleRate, int regionID) :
@@ -194,10 +197,22 @@ void Voice::renderNextBlock_wave(juce::AudioSampleBuffer& outputBuffer, int samp
     //evaluate modulated values
     updateBufferPosDelta(); //determines pitch shift
 
+    double effectiveBufferPos = currentBufferPos + static_cast<double>(osc->fileBuffer.getNumSamples() - 1) * playbackPositionParameter.getModulatedValue();
+    if (static_cast<int>(effectiveBufferPos) >= osc->fileBuffer.getNumSamples())
+    {
+        effectiveBufferPos -= static_cast<double>(osc->fileBuffer.getNumSamples());
+    }
+    /*else if (static_cast<int>(effectiveBufferPos) < 0)
+    {
+        effectiveBufferPos += static_cast<double>(osc->fileBuffer.getNumSamples());
+    }*/
+    //double effectiveBufferPos = currentBufferPos * playbackPositionParameter.getModulatedValue(); //much cheaper and more reliable than the above version, although perhaps not quite as good-sounding
+
     double gainAdjustment = envelope.getNextEnvelopeSample() * levelParameter.getModulatedValue(); //= envelopeLevel * level (with all modulations)
     for (auto i = outputBuffer.getNumChannels() - 1; i >= 0; --i)
     {
-        auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)currentBufferPos)) * gainAdjustment;
+        //auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)currentBufferPos)) * gainAdjustment;
+        auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)effectiveBufferPos)) * gainAdjustment;
         outputBuffer.addSample(i, sampleIndex, (float)currentSample);
     }
 
@@ -227,10 +242,22 @@ void Voice::renderNextBlock_waveAndLfo(juce::AudioSampleBuffer& outputBuffer, in
     //evaluate modulated values
     updateBufferPosDelta(); //determines pitch shift
 
+    double effectiveBufferPos = currentBufferPos + static_cast<double>(osc->fileBuffer.getNumSamples() - 1) * playbackPositionParameter.getModulatedValue();
+    if (static_cast<int>(effectiveBufferPos) >= osc->fileBuffer.getNumSamples())
+    {
+        effectiveBufferPos -= static_cast<double>(osc->fileBuffer.getNumSamples());
+    }
+    /*else if (static_cast<int>(effectiveBufferPos) < 0)
+    {
+        effectiveBufferPos += static_cast<double>(osc->fileBuffer.getNumSamples());
+    }*/
+    //double effectiveBufferPos = currentBufferPos * playbackPositionParameter.getModulatedValue(); //much cheaper and more reliable than the above version, although perhaps not quite as good-sounding
+
     double gainAdjustment = envelope.getNextEnvelopeSample() * levelParameter.getModulatedValue(); //= envelopeLevel * level (with all modulations)
     for (auto i = outputBuffer.getNumChannels() - 1; i >= 0; --i)
     {
-        auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)currentBufferPos)) * gainAdjustment;
+        //auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)currentBufferPos)) * gainAdjustment;
+        auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)effectiveBufferPos)) * gainAdjustment;
         outputBuffer.addSample(i, sampleIndex, (float)currentSample);
     }
 
@@ -351,6 +378,11 @@ void Voice::transitionToState(VoiceStateIndex stateToTransitionTo)
     currentState = states[static_cast<int>(currentStateIndex)];
 }
 
+bool Voice::isPlaying()
+{
+    return currentStateIndex == VoiceStateIndex::playable_Lfo || currentStateIndex == VoiceStateIndex::playable_noLfo;
+}
+
 //==============================================================================
 ModulatableMultiplicativeParameter<double>* Voice::getLevelParameter()
 {
@@ -376,6 +408,19 @@ void Voice::setBasePitchShift(double newPitchShift)
 double Voice::getBasePitchShift()
 {
     return pitchShiftParameter.getBaseValue();
+}
+
+ModulatableMultiplicativeParameter<double>* Voice::getPlaybackPositionParameter()
+{
+    return &playbackPositionParameter;
+}
+void Voice::setBasePlaybackPosition(double newPlaybackPosition)
+{
+    playbackPositionParameter.setBaseValue(newPlaybackPosition);
+}
+double Voice::getBasePlaybackPosition()
+{
+    return playbackPositionParameter.getBaseValue();
 }
 
 void Voice::updateBufferPosDelta()

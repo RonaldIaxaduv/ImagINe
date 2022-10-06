@@ -69,6 +69,7 @@ public:
 
     //==============================================================================
     void transitionToState(VoiceStateIndex stateToTransitionTo);
+    bool isPlaying();
 
     //==============================================================================
     ModulatableMultiplicativeParameter<double>* getLevelParameter();
@@ -78,6 +79,10 @@ public:
     ModulatableAdditiveParameter<double>* getPitchShiftParameter();
     void setBasePitchShift(double newPitchShift);
     double getBasePitchShift();
+
+    ModulatableMultiplicativeParameter<double>* getPlaybackPositionParameter();
+    void setBasePlaybackPosition(double newPlaybackPosition);
+    double getBasePlaybackPosition();
 
     void updateBufferPosDelta();
     void updateBufferPosDelta_NotPlayable();
@@ -106,6 +111,8 @@ private:
 
     ModulatableAdditiveParameter<double> pitchShiftParameter;
     juce::dsp::LookupTableTransform<double> playbackMultApprox; //calculating the resulting playback speed from the semitones of pitch shift needs the power function (2^(semis/12)) which is expensive. this pre-calculates values within a certain range (-60...+60)
+
+    ModulatableMultiplicativeParameter<double> playbackPositionParameter;
 
     SamplerOscillator* osc;
 

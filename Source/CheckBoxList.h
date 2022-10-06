@@ -33,21 +33,25 @@ public:
         };
         addAndMakeVisible(regionButton);
 
-        modulationChoice.addSectionHeading("Basic");
+        modulationChoice.addSectionHeading("Voice");
         modulationChoice.addItem("Volume", static_cast<int>(LfoModulatableParameter::volume));
         modulationChoice.addItem("Volume (inverted)", static_cast<int>(LfoModulatableParameter::volume_inverted));
         modulationChoice.addItem("Pitch", static_cast<int>(LfoModulatableParameter::pitch));
         modulationChoice.addItem("Pitch (inverted)", static_cast<int>(LfoModulatableParameter::pitch_inverted));
         //modulationChoice.addItem("Panning", static_cast<int>(LfoModulatableParameter::panning));
         //modulationChoice.addItem("Panning (inverted)", static_cast<int>(LfoModulatableParameter::panning_inverted));
+        modulationChoice.addItem("Playback Position", static_cast<int>(LfoModulatableParameter::playbackPosition));
+        modulationChoice.addItem("Playback Position (inverted)", static_cast<int>(LfoModulatableParameter::playbackPosition_inverted));
         modulationChoice.addSeparator();
         modulationChoice.addSectionHeading("LFO");
         modulationChoice.addItem("LFO Rate", static_cast<int>(LfoModulatableParameter::lfoRate));
         modulationChoice.addItem("LFO Rate (inverted)", static_cast<int>(LfoModulatableParameter::lfoRate_inverted));
-        modulationChoice.addSeparator();
-        modulationChoice.addSectionHeading("Experimental");
-        modulationChoice.addItem("Playback Position", static_cast<int>(LfoModulatableParameter::playbackPosition));
-        modulationChoice.addItem("Playback Position (inverted)", static_cast<int>(LfoModulatableParameter::playbackPosition_inverted));
+        modulationChoice.addItem("LFO Phase", static_cast<int>(LfoModulatableParameter::lfoPhase));
+        modulationChoice.addItem("LFO Phase (inverted)", static_cast<int>(LfoModulatableParameter::lfoPhase_inverted));
+        modulationChoice.addItem("LFO Update Interval", static_cast<int>(LfoModulatableParameter::lfoUpdateInterval));
+        modulationChoice.addItem("LFO Update Interval (inverted)", static_cast<int>(LfoModulatableParameter::lfoUpdateInterval_inverted));
+        //modulationChoice.addSeparator();
+        //modulationChoice.addSectionHeading("Experimental");
         modulationChoice.onChange = [this] { sendChangeMessage(); }; //the LfoEditor does the actualy routing to the RegionLfo. that way, this class doesn't need any references to RegionLfo or the LfoEditor or any of that stuff, which is cleaner overall
         modulationChoice.setEnabled(false);
         addAndMakeVisible(modulationChoice);

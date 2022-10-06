@@ -35,11 +35,12 @@
 			# also add a base pitch slider to the settings menu (-60st...+60st -> since one octave doubles/halves the frequency, this corresponds to multiplication by 1/32...32, the formula being mult=2^(semis/12))
 		# LFOs' rates (incl. its own)
 		/ LFOs' modulation depths (incl. its own)
- !		- voices' playback positions (incl. its own)
-			- would require adding a "slow update" mode to the LFO where it doesn't update during every single sample
-			- also add a base start position slider to the settings menu (0.0 ... 100.0 ?)
- !		- LFOs' update intervals (not very useful performance-wise, but should sound cool especially with LFOs that modulate pitch!)
-		- LFOs' phase (= playback position) (incl. its own?)
+		# voices' playback positions (incl. its own)
+			# would require adding a "slow update" mode to the LFO where it doesn't update during every single sample
+			?- also add a base start position slider to the settings menu (0.0 ... 100.0 ?)
+		# LFOs' update intervals (not very useful performance-wise, but should sound cool especially with LFOs that modulate pitch!)
+ !		- LFOs' phase (= playback position) (incl. its own?)
+			- adjust code that draws the LFO line on the image
 	/ implement changing the LFO's modulation depth in the settings menu
  !		!- make it depend on the shape's size, actually
 			- use the shape's area (bounds) in relation to that of the full image -> being >=2/3 of the image's area should result in full modulation depth
@@ -148,7 +149,11 @@
 		- first comment of the first reply here is also important: https://stackoverflow.com/questions/21215409/does-c-pass-objects-by-value-or-reference
 			- for a more direct example: https://stackoverflow.com/questions/9293674/can-we-reassign-the-reference-in-c#9293732
 	- declare methods as const if they don't change member variables: https://stackoverflow.com/questions/24500909/passing-class-reference-to-function
->> - bug: the LFO line doesn't keep updating while the voice is tailing off (-> just create a bool variable isPlaying in Voice that's checked for that purpose)
+# bug: LFO line doesn't update when LFO doesn't modulate anything
+	- a RegionLfoState wasn't set up correctly, that's all
+# bug: the LFO line doesn't keep updating while the voice is tailing off (-> just create a bool variable isPlaying in Voice that's checked for that purpose)
+- add visual feedback for update rate
+	!- idea: adjust update rate of the *line drawing* accordingly! this is a win-win, because it provides feedback and even reduces the CPU usage further!
 / is there a way to make it so that modulation of other regions remains at the current modulation value even when the region modulating it stops playing?
 	-> example: currently, if region 1 modulates region 2's volume, the modulation stops after region 1 stops playing (i.e. region 2 plays with its base volume - not the base volume multiplied with the LFO value of region 1 that was last measured). is there a way to apply the LFO's modulation independent from a region playing?
 	- idea: maybe advance all LFOs *before* rendering all next synth samples? would that change anything/much?
@@ -159,11 +164,13 @@
 			-> definitely doable! now the only remaining question is whether evaluating the LFOs before rendering the voices significantly changes the sound
 	- idea 2: maybe don't use a single variable to accumulate modulations. instad, use a list of modulation values with are multiplied/summed during every sample. when an LFO starts modulating a value, its value is inserted into the list and updated after every sample - but only removed when the LFO is deleted or starts modulating a different value. downside: more operations during every sample
 	#-> this is now already the case because of the ModulatableParameter class
-- implement more LFO-modulatable parameters
-- update LFO menu (might not be necessary anymore depending on what has been done at the point that this is next)
+# implement more LFO-modulatable parameters
+# update LFO menu (might not be necessary anymore depending on what has been done at the point that this is next)
 - make it possible to delete regions
 	- to handle all the audio parameters, create a method in the *audio engine*(!) that deletes all voices with the region's id from the LFOs' voice lists, and then all of those voices from the synth
 - fix memory leaks that occur when closing the program
+# add an option to make the pitch shift quantised to either semitones or a normal scale (might be possible to do with the interpolation tables?)
+	- this would add SO MUCH since actual, non-chaotic *melodies* could be created with it using a region that pitch mods itself at a slow interval and a second region that alters the first region's update rate or LFO rate
 - serialisation
 
 

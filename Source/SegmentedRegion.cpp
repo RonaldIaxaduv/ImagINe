@@ -142,12 +142,12 @@ void SegmentedRegion::paintOverChildren(juce::Graphics& g)
     if (associatedLfo != nullptr)
     {
         //draw LFO line
-        float curLfoPhase = associatedLfo->getPhase();
+        float curLfoPhase = associatedLfo->getPhase(); //* associatedLfo->getPhaseModParameter()->getModulatedValue();
 
         if (isPlaying)
-            g.setColour(fillColour.contrasting(0.2f));
+            g.setColour(juce::Colour::contrasting(fillColour, fillColour.darker(0.4)));
         else
-            g.setColour(fillColour.contrasting(0.2f).withAlpha(0.5f)); //faded when not playing
+            g.setColour(juce::Colour::contrasting(fillColour, fillColour.darker(0.4)).withAlpha(0.5f)); //faded when not playing
 
         //draw line from focus point to point on the outline that corresponds to the associated LFO's current phase
         juce::Point<float> outlinePt = p.getPointAlongPath(curLfoPhase * p.getLength(), juce::AffineTransform(), juce::Path::defaultToleranceForMeasurement);
@@ -155,6 +155,19 @@ void SegmentedRegion::paintOverChildren(juce::Graphics& g)
             outlinePt.x, outlinePt.y,
             3.0f);
     }
+
+    auto voices = audioEngine->getVoicesWithID(ID);
+
+    for (auto it = voices.begin(); it != voices.end(); it++)
+    {
+        if ((*it)->isPlaying())
+        {
+            return; //there's still voices playing -> keep rendering
+        }
+    }
+
+    //no more voices playing -> stop rendering
+    stopTimer();
 }
 
 void SegmentedRegion::resized() //WIP: for some reason, this is called when hovering over the button
@@ -282,7 +295,7 @@ void SegmentedRegion::renderLfoWaveform()
     samples[waveform.getNumSamples() - 1] = waveform.getSample(0, 0); //the last sample is equal to the first -> makes wrapping simpler and faster
 
     //apply to LFO
-    if (associatedLfo == nullptr) //lfo not yet initialised
+    if (audioEngine->getLfo(ID) == nullptr) //lfo not yet initialised
     {
         associatedLfo = new RegionLfo(waveform, RegionLfo::Polarity::unipolar, getID()); //no modulation until the voice has been initialised
         audioEngine->addLfo(associatedLfo);
@@ -383,6 +396,6 @@ void SegmentedRegion::stopPlaying()
         //audioEngine->getSynth()->getVoice(voiceIndex)->stopNote(1.0f, true);
         isPlaying = false;
 
-        stopTimer();
+        //stopTimer(); //stopped in the drawing method since the LFO will have to keep being drawn for a little longer because of release time
     }
 }

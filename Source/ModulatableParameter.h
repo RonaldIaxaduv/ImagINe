@@ -171,7 +171,7 @@ class ModulatableAdditiveParameter final : public ModulatableParameter<T>
 {
 public:
     ModulatableAdditiveParameter(T baseValue) :
-        ModulatableParameter<T>(baseValue)
+        ModulatableParameter<T>::ModulatableParameter(baseValue)
     { }
     ~ModulatableAdditiveParameter()
     {
@@ -205,7 +205,7 @@ class ModulatableMultiplicativeParameter final : public ModulatableParameter<T>
 {
 public:
     ModulatableMultiplicativeParameter(T baseValue) :
-        ModulatableParameter<T>(baseValue)
+        ModulatableParameter<T>::ModulatableParameter(baseValue)
     { }
     ~ModulatableMultiplicativeParameter()
     {
@@ -216,11 +216,16 @@ public:
     {
         currentModulatedValue = baseValue;
 
+        //DBG("base " + juce::String(baseValue));
+
         auto* itFunc = lfoEvaluationFunctions.begin();
         for (auto* itLfo = modulatingLfos.begin(); itLfo != modulatingLfos.end(); itLfo++, itFunc++)
         {
-            currentModulatedValue += (*itFunc)(*itLfo); //handles unipolar vs. bipolar values, scalings, inversions, etc.
+            currentModulatedValue *= (*itFunc)(*itLfo); //handles unipolar vs. bipolar values, scalings, inversions, etc.
+            //DBG("*" + juce::String((*itFunc)(*itLfo)));
         }
+
+        //DBG("mod val: " + juce::String(currentModulatedValue));
 
         //parameter is now up-to-date again
         transitionToState(ModulatableParameterStateIndex::upToDate);

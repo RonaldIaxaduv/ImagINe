@@ -210,9 +210,11 @@ void RegionEditor::copyRegionParameters()
 
     toggleModeButton.setToggleState(associatedRegion->isToggleable(), juce::NotificationType::dontSendNotification);
 
-    Voice* voice = associatedRegion->getAssociatedVoice();
-    if (voice != nullptr)
+    juce::Array<Voice*> voices = associatedRegion->getAudioEngine()->getVoicesWithID(associatedRegion->getID());
+    //Voice* voice = associatedRegion->getAssociatedVoice();
+    if (voices.size() > 0) //(voice != nullptr)
     {
+        Voice* voice = voices[0]; //all voices have the same parameters
         volumeSlider.setValue(juce::Decibels::gainToDecibels<double>(voice->getBaseLevel(), -60.0), juce::NotificationType::dontSendNotification);
         pitchSlider.setValue(voice->getBasePitchShift(), juce::NotificationType::dontSendNotification);
     }
@@ -294,18 +296,35 @@ void RegionEditor::updateToggleable()
 void RegionEditor::updateAllVoiceSettings() //used after a voice has been first set or changed
 {
     updateVolume();
+    updatePitch();
+    updatePlaybackPosition();
 }
 void RegionEditor::updateVolume()
 {
-    Voice* voice = associatedRegion->getAssociatedVoice();
-    if (voice != nullptr)
-        voice->setBaseLevel(juce::Decibels::decibelsToGain<double>(volumeSlider.getValue(), -60.0));
+    juce::Array<Voice*> voices = associatedRegion->getAudioEngine()->getVoicesWithID(associatedRegion->getID());
+
+    for (auto* it = voices.begin(); it != voices.end(); it++)
+    {
+        (*it)->setBaseLevel(juce::Decibels::decibelsToGain<double>(volumeSlider.getValue(), -60.0));
+    }
 }
 void RegionEditor::updatePitch()
 {
-    Voice* voice = associatedRegion->getAssociatedVoice();
-    if (voice != nullptr)
-        voice->setBasePitchShift(pitchSlider.getValue());
+    juce::Array<Voice*> voices = associatedRegion->getAudioEngine()->getVoicesWithID(associatedRegion->getID());
+
+    for (auto* it = voices.begin(); it != voices.end(); it++)
+    {
+        (*it)->setBasePitchShift(pitchSlider.getValue());
+    }
+}
+void RegionEditor::updatePlaybackPosition()
+{
+    juce::Array<Voice*> voices = associatedRegion->getAudioEngine()->getVoicesWithID(associatedRegion->getID());
+
+    for (auto* it = voices.begin(); it != voices.end(); it++)
+    {
+        //(*it)->setBasePlaybackPosition(playbackPositionSlider.getValue());
+    }
 }
 
 void RegionEditor::deleteRegion()

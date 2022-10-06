@@ -44,6 +44,7 @@ private:
     void updateAllVoiceSettings();
     void updateVolume();
     void updatePitch();
+    void updatePlaybackPosition();
 
     void deleteRegion();
 

@@ -162,7 +162,7 @@ void RegionLfoState_WithoutModulatedParameters::modulatedParameterCountChanged(i
 
 void RegionLfoState_WithoutModulatedParameters::advance()
 {
-    //doesn't do anything while no modulated parameters have been set
+    lfo.advanceUnsafeWithoutUpdate(); //needs to update phase (displayed on the region!), but no update necessary
 }
 
 //void RegionLfoState_WithoutModulatedParameters::updateModulatedParameter()

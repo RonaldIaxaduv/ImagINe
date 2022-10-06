@@ -53,6 +53,8 @@ public:
     int getNumModulatedParameterIDs();
 
     ModulatableAdditiveParameter<double>* getFrequencyModParameter();
+    ModulatableMultiplicativeParameter<double>* getPhaseModParameter();
+    ModulatableMultiplicativeParameter<double>* getUpdateIntervalParameter();
 
     float getModulationDepth();
 
@@ -64,6 +66,8 @@ public:
     void advance() override;
     void advanceUnsafeWithUpdate();
     void advanceUnsafeWithoutUpdate();
+
+    void updateCurrentValues();
 
     double getCurrentValue_Unipolar();
     double getCurrentValue_Bipolar();
@@ -101,12 +105,14 @@ protected:
     ModulatableAdditiveParameter<double> frequencyModParameter; //replaces the frequency modulation members of LFO
     void evaluateFrequencyModulation() override;
 
+    ModulatableMultiplicativeParameter<double> phaseModParameter;
+
+    ModulatableMultiplicativeParameter<double> updateIntervalParameter;
+
     float depth = 1.0f; //intensity of the modulation
 
     int updateInterval = 0; //the LFO doesn't update with every sample. instead, a certain time interval (in samples) needs to pass until another update happens. higher values should generally decrease CPU usage.
     float updateIntervalMs = 0.0f; //update interval in milliseconds
-
-    void updateCurrentValues();
 
     void updateModulatedParameter() override;
     void updateModulatedParameterUnsafe();

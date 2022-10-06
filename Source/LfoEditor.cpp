@@ -170,14 +170,33 @@ void LfoEditor::updateLfoParameter(int targetRegionID, bool shouldBeModulated, L
     case LfoModulatableParameter::pitch:
     case LfoModulatableParameter::pitch_inverted:
         associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_Pitch(targetRegionID));
-        //associatedLfo->addRegionModulation(modulatedParameter, audioEngine->getVoicesWithID(targetRegionID));
         break;
+
+    case LfoModulatableParameter::playbackPosition:
+    case LfoModulatableParameter::playbackPosition_inverted:
+        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_PlaybackPosition(targetRegionID));
+        break;
+
+
+
 
     case LfoModulatableParameter::lfoRate:
     case LfoModulatableParameter::lfoRate_inverted:
         associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_LfoRate(targetRegionID));
-        //associatedLfo->addRegionModulation(modulatedParameter, audioEngine->getLfo(targetRegionID));
         break;
+
+    case LfoModulatableParameter::lfoPhase:
+    case LfoModulatableParameter::lfoPhase_inverted:
+        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_LfoPhase(targetRegionID));
+        break;
+
+    case LfoModulatableParameter::lfoUpdateInterval:
+    case LfoModulatableParameter::lfoUpdateInterval_inverted:
+        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_LfoUpdateInterval(targetRegionID));
+        break;
+
+
+
 
     default:
         throw std::exception("Unknown or unimplemented region modulation");

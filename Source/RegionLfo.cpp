@@ -15,7 +15,7 @@
 
 RegionLfo::RegionLfo(const juce::AudioBuffer<float>& waveTable, Polarity polarityOfPassedWaveTable, int regionID) :
     Lfo(waveTable, [](float) {; }), //can only initialise waveTable through the base class's constructor...
-    frequencyModParameter(0.0)
+    frequencyModParameter(0.0), phaseModParameter(1.0), updateIntervalParameter(1.0)
 {
     states[static_cast<int>(RegionLfoStateIndex::unprepared)] = static_cast<RegionLfoState*>(new RegionLfoState_Unprepared(*this));
     states[static_cast<int>(RegionLfoStateIndex::withoutWaveTable)] = static_cast<RegionLfoState*>(new RegionLfoState_WithoutWaveTable(*this));
@@ -213,6 +213,14 @@ ModulatableAdditiveParameter<double>* RegionLfo::getFrequencyModParameter()
 {
     return &frequencyModParameter;
 }
+ModulatableMultiplicativeParameter<double>* RegionLfo::getPhaseModParameter()
+{
+    return &phaseModParameter;
+}
+ModulatableMultiplicativeParameter<double>* RegionLfo::getUpdateIntervalParameter()
+{
+    return &updateIntervalParameter;
+}
 
 float RegionLfo::getModulationDepth()
 {
@@ -260,6 +268,22 @@ void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParamete
             };
             break;
 
+        case LfoModulatableParameter::playbackPosition:
+            lfoEvaluationFunction = [](RegionLfo* lfo)
+            {
+                return static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getModulationDepth());
+            };
+            break;
+        case LfoModulatableParameter::playbackPosition_inverted:
+            lfoEvaluationFunction = [](RegionLfo* lfo)
+            {
+                return 1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getModulationDepth());
+            };
+            break;
+
+        
+
+
         case LfoModulatableParameter::lfoRate:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
@@ -272,6 +296,35 @@ void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParamete
                 return 12.0 * static_cast<double>(-lfo->getCurrentValue_Bipolar() * lfo->getModulationDepth());
             };
             break;
+
+        case LfoModulatableParameter::lfoPhase:
+            lfoEvaluationFunction = [](RegionLfo* lfo)
+            {
+                return static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getModulationDepth());
+            };
+            break;
+        case LfoModulatableParameter::lfoPhase_inverted:
+            lfoEvaluationFunction = [](RegionLfo* lfo)
+            {
+                return 1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getModulationDepth());
+            };
+            break;
+
+        case LfoModulatableParameter::lfoUpdateInterval:
+            lfoEvaluationFunction = [](RegionLfo* lfo)
+            {
+                return static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getModulationDepth());
+            };
+            break;
+        case LfoModulatableParameter::lfoUpdateInterval_inverted:
+            lfoEvaluationFunction = [](RegionLfo* lfo)
+            {
+                return 1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getModulationDepth());
+            };
+            break;
+
+
+
 
         default:
             throw std::exception("Unknown or unimplemented voice modulation parameter");
@@ -364,16 +417,16 @@ void RegionLfo::advanceUnsafeWithoutUpdate()
 
 double RegionLfo::getCurrentValue_Unipolar()
 {
-    return static_cast<double>(depth * currentValueUnipolar);
+    return static_cast<double>(currentValueUnipolar); //static_cast<double>(depth * currentValueUnipolar);
 }
 double RegionLfo::getCurrentValue_Bipolar()
 {
-    return static_cast<double>(depth * currentValueBipolar);
+    return static_cast<double>(currentValueBipolar); //static_cast<double>(depth * currentValueBipolar);
 }
 
 void RegionLfo::resetSamplesUntilUpdate()
 {
-    samplesUntilUpdate = updateInterval;
+    samplesUntilUpdate = updateInterval * updateIntervalParameter.getModulatedValue();
 }
 void RegionLfo::setUpdateInterval_Milliseconds(float newUpdateIntervalMs)
 {
@@ -417,9 +470,20 @@ void RegionLfo::evaluateFrequencyModulation()
 
 void RegionLfo::updateCurrentValues() //pre-calculates the current LFO values (unipolar, bipolar) for quicker repeated access
 {
-    int sampleIndex1 = static_cast<int>(currentTablePos);
+    float effectiveTablePos = currentTablePos + static_cast<float>(waveTable.getNumSamples() - 1) * phaseModParameter.getModulatedValue();
+    if (static_cast<int>(effectiveTablePos) >= waveTable.getNumSamples() - 1)
+    {
+        effectiveTablePos -= static_cast<float>(waveTable.getNumSamples() - 1);
+    }
+    /*else if (static_cast<int>(effectiveTablePos) < 0)
+    {
+        effectiveTablePos += static_cast<float>(waveTable.getNumSamples() - 1);
+    }*/
+    //float effectiveTablePos = currentTablePos * static_cast<float>(phaseModParameter.getModulatedValue()); //much cheaper and more reliable than the above version, although perhaps not quite as good-sounding
+
+    int sampleIndex1 = static_cast<int>(effectiveTablePos);
     int sampleIndex2 = sampleIndex1 + 1;
-    float frac = currentTablePos - static_cast<float>(sampleIndex1);
+    float frac = effectiveTablePos - static_cast<float>(sampleIndex1);
 
     auto* samplesUnipolar = waveTableUnipolar.getReadPointer(0);
     currentValueUnipolar = samplesUnipolar[sampleIndex1] + frac * (samplesUnipolar[sampleIndex2] - samplesUnipolar[sampleIndex1]); //interpolate between samples (good especially at slower freqs)

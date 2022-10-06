@@ -21,7 +21,6 @@
         <FILE id="w5onAG" name="RegionEditor.h" compile="0" resource="0" file="Source/RegionEditor.h"/>
       </GROUP>
       <GROUP id="{33ACA8CC-9657-E34D-1FDC-F120F9F9E03A}" name="LFO">
-        <FILE id="exgT57" name="RegionLfo.cpp" compile="1" resource="0" file="Source/RegionLfo.cpp"/>
         <FILE id="ucmKOB" name="RegionLfoStates.cpp" compile="1" resource="0"
               file="Source/RegionLfoStates.cpp"/>
         <FILE id="ZObEuH" name="RegionLfoStates.h" compile="0" resource="0"
@@ -32,6 +31,7 @@
               file="Source/LfoModulatableParameter.h"/>
         <FILE id="L44Mx8" name="CheckBoxList.h" compile="0" resource="0" file="Source/CheckBoxList.h"/>
         <FILE id="YnZO47" name="RegionLfo.h" compile="0" resource="0" file="Source/RegionLfo.h"/>
+        <FILE id="exgT57" name="RegionLfo.cpp" compile="1" resource="0" file="Source/RegionLfo.cpp"/>
         <FILE id="PWWlNa" name="Lfo.h" compile="0" resource="0" file="Source/Lfo.h"/>
         <FILE id="VbQHeB" name="LfoEditor.cpp" compile="1" resource="0" file="Source/LfoEditor.cpp"/>
         <FILE id="pxUkHe" name="LfoEditor.h" compile="0" resource="0" file="Source/LfoEditor.h"/>
