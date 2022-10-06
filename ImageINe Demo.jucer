@@ -61,6 +61,8 @@
               file="Source/ModulatableParameterStates.h"/>
       </GROUP>
       <GROUP id="{6D7C3A52-8893-DA86-8F0C-5E047ECE3C39}" name="Voice">
+        <FILE id="ypGABR" name="PitchQuantisationMethod.h" compile="0" resource="0"
+              file="Source/PitchQuantisationMethod.h"/>
         <FILE id="E7lClh" name="VoiceStateIndex.h" compile="0" resource="0"
               file="Source/VoiceStateIndex.h"/>
         <FILE id="O5YOcj" name="VoiceStates.h" compile="0" resource="0" file="Source/VoiceStates.h"/>

@@ -26,6 +26,7 @@ class VoiceState_Playable_Lfo;
 #include "DahdsrEnvelope.h"
 #include "ModulatableParameter.h"
 #include "RegionLfo.h"
+#include "PitchQuantisationMethod.h"
 
 
 //==============================================================================
@@ -88,6 +89,17 @@ public:
     void updateBufferPosDelta_NotPlayable();
     void updateBufferPosDelta_Playable();
 
+    void setPitchQuantisationMethod(PitchQuantisationMethod newPitchQuantisationMethod);
+    PitchQuantisationMethod getPitchQuantisationMethod();
+
+    double getQuantisedPitch_continuous();
+    double getQuantisedPitch_semitones();
+    double getQuantisedPitch_scale();
+
+    void setPitchQuantisationScale_major();
+    void setPitchQuantisationScale_minor();
+    void setPitchQuantisationScale_octaves();
+
     void setLfo(RegionLfo* newAssociatedLfo);
 
     int getID();
@@ -111,6 +123,10 @@ private:
 
     ModulatableAdditiveParameter<double> pitchShiftParameter;
     juce::dsp::LookupTableTransform<double> playbackMultApprox; //calculating the resulting playback speed from the semitones of pitch shift needs the power function (2^(semis/12)) which is expensive. this pre-calculates values within a certain range (-60...+60)
+
+    PitchQuantisationMethod currentPitchQuantisationMethod = PitchQuantisationMethod::continuous;
+    double (Voice::* pitchQuantisationFuncPt)() = nullptr;
+    int pitchQuantisationScale[12]; //for each semitone in an octave (-> input index), maps to a note on a scale
 
     ModulatableMultiplicativeParameter<double> playbackPositionParameter;
 

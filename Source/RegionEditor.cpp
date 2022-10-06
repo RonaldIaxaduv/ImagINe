@@ -97,6 +97,26 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     addChildComponent(pitchLabel);
     pitchLabel.attachToComponent(&pitchSlider, true);
 
+    pitchQuantisationChoice.addItem("Continuous (no quantisation)", static_cast<int>(PitchQuantisationMethod::continuous) + 1); //always adding 1 because 0 is not a valid ID (reserved for other purposes)
+    pitchQuantisationChoice.addItem("Semitones", static_cast<int>(PitchQuantisationMethod::semitones) + 1);
+    pitchQuantisationChoice.addItem("Scale: Major", static_cast<int>(PitchQuantisationMethod::scale_major) + 1);
+    pitchQuantisationChoice.addItem("Scale: Minor", static_cast<int>(PitchQuantisationMethod::scale_minor) + 1);
+    pitchQuantisationChoice.addItem("Scale: Octaves", static_cast<int>(PitchQuantisationMethod::scale_octaves) + 1);
+    pitchQuantisationChoice.onChange = [this]
+    {
+        auto voices = associatedRegion->getAudioEngine()->getVoicesWithID(associatedRegion->getID());
+
+        for (auto it = voices.begin(); it != voices.end(); it++)
+        {
+            (*it)->setPitchQuantisationMethod(static_cast<PitchQuantisationMethod>(pitchQuantisationChoice.getSelectedId() - 1)); //set the new pitch quantisation method for all associated voices
+        }
+    };
+    addChildComponent(pitchQuantisationChoice);
+
+    pitchQuantisationLabel.setText("Pitch Quantisation: ", juce::NotificationType::dontSendNotification);
+    addChildComponent(pitchQuantisationLabel);
+    pitchQuantisationLabel.attachToComponent(&pitchQuantisationChoice, true);
+
     //LFO editor
     addChildComponent(lfoEditor);
 
@@ -156,12 +176,21 @@ void RegionEditor::resized()
         pitchLabel.setBounds(pitchArea.removeFromLeft(pitchArea.getWidth() / 3));
         pitchSlider.setBounds(pitchArea);
 
+        auto pitchQuantisationArea = area.removeFromTop(20);
+        pitchQuantisationLabel.setBounds(pitchQuantisationArea.removeFromLeft(pitchQuantisationArea.getWidth() / 3));
+        pitchQuantisationChoice.setBounds(pitchQuantisationArea);
+
 
 
         deleteRegionButton.setBounds(area.removeFromBottom(20));
 
         lfoEditor.setBounds(area); //fill rest with lfoEditor
     }
+}
+
+SegmentedRegion* RegionEditor::getAssociatedRegion()
+{
+    return associatedRegion;
 }
 
 
@@ -189,6 +218,8 @@ void RegionEditor::setChildVisibility(bool shouldBeVisible)
 
     pitchLabel.setVisible(shouldBeVisible);
     pitchSlider.setVisible(shouldBeVisible);
+    pitchQuantisationLabel.setVisible(shouldBeVisible);
+    pitchQuantisationChoice.setVisible(shouldBeVisible);
 
     lfoEditor.setVisible(shouldBeVisible);
 
@@ -214,9 +245,16 @@ void RegionEditor::copyRegionParameters()
     //Voice* voice = associatedRegion->getAssociatedVoice();
     if (voices.size() > 0) //(voice != nullptr)
     {
-        Voice* voice = voices[0]; //all voices have the same parameters
+        Voice* voice = voices[0]; //all voices have the same parameters, so it's enough to always look at the first element
+
         volumeSlider.setValue(juce::Decibels::gainToDecibels<double>(voice->getBaseLevel(), -60.0), juce::NotificationType::dontSendNotification);
         pitchSlider.setValue(voice->getBasePitchShift(), juce::NotificationType::dontSendNotification);
+        pitchQuantisationChoice.setEnabled(true);
+        pitchQuantisationChoice.setSelectedId(static_cast<int>(voice->getPitchQuantisationMethod()) + 1);
+    }
+    else
+    {
+        pitchQuantisationChoice.setEnabled(false);
     }
 
     lfoEditor.copyParameters();
@@ -260,9 +298,11 @@ void RegionEditor::selectFile()
 
                     associatedRegion->setBuffer(tempBuffer, file.getFileName(), reader->sampleRate);
                     selectedFileLabel.setText(file.getFileName(), juce::NotificationType::dontSendNotification);
+                    
                     lfoEditor.updateAvailableVoices();
                     updateAllVoiceSettings(); //sets currently selected volume, pitch etc.
                     dahdsrEditor.setAssociatedEnvelope(associatedRegion->getAssociatedVoice()->getEnvelope());
+                    copyRegionParameters(); //updates pitch quantisation, makes sure nothing's missing
                 }
                 else
                 {

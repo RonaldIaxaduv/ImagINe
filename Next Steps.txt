@@ -152,8 +152,8 @@
 # bug: LFO line doesn't update when LFO doesn't modulate anything
 	- a RegionLfoState wasn't set up correctly, that's all
 # bug: the LFO line doesn't keep updating while the voice is tailing off (-> just create a bool variable isPlaying in Voice that's checked for that purpose)
-- add visual feedback for update rate
-	!- idea: adjust update rate of the *line drawing* accordingly! this is a win-win, because it provides feedback and even reduces the CPU usage further!
+# add visual feedback for update rate
+	!# idea: adjust update rate of the *line drawing* accordingly! this is a win-win, because it provides feedback and even reduces the CPU usage further!
 / is there a way to make it so that modulation of other regions remains at the current modulation value even when the region modulating it stops playing?
 	-> example: currently, if region 1 modulates region 2's volume, the modulation stops after region 1 stops playing (i.e. region 2 plays with its base volume - not the base volume multiplied with the LFO value of region 1 that was last measured). is there a way to apply the LFO's modulation independent from a region playing?
 	- idea: maybe advance all LFOs *before* rendering all next synth samples? would that change anything/much?
@@ -192,7 +192,7 @@
 	- safer audio file loading (see juce tutorial)
 (- panning setting for each region)
 - implement states the cleaner way: using the actual state model (i.e. using interfaces)
-	- for PluginEditor
+	?- for PluginEditor
 	- for SegmentableImage
 	- for SegmentedRegion
 	# for Lfo (updating the parameter while wavetable isn't set currently takes up ressources every sample)
@@ -211,8 +211,10 @@
 (- add playback modes for the voices: Normal (Forward), Oneshot, Forward-Backward, Backward-Forward, Backward)
 !- add an option to quantise the start/stop timings of voices to certain note values corresponding to the DAW's BPM
 	- this would be an amazing quality of life change, but idk how easy this would be... i know that the DAW's BPM should be contained in some MIDI signals, but idk where or when or how to evaluate them to achieve synchronisation
+	- did smth similar in Langton's Ant Sequencer, and it's not quiiiite so easy to do, sadly
 - set help texts for all components
 	- there should already be a method setHelpText for all Component members
 - option to set an LFO's rate to that of its associated region's sound
+- button to reset an LFO's phase
 - perhaps modulate a region's LFO depth with its AHDSR modulator (whether or not it's possible to modulate LFO depth otherwise)
 - add Parameters for the DAW

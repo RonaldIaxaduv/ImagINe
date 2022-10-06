@@ -10,6 +10,8 @@
 
 #include "LfoEditor.h"
 
+#include "RegionEditor.h"
+
 
 //public
 
@@ -42,23 +44,7 @@ LfoEditor::LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo)
     addAndMakeVisible(lfoUpdateIntervalLabel);
     lfoUpdateIntervalLabel.attachToComponent(&lfoUpdateIntervalSlider, true);
 
-    //lfoParameterChoice.addSectionHeading("Basic");
-    //lfoParameterChoice.addItem("Volume", static_cast<int>(LfoModulatableParameter::volume));
-    //lfoParameterChoice.addItem("Pitch", static_cast<int>(LfoModulatableParameter::pitch));
-    ////lfoParameterChoice.addItem("Panning", static_cast<int>(LfoModulatableParameter::panning));
-    //lfoParameterChoice.addSeparator();
-    //lfoParameterChoice.addSectionHeading("LFO");
-    //lfoParameterChoice.addItem("LFO Rate", static_cast<int>(LfoModulatableParameter::lfoRate));
-    //lfoParameterChoice.addSeparator();
-    //lfoParameterChoice.addSectionHeading("Experimental");
-    //lfoParameterChoice.addItem("Playback Position", static_cast<int>(LfoModulatableParameter::playbackPosition));
-    //lfoParameterChoice.onChange = [this] { updateLfoParameter(); };
-    //addAndMakeVisible(lfoParameterChoice);
-
-    //lfoParameterLabel.setText("Modulated Parameter: ", juce::NotificationType::dontSendNotification);
-    //addAndMakeVisible(lfoParameterLabel);
-    //lfoParameterLabel.attachToComponent(&lfoParameterChoice, true);
-
+    //modulation list
     updateAvailableVoices();
     addAndMakeVisible(lfoRegionsList);
 }
@@ -149,6 +135,7 @@ void LfoEditor::updateLfoRate()
 void LfoEditor::updateLfoUpdateInterval()
 {
     associatedLfo->setUpdateInterval_Milliseconds(static_cast<float>(lfoUpdateIntervalSlider.getValue()));
+    static_cast<RegionEditor*>(getParentComponent())->getAssociatedRegion()->setTimerInterval(static_cast<int>(lfoUpdateIntervalSlider.getValue()));
 }
 
 void LfoEditor::updateLfoParameter(int targetRegionID, bool shouldBeModulated, LfoModulatableParameter modulatedParameter)

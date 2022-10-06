@@ -122,6 +122,20 @@ void SegmentedRegion::timerCallback()
 {
     repaint(); //could the redrawn area be reduced?
 }
+void SegmentedRegion::setTimerInterval(int newIntervalMs)
+{
+    if (isTimerRunning())
+    {
+        stopTimer();
+        timerIntervalMs = juce::jmax(20, newIntervalMs);
+        startTimer(timerIntervalMs);
+    }
+    else
+    {
+        timerIntervalMs = juce::jmax(20, newIntervalMs);
+    }
+    DBG("set timer interval to " + juce::String(timerIntervalMs) + "ms");
+}
 
 void SegmentedRegion::paintOverChildren(juce::Graphics& g)
 {
@@ -218,7 +232,7 @@ void SegmentedRegion::clicked(const juce::ModifierKeys& modifiers)
         }
         else
         {
-            regionEditorWindow = juce::Component::SafePointer<RegionEditorWindow>(new RegionEditorWindow("Region Editor", this));
+            regionEditorWindow = juce::Component::SafePointer<RegionEditorWindow>(new RegionEditorWindow("Region " + juce::String(ID) + " Editor", this));
         }
         break;
 
@@ -299,13 +313,12 @@ void SegmentedRegion::renderLfoWaveform()
     {
         associatedLfo = new RegionLfo(waveform, RegionLfo::Polarity::unipolar, getID()); //no modulation until the voice has been initialised
         audioEngine->addLfo(associatedLfo);
+        associatedLfo->setBaseFrequency(0.2f);
     }
     else
     {
         associatedLfo->setWaveTable(waveform, RegionLfo::Polarity::unipolar);
     }
-
-    associatedLfo->setBaseFrequency(0.2f);
 
     DBG("LFO's waveform has been rendered.");
 }
@@ -383,7 +396,7 @@ void SegmentedRegion::startPlaying()
         //audioEngine->getSynth()->noteOn(1, 64, 1.0f); //might be worth a thought for later because of polyphony, but since voices will then be chosen automatically, adjustments to the voices class would have to be made
         //audioEngine->getSynth()->getVoice(voiceIndex)->startNote(0, 1.0f, audioEngine->getSynth()->getSound(0).get(), 64);
 
-        startTimerHz(20); //24 fps for now; animates the LFO line
+        startTimer(timerIntervalMs); //animates the LFO line
     }
 }
 void SegmentedRegion::stopPlaying()

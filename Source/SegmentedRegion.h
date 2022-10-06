@@ -39,6 +39,7 @@ public:
     void initialiseImages();
 
     void timerCallback() override;
+    void setTimerInterval(int newIntervalMs);
 
     void paintOverChildren(juce::Graphics& g) override;
     void resized() override;
@@ -70,6 +71,7 @@ private:
 
     SegmentedRegionState currentState;
     bool isPlaying = false;
+    int timerIntervalMs = 50; //-> 20.0f Hz
 
     juce::Path p; //also acts as a hitbox
     juce::Colour fillColour;

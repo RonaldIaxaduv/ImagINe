@@ -13,6 +13,7 @@
 #include <JuceHeader.h>
 #include "DahdsrEnvelopeEditor.h"
 #include "LfoEditor.h"
+#include "PitchQuantisationMethod.h"
 
 //forward referencing in the headers to allow the classes to reference one another
 #include "SegmentedRegion.h"
@@ -27,6 +28,8 @@ public:
 
     void paint(juce::Graphics& g) override;
     void resized() override;
+
+    SegmentedRegion* getAssociatedRegion();
 
 private:
     void setChildVisibility(bool shouldBeVisible);
@@ -70,6 +73,8 @@ private:
 
     juce::Label pitchLabel;
     juce::Slider pitchSlider;
+    juce::Label pitchQuantisationLabel;
+    juce::ComboBox pitchQuantisationChoice;
 
     LfoEditor lfoEditor;
 

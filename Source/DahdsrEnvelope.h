@@ -37,7 +37,7 @@ public:
     DahdsrEnvelope(double delayTimeSeconds = 0.0,
         double attackTimeSeconds = 0.5, double initialLevel = 0.0,
         double holdTimeSeconds = 0.1, double peakLevel = 1.0,
-        double decayTimeSeconds = 1.0, double sustainLevel = 0.5,
+        double decayTimeSeconds = 1.0, double sustainLevel = 1.0,
         double releaseTimeSeconds = 1.0);
 
     ~DahdsrEnvelope();

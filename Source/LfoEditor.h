@@ -41,17 +41,12 @@ private:
     juce::Label lfoUpdateIntervalLabel;
     juce::Slider lfoUpdateIntervalSlider;
 
-    //juce::Label lfoParameterLabel;
-    //juce::ComboBox lfoParameterChoice;
-
     CheckBoxList lfoRegionsList;
 
     void updateLfoRate();
     void updateLfoUpdateInterval();
 
     void updateLfoParameter(int targetRegionID, bool shouldBeModulated, LfoModulatableParameter modulatedParameter);
-
-    //void updateLfoVoices(juce::Array<int> voiceIndices);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LfoEditor)
 };

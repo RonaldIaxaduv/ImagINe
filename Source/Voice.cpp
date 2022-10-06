@@ -29,6 +29,9 @@ Voice::Voice() :
     currentStateIndex = initialStateIndex;
     currentState = states[static_cast<int>(currentStateIndex)];
 
+    pitchQuantisationFuncPt = &Voice::getQuantisedPitch_continuous; //default: no quantisation (cheapest)
+    setPitchQuantisationScale_minor(); //set to minor scale by default (will be overwritten once the player chooses a different quantisation method than continous, but it's safer to initialise the array just in case)
+
     //DBG("init base level: " + juce::String(levelParameter.getBaseValue()));
     //DBG("init base playback pos: " + juce::String(playbackPositionParameter.getBaseValue()));
 }
@@ -438,7 +441,7 @@ void Voice::updateBufferPosDelta_Playable()
 {
     bufferPosDelta = osc->origSampleRate / getSampleRate(); //normal playback speed
 
-    double modulationSemis = pitchShiftParameter.getModulatedValue(); //= pitch shift with all modulations
+    double modulationSemis = (*this.*pitchQuantisationFuncPt)(); //= pitch shift with all modulations + pitch quantisation
 
     //for positive numbers: doubled per octave; for negative numbers: halved per octave
     //bufferPosDelta *= //std::pow(2.0, modulationSemis / 12.0); //exact calculation -> very slow!
@@ -446,6 +449,122 @@ void Voice::updateBufferPosDelta_Playable()
     //currentState->playableChanged(true);
 
     //DBG("bufferPosDelta: " + juce::String(bufferPosDelta));
+}
+
+void Voice::setPitchQuantisationMethod(PitchQuantisationMethod newPitchQuantisationMethod)
+{
+    switch (newPitchQuantisationMethod)
+    {
+    case PitchQuantisationMethod::continuous:
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_continuous;
+        break;
+
+    case PitchQuantisationMethod::semitones:
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_semitones;
+        break;
+
+    case PitchQuantisationMethod::scale_major:
+        setPitchQuantisationScale_major();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_minor:
+        setPitchQuantisationScale_minor();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_octaves:
+        setPitchQuantisationScale_octaves();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    default:
+        throw std::exception("Unknown or unhandled value of PitchQuantisationMethod.");
+    }
+
+    currentPitchQuantisationMethod = newPitchQuantisationMethod;
+    DBG("set pitch quantisation method to " + juce::String(static_cast<int>(currentPitchQuantisationMethod)));
+}
+PitchQuantisationMethod Voice::getPitchQuantisationMethod()
+{
+    return currentPitchQuantisationMethod;
+}
+
+double Voice::getQuantisedPitch_continuous()
+{
+    return pitchShiftParameter.getModulatedValue(); //no special processing needed
+}
+double Voice::getQuantisedPitch_semitones()
+{
+    double base = pitchShiftParameter.getBaseValue();
+    double modulation = pitchShiftParameter.getModulatedValue() - base;
+    int modulation_semi = static_cast<int>(modulation); //acts as a floor function
+
+    return base + static_cast<double>(modulation_semi);
+}
+double Voice::getQuantisedPitch_scale()
+{
+    double base = pitchShiftParameter.getBaseValue();
+    double modulation = pitchShiftParameter.getModulatedValue() - base;
+    int modulation_semi = static_cast<int>(modulation); //acts as a floor function
+
+    int octave = modulation_semi / 12; //can be negative
+    int noteIndex = modulation_semi % 12; //value within {0,...,11} -> index of the note regardless of its octave -> this is what will be quantised to the scale
+
+    if (noteIndex < 0) //the % operator yields the remainder, not true modulo
+    {
+        //mirror
+        noteIndex += 12;
+        octave -= 1;
+    }
+
+    return base + static_cast<double>(pitchQuantisationScale[noteIndex] + 12 * octave);
+}
+
+void Voice::setPitchQuantisationScale_major()
+{
+    pitchQuantisationScale[0] = 0; //c -> c
+    pitchQuantisationScale[1] = 0; //c# -> c
+    pitchQuantisationScale[2] = 2; //d -> d
+    pitchQuantisationScale[3] = 2; //d# -> d
+    pitchQuantisationScale[4] = 4; //e -> e
+    pitchQuantisationScale[5] = 5; //f -> f
+    pitchQuantisationScale[6] = 5; //f# -> f
+    pitchQuantisationScale[7] = 7; //g -> g
+    pitchQuantisationScale[8] = 7; //g# -> g
+    pitchQuantisationScale[9] = 9; //a -> a
+    pitchQuantisationScale[10] = 9; //a# -> a
+    pitchQuantisationScale[11] = 11; //h -> h
+}
+void Voice::setPitchQuantisationScale_minor()
+{
+    pitchQuantisationScale[0] = 0; //c -> c
+    pitchQuantisationScale[1] = 0; //c# -> c
+    pitchQuantisationScale[2] = 2; //d -> d
+    pitchQuantisationScale[3] = 3; //d# -> d#
+    pitchQuantisationScale[4] = 3; //e -> d#
+    pitchQuantisationScale[5] = 5; //f -> f
+    pitchQuantisationScale[6] = 5; //f# -> f
+    pitchQuantisationScale[7] = 7; //g -> g
+    pitchQuantisationScale[8] = 8; //g# -> g#
+    pitchQuantisationScale[9] = 8; //a -> g#
+    pitchQuantisationScale[10] = 10; //a# -> a#
+    pitchQuantisationScale[11] = 10; //h -> a#
+}
+void Voice::setPitchQuantisationScale_octaves()
+{
+    pitchQuantisationScale[0] = 0; //c -> c
+    pitchQuantisationScale[1] = 0; //c# -> c
+    pitchQuantisationScale[2] = 0; //d -> c
+    pitchQuantisationScale[3] = 0; //d# -> c
+    pitchQuantisationScale[4] = 0; //e -> c
+    pitchQuantisationScale[5] = 0; //f -> c
+    pitchQuantisationScale[6] = 0; //f# -> c
+    pitchQuantisationScale[7] = 0; //g -> c
+    pitchQuantisationScale[8] = 0; //g# -> c
+    pitchQuantisationScale[9] = 0; //a -> c
+    pitchQuantisationScale[10] = 0; //a# -> c
+    pitchQuantisationScale[11] = 0; //h -> c
 }
 
 void Voice::setLfo(RegionLfo* newAssociatedLfo)
