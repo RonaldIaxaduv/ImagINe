@@ -415,6 +415,33 @@ void RegionLfo::advanceUnsafeWithoutUpdate()
     }
 }
 
+void RegionLfo::setPhase(float relativeTablePos)
+{
+    currentState->setPhase(relativeTablePos);
+}
+float RegionLfo::getPhase()
+{
+    return currentState->getPhase();
+}
+void RegionLfo::resetPhase(bool updateParameters)
+{
+    currentState->resetPhase(updateParameters);
+}
+void RegionLfo::resetPhaseUnsafe_WithoutUpdate()
+{
+    currentTablePos = 0.0f;
+}
+void RegionLfo::resetPhaseUnsafe_WithUpdate()
+{
+    currentTablePos = 0.0f;
+    updateModulatedParameterUnsafe();
+}
+
+float RegionLfo::getLatestModulatedPhase()
+{
+    return latestModulatedPhase * getPhase();
+}
+
 double RegionLfo::getCurrentValue_Unipolar()
 {
     return static_cast<double>(currentValueUnipolar); //static_cast<double>(depth * currentValueUnipolar);
@@ -455,6 +482,10 @@ void RegionLfo::prepareUpdateInterval()
         transitionToState(RegionLfoStateIndex::active); //re-enables evaluation of samplesUntilUpdate
     }
 }
+double RegionLfo::getMsUntilUpdate()
+{
+    return 1000.0 * static_cast<double>(samplesUntilUpdate) / sampleRate;
+}
 
 bool RegionLfo::isPrepared()
 {
@@ -470,16 +501,13 @@ void RegionLfo::evaluateFrequencyModulation()
 
 void RegionLfo::updateCurrentValues() //pre-calculates the current LFO values (unipolar, bipolar) for quicker repeated access
 {
-    float effectiveTablePos = currentTablePos + static_cast<float>(waveTable.getNumSamples() - 1) * phaseModParameter.getModulatedValue();
+    latestModulatedPhase = static_cast<float>(phaseModParameter.getModulatedValue()); //update this variable to keep the LFO line drawn updated that's drawn over regions; normally, division by phaseModParameter.getBaseValue() would be necessary, but that value is fixed at 1.0
+
+    float effectiveTablePos = currentTablePos + static_cast<float>(waveTable.getNumSamples() - 1) * latestModulatedPhase;
     if (static_cast<int>(effectiveTablePos) >= waveTable.getNumSamples() - 1)
     {
         effectiveTablePos -= static_cast<float>(waveTable.getNumSamples() - 1);
     }
-    /*else if (static_cast<int>(effectiveTablePos) < 0)
-    {
-        effectiveTablePos += static_cast<float>(waveTable.getNumSamples() - 1);
-    }*/
-    //float effectiveTablePos = currentTablePos * static_cast<float>(phaseModParameter.getModulatedValue()); //much cheaper and more reliable than the above version, although perhaps not quite as good-sounding
 
     int sampleIndex1 = static_cast<int>(effectiveTablePos);
     int sampleIndex2 = sampleIndex1 + 1;

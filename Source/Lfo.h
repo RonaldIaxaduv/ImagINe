@@ -100,7 +100,7 @@ public:
     /// Sets the relative phase of the LFO.
     /// </summary>
     /// <param name="relativeTablePos">Value between 0.0f and 1.0f, where 0.0f is the first sample of the wave table, and 1.0f is the last.</param>
-    void setPhase(float relativeTablePos)
+    virtual void setPhase(float relativeTablePos)
     {
         if (waveTable.getNumSamples() > 0)
         {
@@ -117,7 +117,7 @@ public:
     /// Gets the relative phase of the LFO.
     /// </summary>
     /// <returns>Value between 0.0f and 1.0f, where 0.0f is the first sample of the wave table, and 1.0f is the last.</returns>
-    float getPhase()
+    virtual float getPhase()
     {
         if (waveTable.getNumSamples() > 0)
         {
@@ -127,6 +127,19 @@ public:
         {
             return 0.0f;
         }
+    }
+
+    void setCurrentTablePos(float relativeTablePos)
+    {
+        currentTablePos = relativeTablePos;
+    }
+    float getCurrentTablePos()
+    {
+        return currentTablePos;
+    }
+    int getNumSamplesUnsafe()
+    {
+        return waveTable.getNumSamples();
     }
 
     void setModulatedParameterID(LfoModulatableParameter newID)

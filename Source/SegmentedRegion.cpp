@@ -156,18 +156,26 @@ void SegmentedRegion::paintOverChildren(juce::Graphics& g)
     if (associatedLfo != nullptr)
     {
         //draw LFO line
-        float curLfoPhase = associatedLfo->getPhase(); //* associatedLfo->getPhaseModParameter()->getModulatedValue();
+        float curLfoPhase = associatedLfo->getLatestModulatedPhase(); //basically the same value as getModulatedValue of the parameter, but won't update that parameter (which would mess with the modulation)
 
         if (isPlaying)
-            g.setColour(juce::Colour::contrasting(fillColour, fillColour.darker(0.4)));
+            g.setColour(juce::Colour::contrasting(fillColour, fillColour.contrasting()));
         else
-            g.setColour(juce::Colour::contrasting(fillColour, fillColour.darker(0.4)).withAlpha(0.5f)); //faded when not playing
+            g.setColour(juce::Colour::contrasting(fillColour, fillColour.contrasting()).withAlpha(0.5f)); //faded when not playing
 
         //draw line from focus point to point on the outline that corresponds to the associated LFO's current phase
         juce::Point<float> outlinePt = p.getPointAlongPath(curLfoPhase * p.getLength(), juce::AffineTransform(), juce::Path::defaultToleranceForMeasurement);
         g.drawLine(focusPt.x, focusPt.y,
             outlinePt.x, outlinePt.y,
             3.0f);
+
+        //check whether the update interval changed (e.g. due to modulation)
+        //int newTimerIntervalMs = static_cast<int>(associatedLfo->getUpdateInterval_Milliseconds());
+        int newTimerIntervalMs = juce::jmax(20, static_cast<int>(associatedLfo->getMsUntilUpdate()));
+        if (newTimerIntervalMs != timerIntervalMs)
+        {
+            setTimerInterval(newTimerIntervalMs);
+        }
     }
 
     auto voices = audioEngine->getVoicesWithID(ID);

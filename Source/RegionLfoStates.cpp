@@ -58,6 +58,19 @@ void RegionLfoState_Unprepared::advance()
     //doesn't do anything while unprepared
 }
 
+float RegionLfoState_Unprepared::getPhase()
+{
+    return 0.0f; //no wavetable set yet
+}
+void RegionLfoState_Unprepared::setPhase(float relativeTablePos)
+{
+    //no wavetable set yet
+}
+void RegionLfoState_Unprepared::resetPhase(bool updateParameters)
+{
+    //no wavetable set yet
+}
+
 //void RegionLfoState_Unprepared::updateModulatedParameter()
 //{
 //    //doesn't do anything while unprepared
@@ -108,6 +121,19 @@ void RegionLfoState_WithoutWaveTable::modulatedParameterCountChanged(int newCoun
 void RegionLfoState_WithoutWaveTable::advance()
 {
     //doesn't do anything while wave table hasn't been set
+}
+
+float RegionLfoState_WithoutWaveTable::getPhase()
+{
+    return 0.0f; //no wavetable set yet
+}
+void RegionLfoState_WithoutWaveTable::setPhase(float relativeTablePos)
+{
+    //no wavetable set yet
+}
+void RegionLfoState_WithoutWaveTable::resetPhase(bool updateParameters)
+{
+    //no wavetable set yet
 }
 
 //void RegionLfoState_WithoutWaveTable::updateModulatedParameter()
@@ -163,6 +189,19 @@ void RegionLfoState_WithoutModulatedParameters::modulatedParameterCountChanged(i
 void RegionLfoState_WithoutModulatedParameters::advance()
 {
     lfo.advanceUnsafeWithoutUpdate(); //needs to update phase (displayed on the region!), but no update necessary
+}
+
+float RegionLfoState_WithoutModulatedParameters::getPhase()
+{
+    return lfo.getCurrentTablePos() / static_cast<float>(lfo.getNumSamplesUnsafe());
+}
+void RegionLfoState_WithoutModulatedParameters::setPhase(float relativeTablePos)
+{
+    lfo.setCurrentTablePos(relativeTablePos);
+}
+void RegionLfoState_WithoutModulatedParameters::resetPhase(bool updateParameters)
+{
+    lfo.resetPhaseUnsafe_WithoutUpdate(); //no parameters yet so no need to do updates
 }
 
 //void RegionLfoState_WithoutModulatedParameters::updateModulatedParameter()
@@ -221,6 +260,19 @@ void RegionLfoState_Muted::modulatedParameterCountChanged(int newCount)
 void RegionLfoState_Muted::advance()
 {
     lfo.advanceUnsafeWithoutUpdate(); //leaves out if cases (for samples in the wave table) and doesn't update the modulated value
+}
+
+float RegionLfoState_Muted::getPhase()
+{
+    return lfo.getCurrentTablePos() / static_cast<float>(lfo.getNumSamplesUnsafe());
+}
+void RegionLfoState_Muted::setPhase(float relativeTablePos)
+{
+    lfo.setCurrentTablePos(relativeTablePos);
+}
+void RegionLfoState_Muted::resetPhase(bool updateParameters)
+{
+    lfo.resetPhaseUnsafe_WithoutUpdate(); //muted, so no need to do updates
 }
 
 //void RegionLfoState_Muted::updateModulatedParameter()
@@ -289,6 +341,27 @@ void RegionLfoState_Active::advance()
     }
 }
 
+float RegionLfoState_Active::getPhase()
+{
+    return lfo.getCurrentTablePos() / static_cast<float>(lfo.getNumSamplesUnsafe());
+}
+void RegionLfoState_Active::setPhase(float relativeTablePos)
+{
+    lfo.setCurrentTablePos(relativeTablePos);
+}
+void RegionLfoState_Active::resetPhase(bool updateParameters)
+{
+    if (updateParameters)
+    {
+        lfo.resetPhaseUnsafe_WithUpdate();
+    }
+    else
+    {
+        lfo.resetPhaseUnsafe_WithoutUpdate();
+    }
+
+}
+
 //void RegionLfoState_Active::updateModulatedParameter()
 //{
 //    updateParameterFunc();
@@ -346,6 +419,27 @@ void RegionLfoState_ActiveRealTime::advance()
 {
     //doesn't need to check for samplesUntilUpdate -> saves 1 if case
     lfo.advanceUnsafeWithUpdate();
+}
+
+float RegionLfoState_ActiveRealTime::getPhase()
+{
+    return lfo.getCurrentTablePos() / static_cast<float>(lfo.getNumSamplesUnsafe());
+}
+void RegionLfoState_ActiveRealTime::setPhase(float relativeTablePos)
+{
+    lfo.setCurrentTablePos(relativeTablePos);
+}
+void RegionLfoState_ActiveRealTime::resetPhase(bool updateParameters)
+{
+    if (updateParameters)
+    {
+        lfo.resetPhaseUnsafe_WithUpdate();
+    }
+    else
+    {
+        lfo.resetPhaseUnsafe_WithoutUpdate();
+    }
+
 }
 
 //void RegionLfoState_ActiveRealTime::updateModulatedParameter()

@@ -15,7 +15,7 @@
 		# when checking/unchecking items from the list, update the LFO's voice array
 			# fixed order: smallest region id to largest region id
 		# bug: LFOs currently don't modulate their own associated region, only other regions
- !		- later: when deleting voices, make sure to adjust the LFOs' lists as well!
+ !		- later: when deleting regions, make sure to adjust the LFOs' lists as well!
 			- make the broadcaster a ChangeBroadcaster and add the settings menus as listeners -> notify when the LFOs list changes
 	# create unipolar/bipolar LFO modes
 		# unipolar: rewrites(!) the LFO's values to 0...1  ->  good for velocity modulation for instance
@@ -39,7 +39,7 @@
 			# would require adding a "slow update" mode to the LFO where it doesn't update during every single sample
 			?- also add a base start position slider to the settings menu (0.0 ... 100.0 ?)
 		# LFOs' update intervals (not very useful performance-wise, but should sound cool especially with LFOs that modulate pitch!)
- !		- LFOs' phase (= playback position) (incl. its own?)
+		# LFOs' phase (= playback position) (incl. its own?)
 			- adjust code that draws the LFO line on the image
 	/ implement changing the LFO's modulation depth in the settings menu
  !		!- make it depend on the shape's size, actually
@@ -169,8 +169,18 @@
 - make it possible to delete regions
 	- to handle all the audio parameters, create a method in the *audio engine*(!) that deletes all voices with the region's id from the LFOs' voice lists, and then all of those voices from the synth
 - fix memory leaks that occur when closing the program
+# bug: samplesUntilUpdate of LFO should be reset to 0 after a voice stops (otherwise, the LFO line will be drawn with a temporal offset...)
+# bug: ^- the playback position should do so as well - does it?
+# bug: LFO line doesn't recognise modulations of the RegionLfo's update interval
+	- idea: get samplesUntilUpdate from the respective LFO every time the LFO line updates and update the rate that way
+		!- IMPORTANT: do NOT call the modulated value of the update rate parameter! that would mess with its modulation!
+# bug: LFO line doesn't recognise modulations of the RegionLfo's phase
+	- reason: getPhase is being called, which outputs the *base value* of the phase, not the modulated value
+	- problem: calling the modulated value would mess with the modulation!
+	-> solution: since this is a problem that'll only occur once (at least presumably) and not in other instances of ModulatableParameter, it should be fine to just create a new variable that stores the latest modulated phase, and a getter method for that variable 
 # add an option to make the pitch shift quantised to either semitones or a normal scale (might be possible to do with the interpolation tables?)
 	- this would add SO MUCH since actual, non-chaotic *melodies* could be created with it using a region that pitch mods itself at a slow interval and a second region that alters the first region's update rate or LFO rate
+- implement play path(s)
 - serialisation
 
 

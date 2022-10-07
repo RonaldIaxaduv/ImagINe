@@ -30,6 +30,10 @@ public:
 
     virtual void advance() = 0;
 
+    virtual float getPhase() = 0;
+    virtual void setPhase(float relativeTablePos) = 0;
+    virtual void resetPhase(bool updateParameters) = 0;
+
     //virtual void updateModulatedParameter() = 0;
 
 protected:
@@ -51,6 +55,10 @@ public:
 
     void advance() override;
 
+    float getPhase() override;
+    void setPhase(float relativeTablePos) override;
+    void resetPhase(bool updateParameters) override;
+
     //void updateModulatedParameter() override;
 };
 
@@ -67,6 +75,10 @@ public:
     void modulatedParameterCountChanged(int newCount) override;
 
     void advance() override;
+
+    float getPhase() override;
+    void setPhase(float relativeTablePos) override;
+    void resetPhase(bool updateParameters) override;
 
     //void updateModulatedParameter() override;
 };
@@ -85,6 +97,10 @@ public:
 
     void advance() override;
 
+    float getPhase() override;
+    void setPhase(float relativeTablePos) override;
+    void resetPhase(bool updateParameters) override;
+
     //void updateModulatedParameter() override;
 };
 
@@ -101,6 +117,10 @@ public:
     void modulatedParameterCountChanged(int newCount) override;
 
     void advance() override;
+
+    float getPhase() override;
+    void setPhase(float relativeTablePos) override;
+    void resetPhase(bool updateParameters) override;
 
     //void updateModulatedParameter() override;
 };
@@ -119,6 +139,10 @@ public:
 
     void advance() override;
 
+    float getPhase() override;
+    void setPhase(float relativeTablePos) override;
+    void resetPhase(bool updateParameters) override;
+
     //void updateModulatedParameter() override;
 };
 
@@ -135,6 +159,10 @@ public:
     void modulatedParameterCountChanged(int newCount) override;
 
     void advance() override;
+
+    float getPhase() override;
+    void setPhase(float relativeTablePos) override;
+    void resetPhase(bool updateParameters) override;
 
     //void updateModulatedParameter() override;
 };

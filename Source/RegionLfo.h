@@ -67,6 +67,13 @@ public:
     void advanceUnsafeWithUpdate();
     void advanceUnsafeWithoutUpdate();
 
+    void setPhase(float relativeTablePos) override;
+    float getPhase() override;
+    void resetPhase(bool updateParameters = true) override;
+    void resetPhaseUnsafe_WithoutUpdate();
+    void resetPhaseUnsafe_WithUpdate();
+    float getLatestModulatedPhase();
+
     void updateCurrentValues();
 
     double getCurrentValue_Unipolar();
@@ -77,6 +84,7 @@ public:
     void setUpdateInterval_Milliseconds(float newUpdateIntervalMs);
     float getUpdateInterval_Milliseconds();
     void prepareUpdateInterval();
+    double getMsUntilUpdate();
 
 protected:
     int regionID; //ID of the region that this LFO is associated with
@@ -106,6 +114,7 @@ protected:
     void evaluateFrequencyModulation() override;
 
     ModulatableMultiplicativeParameter<double> phaseModParameter;
+    float latestModulatedPhase = 0.0f;
 
     ModulatableMultiplicativeParameter<double> updateIntervalParameter;
 

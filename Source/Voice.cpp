@@ -352,11 +352,15 @@ void Voice::transitionToState(VoiceStateIndex stateToTransitionTo)
             break;
 
         case VoiceStateIndex::stopped_noLfo:
+            currentBufferPos = 0.0; //reset when stopping
+            associatedLfo->resetSamplesUntilUpdate(); //necessary so that the LFO line on the region doesn't go out of sync
             nonInstantStateFound = true;
             DBG("Voice stopped and without LFO");
             break;
 
         case VoiceStateIndex::stopped_Lfo:
+            currentBufferPos = 0.0; //reset when stopping
+            associatedLfo->resetSamplesUntilUpdate(); //necessary so that the LFO line on the region doesn't go out of sync
             nonInstantStateFound = true;
             DBG("Voice stopped and with LFO");
             break;
