@@ -25,6 +25,14 @@ SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangl
     this->audioEngine = audioEngine;
     ID = audioEngine->addNewRegion(fillColour);
 
+    //initialise states
+    states[static_cast<int>(SegmentedRegionStateIndex::notInteractable)] = static_cast<SegmentedRegionState*>(new SegmentedRegionState_NotInteractable(*this));
+    states[static_cast<int>(SegmentedRegionStateIndex::editable)] = static_cast<SegmentedRegionState*>(new SegmentedRegionState_Editable(*this));
+    states[static_cast<int>(SegmentedRegionStateIndex::playable)] = static_cast<SegmentedRegionState*>(new SegmentedRegionState_Playable(*this));
+
+    currentStateIndex = initialStateIndex;
+    currentState = states[static_cast<int>(currentStateIndex)];
+
     //setButtonStyle(ButtonStyle::ImageStretched);
 
     //default: set focus in the centre of the shape
@@ -51,6 +59,12 @@ SegmentedRegion::~SegmentedRegion()
         regionEditorWindow.deleteAndZero();
     }
 
+    //release states
+    currentState = nullptr;
+    delete states[static_cast<int>(SegmentedRegionStateIndex::notInteractable)];
+    delete states[static_cast<int>(SegmentedRegionStateIndex::editable)];
+    delete states[static_cast<int>(SegmentedRegionStateIndex::playable)];
+
     //release LFO
     /*if (associatedLfo != nullptr && lfoIndex >= 0)
         audioEngine->lfosim.remove(lfoIndex, true);*/
@@ -58,8 +72,6 @@ SegmentedRegion::~SegmentedRegion()
     associatedLfo = nullptr;
 
     //release Voice(s)
-    /*if (associatedVoice != nullptr && voiceIndex >= 0)
-        audioEngine->removeVoice(voiceIndex);*/
     audioEngine->removeVoicesWithID(getID());
     associatedVoice = nullptr;
 
@@ -218,6 +230,15 @@ void SegmentedRegion::setState(SegmentedRegionState newState)
     }
 }
 
+void SegmentedRegion::triggerButtonStateChanged()
+{
+    juce::Button::buttonStateChanged();
+}
+void SegmentedRegion::triggerDrawableButtonStateChanged()
+{
+    juce::DrawableButton::buttonStateChanged();
+}
+
 void SegmentedRegion::clicked(const juce::ModifierKeys& modifiers)
 {
     juce::Button::buttonStateChanged();
@@ -336,6 +357,46 @@ int SegmentedRegion::getID()
     return ID;
 }
 
+bool SegmentedRegion::isEditorOpen()
+{
+    return regionEditorWindow != nullptr;
+}
+void SegmentedRegion::sendEditorToFront()
+{
+    regionEditorWindow->toFront(true);
+}
+void SegmentedRegion::openEditor()
+{
+    regionEditorWindow = juce::Component::SafePointer<RegionEditorWindow>(new RegionEditorWindow("Region " + juce::String(ID) + " Editor", this));
+}
+
+void SegmentedRegion::startPlaying()
+{
+    if (audioFileName != "" && !isPlaying)
+    {
+        DBG("*plays music*");
+        isPlaying = true;
+        associatedVoice->startNote(0, 1.0f, audioEngine->getSynth()->getSound(0).get(), 64);
+        //audioEngine->getSynth()->noteOn(1, 64, 1.0f); //might be worth a thought for later because of polyphony, but since voices will then be chosen automatically, adjustments to the voices class would have to be made
+        //audioEngine->getSynth()->getVoice(voiceIndex)->startNote(0, 1.0f, audioEngine->getSynth()->getSound(0).get(), 64);
+
+        startTimer(timerIntervalMs); //animates the LFO line
+    }
+}
+void SegmentedRegion::stopPlaying()
+{
+    if (audioFileName != "" && isPlaying)
+    {
+        DBG("*stops music*");
+        associatedVoice->stopNote(1.0f, true);
+        //audioEngine->getSynth()->noteOff(1, 64, 1.0f, true);
+        //audioEngine->getSynth()->getVoice(voiceIndex)->stopNote(1.0f, true);
+        isPlaying = false;
+
+        //stopTimer(); //stopped in the drawing method since the LFO will have to keep being drawn for a little longer because of release time
+    }
+}
+
 RegionLfo* SegmentedRegion::getAssociatedLfo()
 {
     return associatedLfo;
@@ -386,37 +447,5 @@ void SegmentedRegion::buttonStateChanged() //void handleButtonStateChanged() //v
         }
 
         break;
-    }
-}
-
-
-
-
-//private
-
-void SegmentedRegion::startPlaying()
-{
-    if (audioFileName != "" && !isPlaying)
-    {
-        DBG("*plays music*");
-        isPlaying = true;
-        associatedVoice->startNote(0, 1.0f, audioEngine->getSynth()->getSound(0).get(), 64);
-        //audioEngine->getSynth()->noteOn(1, 64, 1.0f); //might be worth a thought for later because of polyphony, but since voices will then be chosen automatically, adjustments to the voices class would have to be made
-        //audioEngine->getSynth()->getVoice(voiceIndex)->startNote(0, 1.0f, audioEngine->getSynth()->getSound(0).get(), 64);
-
-        startTimer(timerIntervalMs); //animates the LFO line
-    }
-}
-void SegmentedRegion::stopPlaying()
-{
-    if (audioFileName != "" && isPlaying)
-    {
-        DBG("*stops music*");
-        associatedVoice->stopNote(1.0f, true);
-        //audioEngine->getSynth()->noteOff(1, 64, 1.0f, true);
-        //audioEngine->getSynth()->getVoice(voiceIndex)->stopNote(1.0f, true);
-        isPlaying = false;
-
-        //stopTimer(); //stopped in the drawing method since the LFO will have to keep being drawn for a little longer because of release time
     }
 }

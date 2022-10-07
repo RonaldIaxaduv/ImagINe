@@ -5,7 +5,27 @@
               pluginFormats="buildStandalone,buildVST3" pluginCharacteristicsValue="pluginIsSynth">
   <MAINGROUP id="ERSV9V" name="ImageINe Demo">
     <GROUP id="{8D26A2AA-44ED-091F-1BA7-BD7625DE9D6A}" name="Source">
+      <GROUP id="{3117E0B0-7D62-52D3-A375-791A77CB25B2}" name="Segmentable Image">
+        <FILE id="jYUrtT" name="SegmentableImageStates.cpp" compile="1" resource="0"
+              file="Source/SegmentableImageStates.cpp"/>
+        <FILE id="MP9Olp" name="SegmentableImageStates.h" compile="0" resource="0"
+              file="Source/SegmentableImageStates.h"/>
+        <FILE id="c7XCkk" name="SegmentableImageStateIndex.h" compile="0" resource="0"
+              file="Source/SegmentableImageStateIndex.h"/>
+        <FILE id="m8U4QV" name="SegmentableImage.h" compile="0" resource="0"
+              file="Source/SegmentableImage.h"/>
+        <FILE id="AnGmtW" name="SegmentableImage.cpp" compile="1" resource="0"
+              file="Source/SegmentableImage.cpp"/>
+        <FILE id="Jw3OBx" name="SegmentableImageState.h" compile="0" resource="0"
+              file="Source/SegmentableImageState.h"/>
+      </GROUP>
       <GROUP id="{CBF11E86-5346-B8D0-1757-75A69300FD28}" name="Segmented Region">
+        <FILE id="ofjIHs" name="SegmentedRegionStates.cpp" compile="1" resource="0"
+              file="Source/SegmentedRegionStates.cpp"/>
+        <FILE id="M0YZU9" name="SegmentedRegionStates.h" compile="0" resource="0"
+              file="Source/SegmentedRegionStates.h"/>
+        <FILE id="a52r32" name="SegmentedRegionStateIndex.h" compile="0" resource="0"
+              file="Source/SegmentedRegionStateIndex.h"/>
         <FILE id="lSRbTY" name="SegmentedRegionState.h" compile="0" resource="0"
               file="Source/SegmentedRegionState.h"/>
         <FILE id="dDx3mK" name="SegmentedRegion.h" compile="0" resource="0"
@@ -74,12 +94,6 @@
             file="Source/SamplerOscillator.h"/>
       <FILE id="JWS5Od" name="AudioEngine.h" compile="0" resource="0" file="Source/AudioEngine.h"/>
       <FILE id="k42OGO" name="AudioEngine.cpp" compile="1" resource="0" file="Source/AudioEngine.cpp"/>
-      <FILE id="m8U4QV" name="SegmentableImage.h" compile="0" resource="0"
-            file="Source/SegmentableImage.h"/>
-      <FILE id="AnGmtW" name="SegmentableImage.cpp" compile="1" resource="0"
-            file="Source/SegmentableImage.cpp"/>
-      <FILE id="Jw3OBx" name="SegmentableImageState.h" compile="0" resource="0"
-            file="Source/SegmentableImageState.h"/>
       <FILE id="r5DQmk" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="dYjBE9" name="PluginProcessor.h" compile="0" resource="0"

@@ -11,7 +11,13 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "SegmentedRegionState.h"
+//#include "SegmentedRegionState.h"
+#include "SegmentedRegionStateIndex.h"
+#include "SegmentedRegionStates.h"
+class SegmentedRegionState;
+class SegmentedRegionState_NotInteractable;
+class SegmentedRegionState_Editable;
+class SegmentedRegionState_Playable;
 
 #include "AudioEngine.h"
 class AudioEngine;
@@ -45,7 +51,11 @@ public:
     void resized() override;
     bool hitTest(int x, int y) override;
 
-    void setState(SegmentedRegionState newState);
+    //void setState(SegmentedRegionState newState);
+    void transitionToState(SegmentedRegionStateIndex stateToTransitionTo);
+
+    void triggerButtonStateChanged();
+    void triggerDrawableButtonStateChanged();
 
     void clicked(const juce::ModifierKeys& modifiers) override;
 
@@ -54,6 +64,13 @@ public:
     void renderLfoWaveform();
 
     int getID();
+
+    bool isEditorOpen();
+    void sendEditorToFront();
+    void openEditor();
+
+    void startPlaying();
+    void stopPlaying();
 
     RegionLfo* getAssociatedLfo();
     AudioEngine* getAudioEngine();
@@ -69,7 +86,13 @@ protected:
 private:
     int ID;
 
-    SegmentedRegionState currentState;
+    //SegmentedRegionState currentState;
+
+    SegmentedRegionState* states[static_cast<int>(SegmentedRegionStateIndex::StateIndexCount)];
+    static const SegmentedRegionStateIndex initialStateIndex = SegmentedRegionStateIndex::notInteractable;
+    SegmentedRegionStateIndex currentStateIndex;
+    SegmentedRegionState* currentState = nullptr;
+
     bool isPlaying = false;
     int timerIntervalMs = 50; //-> 20.0f Hz
 
@@ -90,9 +113,6 @@ private:
     Voice* associatedVoice = nullptr;
 
     RegionLfo* associatedLfo = nullptr;
-
-    void startPlaying();
-    void stopPlaying();
 
     juce::Component::SafePointer<RegionEditorWindow> regionEditorWindow;
 
