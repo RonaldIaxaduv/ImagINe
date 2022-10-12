@@ -36,12 +36,15 @@ struct Voice : public juce::SynthesiserVoice
 {
 public:
     Voice();
+    Voice(int regionID);
     Voice(juce::AudioSampleBuffer buffer, int origSampleRate, int regionID);
 
     ~Voice() override;
 
     //==============================================================================
     void prepare(const juce::dsp::ProcessSpec& spec);
+
+    void setOsc(juce::AudioSampleBuffer buffer, int origSampleRate);
 
     bool canPlaySound(juce::SynthesiserSound* sound) override;
 

@@ -123,21 +123,24 @@ void SegmentableImage::setState(SegmentableImageState newState)
         case SegmentableImageState::Drawing:
             for (auto it = regions.begin(); it != regions.end(); ++it)
             {
-                (*it)->setState(SegmentedRegionState::Standby);
+                //(*it)->setState(SegmentedRegionState::Standby);
+                (*it)->transitionToState(SegmentedRegionStateIndex::notInteractable);
             }
             break;
 
         case SegmentableImageState::Editing:
             for (auto it = regions.begin(); it != regions.end(); ++it)
             {
-                (*it)->setState(SegmentedRegionState::Editing);
+                //(*it)->setState(SegmentedRegionState::Editing);
+                (*it)->transitionToState(SegmentedRegionStateIndex::editable);
             }
             break;
 
         case SegmentableImageState::Playing:
             for (auto it = regions.begin(); it != regions.end(); ++it)
             {
-                (*it)->setState(SegmentedRegionState::Playable);
+                //(*it)->setState(SegmentedRegionState::Playable);
+                (*it)->transitionToState(SegmentedRegionStateIndex::playable);
             }
             break;
 

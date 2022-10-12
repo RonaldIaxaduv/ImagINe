@@ -14,7 +14,7 @@
 //public
 
 RegionEditor::RegionEditor(SegmentedRegion* region) :
-    dahdsrEditor((region != nullptr && region->getAssociatedVoice() != nullptr) ? region->getAssociatedVoice()->getEnvelope() : nullptr),
+    dahdsrEditor(juce::Array<DahdsrEnvelope*>()), //initialised with existing envelopes later
     lfoEditor(region->getAudioEngine(), region->getAssociatedLfo())
 {
     associatedRegion = region;
@@ -69,6 +69,18 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     addChildComponent(toggleModeButton);
 
     //DAHDSR
+    if (region != nullptr)
+    {
+        juce::Array<DahdsrEnvelope*> associatedEnvelopes;
+        juce::Array<Voice*> associatedVoices = region->getAssociatedVoices();
+
+        for (auto itVoice = associatedVoices.begin(); itVoice != associatedVoices.end(); itVoice++)
+        {
+            associatedEnvelopes.add((*itVoice)->getEnvelope());
+        }
+
+        dahdsrEditor.setAssociatedEnvelopes(associatedEnvelopes);
+    }
     dahdsrEditor.setDisplayedName("Amp");
     addChildComponent(dahdsrEditor);
 
@@ -239,7 +251,7 @@ void RegionEditor::copyRegionParameters()
     focusPositionX.setValue(associatedRegion->focus.getX(), juce::NotificationType::dontSendNotification);
     focusPositionY.setValue(associatedRegion->focus.getY(), juce::NotificationType::dontSendNotification);
 
-    toggleModeButton.setToggleState(associatedRegion->isToggleable(), juce::NotificationType::dontSendNotification);
+    toggleModeButton.setToggleState(associatedRegion->getShouldBeToggleable(), juce::NotificationType::dontSendNotification);
 
     juce::Array<Voice*> voices = associatedRegion->getAudioEngine()->getVoicesWithID(associatedRegion->getID());
     //Voice* voice = associatedRegion->getAssociatedVoice();
@@ -301,7 +313,15 @@ void RegionEditor::selectFile()
                     
                     lfoEditor.updateAvailableVoices();
                     updateAllVoiceSettings(); //sets currently selected volume, pitch etc.
-                    dahdsrEditor.setAssociatedEnvelope(associatedRegion->getAssociatedVoice()->getEnvelope());
+
+                    juce::Array<DahdsrEnvelope*> associatedEnvelopes;
+                    juce::Array<Voice*> associatedVoices = associatedRegion->getAssociatedVoices();
+                    for (auto itVoice = associatedVoices.begin(); itVoice != associatedVoices.end(); itVoice++)
+                    {
+                        associatedEnvelopes.add((*itVoice)->getEnvelope());
+                    }
+                    dahdsrEditor.setAssociatedEnvelopes(associatedEnvelopes);
+
                     copyRegionParameters(); //updates pitch quantisation, makes sure nothing's missing
                 }
                 else
@@ -329,8 +349,7 @@ void RegionEditor::renderLfoWaveform()
 
 void RegionEditor::updateToggleable()
 {
-    //associatedRegion->setToggleable(toggleModeButton.getToggleState());
-    associatedRegion->setClickingTogglesState(toggleModeButton.getToggleState()); //this also automatically sets isToggleable
+    associatedRegion->setShouldBeToggleable(toggleModeButton.getToggleState());
 }
 
 void RegionEditor::updateAllVoiceSettings() //used after a voice has been first set or changed

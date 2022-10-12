@@ -11,8 +11,9 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "SegmentedRegion.h"
 #include "SegmentedRegionStateIndex.h"
+#include "SegmentedRegion.h"
+class SegmentedRegion;
 
 
 class SegmentedRegionState

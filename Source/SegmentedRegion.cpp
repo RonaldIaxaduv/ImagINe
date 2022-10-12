@@ -20,10 +20,10 @@ SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangl
 {
     regionEditorWindow = nullptr;
 
-    initialiseImages();
-
     this->audioEngine = audioEngine;
-    ID = audioEngine->addNewRegion(fillColour);
+    ID = audioEngine->addNewRegion(fillColour); //also generates the region's LFO and all its Voice instances
+    associatedLfo = audioEngine->getLfo(ID);
+    associatedVoices = audioEngine->getVoicesWithID(ID);
 
     //initialise states
     states[static_cast<int>(SegmentedRegionStateIndex::notInteractable)] = static_cast<SegmentedRegionState*>(new SegmentedRegionState_NotInteractable(*this));
@@ -33,18 +33,17 @@ SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangl
     currentStateIndex = initialStateIndex;
     currentState = states[static_cast<int>(currentStateIndex)];
 
-    //setButtonStyle(ButtonStyle::ImageStretched);
+    //initialise images
+    initialiseImages();
 
     //default: set focus in the centre of the shape
     focus = p.getBounds().getCentre();
     focus.setXY(focus.getX() / p.getBounds().getWidth(), focus.getY() / p.getBounds().getHeight()); //relative centre
 
     //LFO
-    renderLfoWaveform(); //also initialises LFO
+    renderLfoWaveform(); //initialises LFO further (generates its wavetable)
 
-    /*this->onStateChange += [this] { handleButtonStateChanged(); };*/
-
-    setBuffer(juce::AudioSampleBuffer(), "", 0.0); //empty buffer
+    setBuffer(juce::AudioSampleBuffer(), "", 0.0); //no audio file set yet -> empty buffer
     DBG(juce::String(p.getLength()));
 }
 
@@ -66,14 +65,12 @@ SegmentedRegion::~SegmentedRegion()
     delete states[static_cast<int>(SegmentedRegionStateIndex::playable)];
 
     //release LFO
-    /*if (associatedLfo != nullptr && lfoIndex >= 0)
-        audioEngine->lfosim.remove(lfoIndex, true);*/
-    audioEngine->removeLfo(getID());
     associatedLfo = nullptr;
+    audioEngine->removeLfo(getID());
 
     //release Voice(s)
+    associatedVoices.clear();
     audioEngine->removeVoicesWithID(getID());
-    associatedVoice = nullptr;
 
     //release audio engine
     audioEngine = nullptr;
@@ -214,20 +211,71 @@ void SegmentedRegion::resized() //WIP: for some reason, this is called when hove
 
 bool SegmentedRegion::hitTest(int x, int y)
 {
-    return p.contains((float)x, (float)y);
+    //return p.contains((float)x, (float)y);
+    return currentState->hitTest(x, y);
 }
 
-void SegmentedRegion::setState(SegmentedRegionState newState)
+//void SegmentedRegion::setState(SegmentedRegionState newState)
+//{
+//    if (currentState != newState)
+//    {
+//        currentState = newState; //the state mainly changes how the click method behaves
+//        DBG("set SegmentedRegion's current state to " + juce::String(static_cast<int>(currentState)));
+//
+//        //WIP: when switching to Playable, preparing the audio will probably be necessary
+//
+//        //resized();
+//    }
+//}
+void SegmentedRegion::transitionToState(SegmentedRegionStateIndex stateToTransitionTo)
 {
-    if (currentState != newState)
+    bool nonInstantStateFound = false;
+
+    while (!nonInstantStateFound) //check if any states can be skipped (might be the case depending on what has been prepared already)
     {
-        currentState = newState; //the state mainly changes how the click method behaves
-        DBG("set SegmentedRegion's current state to " + juce::String(static_cast<int>(currentState)));
+        switch (stateToTransitionTo)
+        {
+        case SegmentedRegionStateIndex::notInteractable:
+            nonInstantStateFound = true;
 
-        //WIP: when switching to Playable, preparing the audio will probably be necessary
+            setToggleable(false); //WIP: also automatically un-toggles(?)
 
-        //resized();
+            DBG("SegmentedRegion not interactable");
+            break;
+
+        case SegmentedRegionStateIndex::editable:
+            nonInstantStateFound = true;
+
+            setToggleable(false); //WIP: also automatically un-toggles(?)
+
+            DBG("SegmentedRegion editable");
+            break;
+
+        case SegmentedRegionStateIndex::playable:
+            nonInstantStateFound = true;
+
+            setClickingTogglesState(shouldBeToggleable); //selected exclusively for the playable state, also automatically sets isToggleable
+
+            DBG("SegmentedRegion playable");
+            break;
+
+        default:
+            throw std::exception("unhandled state index");
+        }
     }
+
+    //finally, update the current state index
+    currentStateIndex = stateToTransitionTo;
+    currentState = states[static_cast<int>(currentStateIndex)];
+}
+
+void SegmentedRegion::setShouldBeToggleable(bool newShouldBeToggleable)
+{
+    shouldBeToggleable = newShouldBeToggleable;
+}
+bool SegmentedRegion::getShouldBeToggleable()
+{
+    return shouldBeToggleable;
 }
 
 void SegmentedRegion::triggerButtonStateChanged()
@@ -239,66 +287,76 @@ void SegmentedRegion::triggerDrawableButtonStateChanged()
     juce::DrawableButton::buttonStateChanged();
 }
 
+//void SegmentedRegion::clicked(const juce::ModifierKeys& modifiers)
+//{
+//    juce::Button::buttonStateChanged();
+//
+//    //clicked(modifiers); //base class stuff
+//
+//    //modifiers.isRightButtonDown() -> differentiate between left and right mouse button like this
+//
+//    switch (currentState)
+//    {
+//    case SegmentedRegionState::Standby:
+//        DBG("*stands by*");
+//        break;
+//
+//    case SegmentedRegionState::Editing:
+//        DBG("*shows editor window*");
+//        if (regionEditorWindow != nullptr)
+//        {
+//            regionEditorWindow->toFront(true);
+//        }
+//        else
+//        {
+//            regionEditorWindow = juce::Component::SafePointer<RegionEditorWindow>(new RegionEditorWindow("Region " + juce::String(ID) + " Editor", this));
+//        }
+//        break;
+//
+//    case SegmentedRegionState::Playable:
+//        //handled though buttonStateChanged
+//        break;
+//    }
+//}
 void SegmentedRegion::clicked(const juce::ModifierKeys& modifiers)
 {
-    juce::Button::buttonStateChanged();
-
-    //clicked(modifiers); //base class stuff
-
-    //modifiers.isRightButtonDown() -> differentiate between left and right mouse button like this
-
-    switch (currentState)
-    {
-    case SegmentedRegionState::Standby:
-        DBG("*stands by*");
-        break;
-
-    case SegmentedRegionState::Editing:
-        DBG("*shows editor window*");
-        if (regionEditorWindow != nullptr)
-        {
-            regionEditorWindow->toFront(true);
-        }
-        else
-        {
-            regionEditorWindow = juce::Component::SafePointer<RegionEditorWindow>(new RegionEditorWindow("Region " + juce::String(ID) + " Editor", this));
-        }
-        break;
-
-    case SegmentedRegionState::Playable:
-        //handled though buttonStateChanged
-        break;
-    }
+    return currentState->clicked(modifiers);
 }
 
 void SegmentedRegion::setBuffer(juce::AudioSampleBuffer newBuffer, juce::String fileName, double origSampleRate)
 {
-    if (audioFileName != "")
-    {
-        //delete old voice
-        /*if (voiceIndex >= 0)
-            audioEngine->removeVoice(voiceIndex);*/
-        audioEngine->removeVoicesWithID(getID());
-        associatedVoice = nullptr;
-    }
+    //if (audioFileName != "")
+    //{
+    //    //delete old voices
+    //    associatedVoices.clear();
+    //    audioEngine->removeVoicesWithID(getID());
+    //}
 
     buffer = newBuffer;
     audioFileName = fileName;
 
     if (audioFileName != "")
     {
-        associatedVoice = new Voice(newBuffer, origSampleRate, getID());
-        if (associatedLfo != nullptr)
+        if (associatedVoices.size() == 0)
         {
-            //make LFO modulate that voice
-            //std::function<void(float lfoValue)> newModulationFunction = [this](float lfoValue) { associatedVoice->modulateLevel(static_cast<double>(lfoValue)); };
-            //associatedLfo->setModulationFunction(newModulationFunction);
-
-            //associatedVoice->setLfo(associatedLfo);
+            audioEngine->initialiseVoicesForRegion(getID()); //may create more than 1 voice
+            associatedVoices = audioEngine->getVoicesWithID(getID());
         }
-        auto voiceIndex = audioEngine->addVoice(associatedVoice);
-        DBG("successfully added voice #" + juce::String(voiceIndex) + ". associated region: " + juce::String(getID()));
 
+        //update buffers
+        for (auto itVoice = associatedVoices.begin(); itVoice != associatedVoices.end(); itVoice++)
+        {
+            (*itVoice)->setOsc(newBuffer, origSampleRate); //
+        }
+    }
+    else
+    {
+        //set to empty buffer
+        auto emptyBuffer = juce::AudioSampleBuffer();
+        for (auto itVoice = associatedVoices.begin(); itVoice != associatedVoices.end(); itVoice++)
+        {
+            (*itVoice)->setOsc(emptyBuffer, 0);
+        }
     }
 }
 
@@ -342,7 +400,6 @@ void SegmentedRegion::renderLfoWaveform()
     {
         associatedLfo = new RegionLfo(waveform, RegionLfo::Polarity::unipolar, getID()); //no modulation until the voice has been initialised
         audioEngine->addLfo(associatedLfo);
-        associatedLfo->setBaseFrequency(0.2f);
     }
     else
     {
@@ -376,7 +433,8 @@ void SegmentedRegion::startPlaying()
     {
         DBG("*plays music*");
         isPlaying = true;
-        associatedVoice->startNote(0, 1.0f, audioEngine->getSynth()->getSound(0).get(), 64);
+
+        associatedVoices[currentVoiceIndex]->startNote(0, 1.0f, audioEngine->getSynth()->getSound(0).get(), 64); //cycle through all voices (incremented after this voice stops)
         //audioEngine->getSynth()->noteOn(1, 64, 1.0f); //might be worth a thought for later because of polyphony, but since voices will then be chosen automatically, adjustments to the voices class would have to be made
         //audioEngine->getSynth()->getVoice(voiceIndex)->startNote(0, 1.0f, audioEngine->getSynth()->getSound(0).get(), 64);
 
@@ -388,7 +446,8 @@ void SegmentedRegion::stopPlaying()
     if (audioFileName != "" && isPlaying)
     {
         DBG("*stops music*");
-        associatedVoice->stopNote(1.0f, true);
+        associatedVoices[currentVoiceIndex]->stopNote(1.0f, true); //cycles through all voices bit by bit
+        currentVoiceIndex = (currentVoiceIndex + 1) % associatedVoices.size(); //next time, play the next voice
         //audioEngine->getSynth()->noteOff(1, 64, 1.0f, true);
         //audioEngine->getSynth()->getVoice(voiceIndex)->stopNote(1.0f, true);
         isPlaying = false;
@@ -407,9 +466,11 @@ AudioEngine* SegmentedRegion::getAudioEngine()
     return audioEngine;
 }
 
-Voice* SegmentedRegion::getAssociatedVoice()
+juce::Array<Voice*> SegmentedRegion::getAssociatedVoices()
 {
-    return associatedVoice;
+    juce::Array<Voice*> output;
+    output.addArray(associatedVoices);
+    return output;
 }
 juce::String SegmentedRegion::getFileName()
 {
@@ -421,31 +482,35 @@ juce::String SegmentedRegion::getFileName()
 
 //protected
 
+//void SegmentedRegion::buttonStateChanged() //void handleButtonStateChanged() //void clicked(const juce::ModifierKeys& modifiers) override
+//{
+//    juce::DrawableButton::buttonStateChanged();
+//
+//    //clicked(modifiers); //base class stuff
+//
+//    //modifiers.isRightButtonDown() -> differentiate between left and right mouse button like this
+//
+//    switch (currentState)
+//    {
+//    case SegmentedRegionState::Playable:
+//        switch (getState())
+//        {
+//        case juce::Button::ButtonState::buttonDown:
+//            if (isToggleable() && getToggleState() == true) //when toggleable, toggle music on or off. turning it on is handled in the other case
+//                stopPlaying();
+//            else //not in toggle mode or toggling on
+//                startPlaying();
+//            break;
+//        default:
+//            if (!isToggleable())
+//                stopPlaying();
+//            break;
+//        }
+//
+//        break;
+//    }
+//}
 void SegmentedRegion::buttonStateChanged() //void handleButtonStateChanged() //void clicked(const juce::ModifierKeys& modifiers) override
 {
-    juce::DrawableButton::buttonStateChanged();
-
-    //clicked(modifiers); //base class stuff
-
-    //modifiers.isRightButtonDown() -> differentiate between left and right mouse button like this
-
-    switch (currentState)
-    {
-    case SegmentedRegionState::Playable:
-        switch (getState())
-        {
-        case juce::Button::ButtonState::buttonDown:
-            if (isToggleable() && getToggleState() == true) //when toggleable, toggle music on or off. turning it on is handled in the other case
-                stopPlaying();
-            else //not in toggle mode or toggling on
-                startPlaying();
-            break;
-        default:
-            if (!isToggleable())
-                stopPlaying();
-            break;
-        }
-
-        break;
-    }
+    currentState->buttonStateChanged();
 }

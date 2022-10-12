@@ -36,11 +36,16 @@ Voice::Voice() :
     //DBG("init base playback pos: " + juce::String(playbackPositionParameter.getBaseValue()));
 }
 
-Voice::Voice(juce::AudioSampleBuffer buffer, int origSampleRate, int regionID) :
+Voice::Voice(int regionID) :
     Voice::Voice()
 {
-    osc = new SamplerOscillator(buffer, origSampleRate);
     ID = regionID;
+}
+
+Voice::Voice(juce::AudioSampleBuffer buffer, int origSampleRate, int regionID) :
+    Voice::Voice(regionID)
+{
+    setOsc(buffer, origSampleRate);
 }
 
 Voice::~Voice()
@@ -68,6 +73,20 @@ void Voice::prepare(const juce::dsp::ProcessSpec& spec)
     envelope.setSampleRate(spec.sampleRate);
 
     currentState->prepared(spec.sampleRate);
+}
+
+void Voice::setOsc(juce::AudioSampleBuffer buffer, int origSampleRate)
+{
+    if (osc == nullptr)
+    {
+        osc = new SamplerOscillator(buffer, origSampleRate);
+    }
+    else
+    {
+        osc->fileBuffer = buffer;
+        osc->origSampleRate = origSampleRate;
+    }
+    currentState->wavefileChanged(buffer.getNumSamples());
 }
 
 bool Voice::canPlaySound(juce::SynthesiserSound* sound)

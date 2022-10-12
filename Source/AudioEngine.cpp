@@ -33,7 +33,15 @@ int AudioEngine::getLastRegionID()
 int AudioEngine::addNewRegion(const juce::Colour& regionColour)
 {
     regionColours.add(regionColour);
-    return getNextRegionID();
+    int newRegionID = getNextRegionID();
+
+    //create LFO
+    addLfo(new RegionLfo(newRegionID));
+
+    //create voices
+    initialiseVoicesForRegion(newRegionID);
+
+    return newRegionID;
 }
 
 juce::Colour AudioEngine::getRegionColour(int regionID)
@@ -51,6 +59,14 @@ void AudioEngine::changeRegionColour(int regionID, juce::Colour newColour)
     }
 }
 
+void AudioEngine::initialiseVoicesForRegion(int regionID)
+{
+    int voiceCount = 1; //WIP: change this later to allow for polyphony if desired. for now, regions are monophone
+    for (int i = 0; i < voiceCount; ++i)
+    {
+        addVoice(new Voice(regionID));
+    }
+}
 int AudioEngine::addVoice(Voice* newVoice)
 {
     auto* associatedLfo = getLfo(newVoice->getID());
@@ -62,6 +78,9 @@ int AudioEngine::addVoice(Voice* newVoice)
     newVoice->prepare(specs);
 
     synth.addVoice(newVoice);
+
+    DBG("successfully added voice #" + juce::String(synth.getNumVoices() - 1) + ". associated region: " + juce::String(newVoice->getID()));
+
     return synth.getNumVoices() - 1;
 }
 juce::Array<Voice*> AudioEngine::getVoicesWithID(int regionID)
@@ -223,6 +242,7 @@ void AudioEngine::addLfo(RegionLfo* newLfo)
     int regionID = newLfo->getRegionID(); //the LFO belongs to this region
     int newLfoIndex = lfos.size();
     newLfo->prepare(specs);
+    newLfo->setBaseFrequency(0.2f);
     lfos.add(newLfo);
 
     for (int i = 0; i < synth.getNumVoices(); ++i)
@@ -237,6 +257,8 @@ void AudioEngine::addLfo(RegionLfo* newLfo)
             curVoice->setLfo(newLfo);
         }
     }
+
+    DBG("successfully added LFO to region " + juce::String(newLfo->getRegionID()));
 }
 RegionLfo* AudioEngine::getLfo(int regionID)
 {

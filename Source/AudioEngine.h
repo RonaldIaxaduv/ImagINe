@@ -39,6 +39,7 @@ public:
     juce::Colour getRegionColour(int regionID);
     void changeRegionColour(int regionID, juce::Colour newColour);
 
+    void initialiseVoicesForRegion(int regionID);
     int addVoice(Voice* newVoice);
     juce::Array<Voice*> getVoicesWithID(int regionID);
     bool checkRegionHasVoice(int regionID);

@@ -54,6 +54,9 @@ public:
     //void setState(SegmentedRegionState newState);
     void transitionToState(SegmentedRegionStateIndex stateToTransitionTo);
 
+    void setShouldBeToggleable(bool newShouldBeToggleable);
+    bool getShouldBeToggleable();
+
     void triggerButtonStateChanged();
     void triggerDrawableButtonStateChanged();
 
@@ -74,7 +77,7 @@ public:
 
     RegionLfo* getAssociatedLfo();
     AudioEngine* getAudioEngine();
-    Voice* getAssociatedVoice();
+    juce::Array<Voice*> getAssociatedVoices();
     juce::String getFileName();
 
     juce::Point<float> focus;
@@ -94,7 +97,9 @@ private:
     SegmentedRegionState* currentState = nullptr;
 
     bool isPlaying = false;
+    int currentVoiceIndex = 0;
     int timerIntervalMs = 50; //-> 20.0f Hz
+    bool shouldBeToggleable = false;
 
     juce::Path p; //also acts as a hitbox
     juce::Colour fillColour;
@@ -110,7 +115,7 @@ private:
     AudioEngine* audioEngine;
     juce::AudioSampleBuffer buffer;
     juce::String audioFileName = "";
-    Voice* associatedVoice = nullptr;
+    juce::Array<Voice*> associatedVoices;
 
     RegionLfo* associatedLfo = nullptr;
 

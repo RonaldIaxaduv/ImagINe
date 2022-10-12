@@ -39,6 +39,7 @@ public:
         bipolar //LFO values lie within [-1,1]. This is the default.
     };
 
+    RegionLfo(int regionID);
     RegionLfo(const juce::AudioBuffer<float>& waveTable, Polarity polarityOfPassedWaveTable, int regionID);
     ~RegionLfo();
 

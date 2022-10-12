@@ -19,7 +19,7 @@
 class DahdsrEnvelopeEditor  : public juce::Component
 {
 public:
-    DahdsrEnvelopeEditor(DahdsrEnvelope* associatedEnvelope)
+    DahdsrEnvelopeEditor(juce::Array<DahdsrEnvelope*> associatedEnvelopes)
     {
         //initialise components
         titleLabel.setText("DAHDSR Envelope", juce::NotificationType::dontSendNotification);
@@ -51,11 +51,12 @@ public:
         initialiseSliderLabel(&sustainLabel, "Sustain", &sustainSlider);
 
         //copy current parameter values
-        setAssociatedEnvelope(associatedEnvelope);
+        setAssociatedEnvelopes(associatedEnvelopes);
     }
 
     ~DahdsrEnvelopeEditor() override
     {
+        associatedEnvelopes.clear();
     }
 
     void paint (juce::Graphics& g) override
@@ -101,15 +102,15 @@ public:
             titleLabel.setText("DAHDSR Envelope:", juce::NotificationType::dontSendNotification);
     }
 
-    void setAssociatedEnvelope(DahdsrEnvelope* newEnvelope)
+    void setAssociatedEnvelopes(juce::Array<DahdsrEnvelope*> newEnvelopes)
     {
-        associatedEnvelope = newEnvelope;
-        setComponentsEnabled(associatedEnvelope != nullptr);
+        associatedEnvelopes = newEnvelopes;
+        setComponentsEnabled(associatedEnvelopes.size() > 0);
         copyEnvelopeParameters();
     }
 
 private:
-    DahdsrEnvelope* associatedEnvelope;
+    juce::Array<DahdsrEnvelope*> associatedEnvelopes;
 
     juce::Label titleLabel; //will read "[referenced sound] DAHDSR Envelope"
 
@@ -173,17 +174,17 @@ private:
 
     void copyEnvelopeParameters()
     {
-        if (associatedEnvelope != nullptr)
+        if (associatedEnvelopes.size() > 0)
         {
-            delaySlider.setValue(associatedEnvelope->getDelayTime(), juce::NotificationType::dontSendNotification);
-            attackSlider.setValue(associatedEnvelope->getAttackTime(), juce::NotificationType::dontSendNotification);
-            holdSlider.setValue(associatedEnvelope->getHoldTime(), juce::NotificationType::dontSendNotification);
-            decaySlider.setValue(associatedEnvelope->getDecayTime(), juce::NotificationType::dontSendNotification);
-            releaseSlider.setValue(associatedEnvelope->getReleaseTime(), juce::NotificationType::dontSendNotification);
+            delaySlider.setValue(associatedEnvelopes[0]->getDelayTime(), juce::NotificationType::dontSendNotification);
+            attackSlider.setValue(associatedEnvelopes[0]->getAttackTime(), juce::NotificationType::dontSendNotification);
+            holdSlider.setValue(associatedEnvelopes[0]->getHoldTime(), juce::NotificationType::dontSendNotification);
+            decaySlider.setValue(associatedEnvelopes[0]->getDecayTime(), juce::NotificationType::dontSendNotification);
+            releaseSlider.setValue(associatedEnvelopes[0]->getReleaseTime(), juce::NotificationType::dontSendNotification);
 
-            initialSlider.setValue(juce::Decibels::gainToDecibels<double>(associatedEnvelope->getInitialLevel()), juce::NotificationType::dontSendNotification);
-            peakSlider.setValue(juce::Decibels::gainToDecibels<double>(associatedEnvelope->getPeakLevel()), juce::NotificationType::dontSendNotification);
-            sustainSlider.setValue(juce::Decibels::gainToDecibels<double>(associatedEnvelope->getSustainLevel()), juce::NotificationType::dontSendNotification);
+            initialSlider.setValue(juce::Decibels::gainToDecibels<double>(associatedEnvelopes[0]->getInitialLevel()), juce::NotificationType::dontSendNotification);
+            peakSlider.setValue(juce::Decibels::gainToDecibels<double>(associatedEnvelopes[0]->getPeakLevel()), juce::NotificationType::dontSendNotification);
+            sustainSlider.setValue(juce::Decibels::gainToDecibels<double>(associatedEnvelopes[0]->getSustainLevel()), juce::NotificationType::dontSendNotification);
         }
     }
 
@@ -217,42 +218,66 @@ private:
 
     void updateDelayTime()
     {
-        associatedEnvelope->setDelayTime(delaySlider.getValue());
+        for (auto it = associatedEnvelopes.begin(); it != associatedEnvelopes.end(); it++)
+        {
+            (*it)->setDelayTime(delaySlider.getValue());
+        }
     }
 
     void updateInitialLevel()
     {
-        associatedEnvelope->setInitialLevel(juce::Decibels::decibelsToGain<double>(initialSlider.getValue(), -60.0));
+        for (auto it = associatedEnvelopes.begin(); it != associatedEnvelopes.end(); it++)
+        {
+            (*it)->setInitialLevel(juce::Decibels::decibelsToGain<double>(initialSlider.getValue(), -60.0));
+        }
     }
 
     void updateAttackTime()
     {
-        associatedEnvelope->setAttackTime(attackSlider.getValue());
+        for (auto it = associatedEnvelopes.begin(); it != associatedEnvelopes.end(); it++)
+        {
+            (*it)->setAttackTime(attackSlider.getValue());
+        }
     }
 
     void updatePeakLevel()
     {
-        associatedEnvelope->setPeakLevel(juce::Decibels::decibelsToGain<double>(peakSlider.getValue(), -60.0));
+        for (auto it = associatedEnvelopes.begin(); it != associatedEnvelopes.end(); it++)
+        {
+            (*it)->setPeakLevel(juce::Decibels::decibelsToGain<double>(peakSlider.getValue(), -60.0));
+        }
     }
 
     void updateHoldTime()
     {
-        associatedEnvelope->setHoldTime(holdSlider.getValue());
+        for (auto it = associatedEnvelopes.begin(); it != associatedEnvelopes.end(); it++)
+        {
+            (*it)->setHoldTime(holdSlider.getValue());
+        }
     }
 
     void updateDecayTime()
     {
-        associatedEnvelope->setDecayTime(decaySlider.getValue());
+        for (auto it = associatedEnvelopes.begin(); it != associatedEnvelopes.end(); it++)
+        {
+            (*it)->setDecayTime(decaySlider.getValue());
+        }
     }
 
     void updateSustainLevel()
     {
-        associatedEnvelope->setSustainLevel(juce::Decibels::decibelsToGain<double>(sustainSlider.getValue(), -60.0));
+        for (auto it = associatedEnvelopes.begin(); it != associatedEnvelopes.end(); it++)
+        {
+            (*it)->setSustainLevel(juce::Decibels::decibelsToGain<double>(sustainSlider.getValue(), -60.0));
+        }
     }
 
     void updateReleaseTime()
     {
-        associatedEnvelope->setReleaseTime(releaseSlider.getValue());
+        for (auto it = associatedEnvelopes.begin(); it != associatedEnvelopes.end(); it++)
+        {
+            (*it)->setReleaseTime(releaseSlider.getValue());
+        }
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DahdsrEnvelopeEditor)

@@ -13,7 +13,7 @@
 #include "RegionLfo.h"
 
 
-RegionLfo::RegionLfo(const juce::AudioBuffer<float>& waveTable, Polarity polarityOfPassedWaveTable, int regionID) :
+RegionLfo::RegionLfo(int regionID) :
     Lfo(waveTable, [](float) {; }), //can only initialise waveTable through the base class's constructor...
     frequencyModParameter(0.0), phaseModParameter(1.0), updateIntervalParameter(1.0)
 {
@@ -28,8 +28,13 @@ RegionLfo::RegionLfo(const juce::AudioBuffer<float>& waveTable, Polarity polarit
     currentState = states[static_cast<int>(currentStateIndex)];
 
     this->regionID = regionID;
+}
+RegionLfo::RegionLfo(const juce::AudioBuffer<float>& waveTable, Polarity polarityOfPassedWaveTable, int regionID) :
+    RegionLfo(regionID)
+{
     setWaveTable(waveTable, polarityOfPassedWaveTable); //calculates buffers for both unipolar and bipolar version of the wavetable
 }
+
 RegionLfo::~RegionLfo()
 {
     modulatedParameters.clear();
