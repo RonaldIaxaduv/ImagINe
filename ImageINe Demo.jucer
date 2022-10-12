@@ -26,8 +26,6 @@
               file="Source/SegmentedRegionStates.h"/>
         <FILE id="a52r32" name="SegmentedRegionStateIndex.h" compile="0" resource="0"
               file="Source/SegmentedRegionStateIndex.h"/>
-        <FILE id="lSRbTY" name="SegmentedRegionState.h" compile="0" resource="0"
-              file="Source/SegmentedRegionState.h"/>
         <FILE id="dDx3mK" name="SegmentedRegion.h" compile="0" resource="0"
               file="Source/SegmentedRegion.h"/>
         <FILE id="oNkZIA" name="SegmentedRegion.cpp" compile="1" resource="0"
