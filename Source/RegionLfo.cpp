@@ -14,7 +14,7 @@
 
 
 RegionLfo::RegionLfo(int regionID) :
-    Lfo(waveTable, [](float) {; }), //can only initialise waveTable through the base class's constructor...
+    Lfo(juce::AudioSampleBuffer(), [](float) {; }), //can only initialise waveTable through the base class's constructor...
     frequencyModParameter(0.0), phaseModParameter(1.0), updateIntervalParameter(1.0)
 {
     states[static_cast<int>(RegionLfoStateIndex::unprepared)] = static_cast<RegionLfoState*>(new RegionLfoState_Unprepared(*this));

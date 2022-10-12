@@ -13,10 +13,11 @@
 
 //public
 
-SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangle<float>& relativeBounds, AudioEngine* audioEngine) :
+SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangle<float>& relativeBounds, juce::Colour fillColour, AudioEngine* audioEngine) :
     juce::DrawableButton("", ButtonStyle::ImageStretched),
     p(outline),
-    relativeBounds(relativeBounds)
+    relativeBounds(relativeBounds),
+    fillColour(fillColour)
 {
     regionEditorWindow = nullptr;
 
@@ -86,9 +87,6 @@ void SegmentedRegion::initialiseImages()
     DBG("initial size of segmented region: " + getBounds().toString());
     DBG("bounds of the passed path: " + p.getBounds().toString());
 
-    juce::Random rng;
-    fillColour = juce::Colour::fromHSV(rng.nextFloat(), 0.6f + 0.4f * rng.nextFloat(), 0.6f + 0.4f * rng.nextFloat(), 1.0f); //juce::Colours::maroon;
-
     normalImage.setPath(p);
     normalImage.setFill(juce::FillType(fillColour));
     normalImage.setBounds(getBounds());
@@ -129,7 +127,7 @@ void SegmentedRegion::initialiseImages()
 
 void SegmentedRegion::timerCallback()
 {
-    repaint(); //could the redrawn area be reduced?
+    repaint(); //WIP: could the redrawn area be reduced?
 }
 void SegmentedRegion::setTimerInterval(int newIntervalMs)
 {
@@ -162,29 +160,26 @@ void SegmentedRegion::paintOverChildren(juce::Graphics& g)
         2 * focusRadius,
         2 * focusRadius);
 
-    if (associatedLfo != nullptr)
+    //draw LFO line
+    float curLfoPhase = associatedLfo->getLatestModulatedPhase(); //basically the same value as getModulatedValue of the parameter, but won't update that parameter (which would mess with the modulation)
+
+    if (isPlaying)
+        g.setColour(juce::Colour::contrasting(fillColour, fillColour.contrasting()));
+    else
+        g.setColour(juce::Colour::contrasting(fillColour, fillColour.contrasting()).withAlpha(0.5f)); //faded when not playing
+
+    //draw line from focus point to point on the outline that corresponds to the associated LFO's current phase
+    juce::Point<float> outlinePt = p.getPointAlongPath(curLfoPhase * p.getLength(), juce::AffineTransform(), juce::Path::defaultToleranceForMeasurement);
+    g.drawLine(focusPt.x, focusPt.y,
+        outlinePt.x, outlinePt.y,
+        3.0f);
+
+    //check whether the update interval changed (e.g. due to modulation)
+    //int newTimerIntervalMs = static_cast<int>(associatedLfo->getUpdateInterval_Milliseconds());
+    int newTimerIntervalMs = juce::jmax(20, static_cast<int>(associatedLfo->getMsUntilUpdate()));
+    if (newTimerIntervalMs != timerIntervalMs)
     {
-        //draw LFO line
-        float curLfoPhase = associatedLfo->getLatestModulatedPhase(); //basically the same value as getModulatedValue of the parameter, but won't update that parameter (which would mess with the modulation)
-
-        if (isPlaying)
-            g.setColour(juce::Colour::contrasting(fillColour, fillColour.contrasting()));
-        else
-            g.setColour(juce::Colour::contrasting(fillColour, fillColour.contrasting()).withAlpha(0.5f)); //faded when not playing
-
-        //draw line from focus point to point on the outline that corresponds to the associated LFO's current phase
-        juce::Point<float> outlinePt = p.getPointAlongPath(curLfoPhase * p.getLength(), juce::AffineTransform(), juce::Path::defaultToleranceForMeasurement);
-        g.drawLine(focusPt.x, focusPt.y,
-            outlinePt.x, outlinePt.y,
-            3.0f);
-
-        //check whether the update interval changed (e.g. due to modulation)
-        //int newTimerIntervalMs = static_cast<int>(associatedLfo->getUpdateInterval_Milliseconds());
-        int newTimerIntervalMs = juce::jmax(20, static_cast<int>(associatedLfo->getMsUntilUpdate()));
-        if (newTimerIntervalMs != timerIntervalMs)
-        {
-            setTimerInterval(newTimerIntervalMs);
-        }
+        setTimerInterval(newTimerIntervalMs);
     }
 
     auto voices = audioEngine->getVoicesWithID(ID);
@@ -198,6 +193,7 @@ void SegmentedRegion::paintOverChildren(juce::Graphics& g)
     }
 
     //no more voices playing -> stop rendering
+    DBG("voices of region " + juce::String(ID) + " have stopped. stopping timer...");
     stopTimer();
 }
 
@@ -211,8 +207,11 @@ void SegmentedRegion::resized() //WIP: for some reason, this is called when hove
 
 bool SegmentedRegion::hitTest(int x, int y)
 {
-    //return p.contains((float)x, (float)y);
     return currentState->hitTest(x, y);
+}
+bool SegmentedRegion::hitTest_Interactable(int x, int y)
+{
+    return p.contains((float)x, (float)y);
 }
 
 //void SegmentedRegion::setState(SegmentedRegionState newState)
@@ -238,7 +237,9 @@ void SegmentedRegion::transitionToState(SegmentedRegionStateIndex stateToTransit
         case SegmentedRegionStateIndex::notInteractable:
             nonInstantStateFound = true;
 
-            setToggleable(false); //WIP: also automatically un-toggles(?)
+            setToggleState(false, juce::NotificationType::dontSendNotification);
+            setToggleable(false);
+            setClickingTogglesState(false);
 
             DBG("SegmentedRegion not interactable");
             break;
@@ -246,7 +247,9 @@ void SegmentedRegion::transitionToState(SegmentedRegionStateIndex stateToTransit
         case SegmentedRegionStateIndex::editable:
             nonInstantStateFound = true;
 
-            setToggleable(false); //WIP: also automatically un-toggles(?)
+            setToggleState(false, juce::NotificationType::dontSendNotification);
+            setToggleable(false);
+            setClickingTogglesState(false);
 
             DBG("SegmentedRegion editable");
             break;
@@ -255,6 +258,7 @@ void SegmentedRegion::transitionToState(SegmentedRegionStateIndex stateToTransit
             nonInstantStateFound = true;
 
             setClickingTogglesState(shouldBeToggleable); //selected exclusively for the playable state, also automatically sets isToggleable
+            setToggleState(isPlaying, juce::NotificationType::dontSendNotification);
 
             DBG("SegmentedRegion playable");
             break;

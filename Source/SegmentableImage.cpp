@@ -242,9 +242,14 @@ void SegmentableImage::tryCompletePath()
             origRegionBounds.getWidth() / origParentBounds.getWidth(),
             origRegionBounds.getHeight() / origParentBounds.getHeight());
 
-        SegmentedRegion* newRegion = new SegmentedRegion(currentPath, relativeBounds, audioEngine);
+        juce::Random rng;
+        juce::Colour fillColour = juce::Colour::fromHSV(rng.nextFloat(), 0.6f + 0.4f * rng.nextFloat(), 0.6f + 0.4f * rng.nextFloat(), 1.0f); //random for now
+
+        SegmentedRegion* newRegion = new SegmentedRegion(currentPath, relativeBounds, fillColour, audioEngine);
         newRegion->setBounds(currentPath.getBounds().toNearestInt());
         addRegion(newRegion);
+        //newRegion->triggerButtonStateChanged();
+        newRegion->triggerDrawableButtonStateChanged();
 
         resetPath();
     }
@@ -259,15 +264,18 @@ void SegmentableImage::tryDeleteLastNode()
 
         if (!currentPathPoints.isEmpty())
         {
-            for (auto pt : currentPathPoints)
+            for (auto itPt = currentPathPoints.begin(); itPt != currentPathPoints.end(); itPt++)
             {
                 if (!drawsPath)
                 {
-                    currentPath.startNewSubPath(pt);
+                    currentPath.startNewSubPath(*itPt);
+                    DBG("path empty");
                     drawsPath = true;
                 }
                 else
-                    currentPath.lineTo(pt);
+                {
+                    currentPath.lineTo(*itPt);
+                }
             }
             repaint(currentPath.getBounds().expanded(3.0f, 3.0f).toNearestInt());
         }

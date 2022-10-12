@@ -18,6 +18,8 @@ SegmentedRegionState::SegmentedRegionState(SegmentedRegion& region) :
 
 
 
+#pragma region SegmentedRegionState_NotInteractable
+
 SegmentedRegionState_NotInteractable::SegmentedRegionState_NotInteractable(SegmentedRegion& region) :
     SegmentedRegionState::SegmentedRegionState(region)
 {
@@ -38,8 +40,12 @@ void SegmentedRegionState_NotInteractable::buttonStateChanged()
     //no interaction
 }
 
+#pragma endregion SegmentedRegionState_NotInteractable
 
 
+
+
+#pragma region SegmentedRegionState_Editable
 
 SegmentedRegionState_Editable::SegmentedRegionState_Editable(SegmentedRegion& region) :
     SegmentedRegionState::SegmentedRegionState(region)
@@ -49,7 +55,7 @@ SegmentedRegionState_Editable::SegmentedRegionState_Editable(SegmentedRegion& re
 
 bool SegmentedRegionState_Editable::hitTest(int x, int y)
 {
-    return region.hitTest(x, y); //normal interaction
+    return region.hitTest_Interactable(x, y); //normal interaction
 }
 
 void SegmentedRegionState_Editable::clicked(const juce::ModifierKeys& modifiers)
@@ -70,8 +76,12 @@ void SegmentedRegionState_Editable::buttonStateChanged()
     region.triggerDrawableButtonStateChanged();
 }
 
+#pragma endregion SegmentedRegionState_Editable
 
 
+
+
+#pragma region SegmentedRegionState_Playable
 
 SegmentedRegionState_Playable::SegmentedRegionState_Playable(SegmentedRegion& region) :
     SegmentedRegionState::SegmentedRegionState(region)
@@ -81,7 +91,7 @@ SegmentedRegionState_Playable::SegmentedRegionState_Playable(SegmentedRegion& re
 
 bool SegmentedRegionState_Playable::hitTest(int x, int y)
 {
-    return region.hitTest(x, y); //normal interaction
+    return region.hitTest_Interactable(x, y); //normal interaction
 }
 
 void SegmentedRegionState_Playable::clicked(const juce::ModifierKeys& modifiers)
@@ -108,3 +118,5 @@ void SegmentedRegionState_Playable::buttonStateChanged()
         break;
     }
 }
+
+#pragma endregion SegmentedRegionState_Playable

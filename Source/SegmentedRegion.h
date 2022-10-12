@@ -36,7 +36,7 @@ class RegionEditorWindow;
 class SegmentedRegion : public juce::DrawableButton, juce::Timer
 {
 public:
-    SegmentedRegion(const juce::Path& outline, const juce::Rectangle<float>& relativeBounds, AudioEngine* audioEngine)/* :
+    SegmentedRegion(const juce::Path& outline, const juce::Rectangle<float>& relativeBounds, juce::Colour fillColour, AudioEngine* audioEngine)/* :
         juce::DrawableButton("", ButtonStyle::ImageStretched),
         p(outline),
         relativeBounds(relativeBounds)*/;
@@ -50,6 +50,7 @@ public:
     void paintOverChildren(juce::Graphics& g) override;
     void resized() override;
     bool hitTest(int x, int y) override;
+    bool hitTest_Interactable(int x, int y);
 
     //void setState(SegmentedRegionState newState);
     void transitionToState(SegmentedRegionStateIndex stateToTransitionTo);

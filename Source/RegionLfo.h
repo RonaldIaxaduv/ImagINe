@@ -115,7 +115,7 @@ protected:
     void evaluateFrequencyModulation() override;
 
     ModulatableMultiplicativeParameter<double> phaseModParameter;
-    float latestModulatedPhase = 0.0f;
+    float latestModulatedPhase = 1.0f;
 
     ModulatableMultiplicativeParameter<double> updateIntervalParameter;
 

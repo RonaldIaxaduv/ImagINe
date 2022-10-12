@@ -148,7 +148,9 @@ void VoiceState_NoWavefile_Lfo::associatedLfoChanged(RegionLfo* newAssociatedLfo
 
 void VoiceState_NoWavefile_Lfo::renderNextBlock(juce::AudioSampleBuffer& outputBuffer, int sampleIndex)
 {
-    voice.renderNextBlock_onlyLfo(); //no sound, only LFO
+    //voice.renderNextBlock_onlyLfo(); //no sound, only LFO
+    //^- actually, this would make the LFO play even when no note has been pressed for some reason...
+    voice.renderNextBlock_empty();
 }
 
 void VoiceState_NoWavefile_Lfo::updateBufferPosDelta()
