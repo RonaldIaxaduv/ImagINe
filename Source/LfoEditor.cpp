@@ -51,8 +51,12 @@ LfoEditor::LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo)
 
 LfoEditor::~LfoEditor()
 {
+    DBG("destroying LfoEditor...");
+
     audioEngine = nullptr;
     associatedLfo = nullptr;
+
+    DBG("LfoEditor destroyed.");
 }
 
 void LfoEditor::paint(juce::Graphics& g)

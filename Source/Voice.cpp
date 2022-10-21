@@ -25,7 +25,9 @@ Voice::Voice() :
     states[static_cast<int>(VoiceStateIndex::stopped_Lfo)] = static_cast<VoiceState*>(new VoiceState_Stopped_Lfo(*this));
     states[static_cast<int>(VoiceStateIndex::playable_noLfo)] = static_cast<VoiceState*>(new VoiceState_Playable_NoLfo(*this));
     states[static_cast<int>(VoiceStateIndex::playable_Lfo)] = static_cast<VoiceState*>(new VoiceState_Playable_Lfo(*this));
-    
+    int initialisedStates = 7;
+    jassert(initialisedStates == static_cast<int>(VoiceStateIndex::StateIndexCount));
+
     currentStateIndex = initialStateIndex;
     currentState = states[static_cast<int>(currentStateIndex)];
 
@@ -50,6 +52,8 @@ Voice::Voice(juce::AudioSampleBuffer buffer, int origSampleRate, int regionID) :
 
 Voice::~Voice()
 {
+    DBG("destroying Voice...");
+
     delete osc;
     osc = nullptr;
 
@@ -62,6 +66,10 @@ Voice::~Voice()
     delete states[static_cast<int>(VoiceStateIndex::stopped_Lfo)];
     delete states[static_cast<int>(VoiceStateIndex::playable_noLfo)];
     delete states[static_cast<int>(VoiceStateIndex::playable_Lfo)];
+    int deletedStates = 7;
+    jassert(deletedStates == static_cast<int>(VoiceStateIndex::StateIndexCount));
+
+    DBG("Voice destroyed.");
 }
 
 //==============================================================================

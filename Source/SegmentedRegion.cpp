@@ -30,6 +30,8 @@ SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangl
     states[static_cast<int>(SegmentedRegionStateIndex::notInteractable)] = static_cast<SegmentedRegionState*>(new SegmentedRegionState_NotInteractable(*this));
     states[static_cast<int>(SegmentedRegionStateIndex::editable)] = static_cast<SegmentedRegionState*>(new SegmentedRegionState_Editable(*this));
     states[static_cast<int>(SegmentedRegionStateIndex::playable)] = static_cast<SegmentedRegionState*>(new SegmentedRegionState_Playable(*this));
+    int initialisedStates = 3;
+    jassert(initialisedStates == static_cast<int>(SegmentedRegionStateIndex::StateIndexCount));
 
     currentStateIndex = initialStateIndex;
     currentState = states[static_cast<int>(currentStateIndex)];
@@ -50,7 +52,9 @@ SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangl
 
 SegmentedRegion::~SegmentedRegion()
 {
-    DBG("destroying SegmentedRegion");
+    DBG("destroying SegmentedRegion...");
+
+    stopTimer();
 
     //WIP maybe the close button of the editor window will have to be pressed before dropping the pointer
     if (regionEditorWindow)
@@ -64,19 +68,23 @@ SegmentedRegion::~SegmentedRegion()
     delete states[static_cast<int>(SegmentedRegionStateIndex::notInteractable)];
     delete states[static_cast<int>(SegmentedRegionStateIndex::editable)];
     delete states[static_cast<int>(SegmentedRegionStateIndex::playable)];
-
-    //release LFO
-    associatedLfo = nullptr;
-    audioEngine->removeLfo(getID());
+    int deletedStates = 3;
+    jassert(deletedStates == static_cast<int>(SegmentedRegionStateIndex::StateIndexCount));
 
     //release Voice(s)
     associatedVoices.clear();
     audioEngine->removeVoicesWithID(getID());
 
+    //release LFO
+    associatedLfo = nullptr;
+    audioEngine->removeLfo(getID()); //exception freeing heap after the LFO has been destroyed -> some invalid member?
+
     //release audio engine
     audioEngine = nullptr;
 
     //~DrawableButton(); //this caused dangling pointers in the past -> try not to call if at all possible!
+
+    DBG("SegmentedRegion destroyed.");
 }
 
 void SegmentedRegion::initialiseImages()
@@ -141,7 +149,7 @@ void SegmentedRegion::setTimerInterval(int newIntervalMs)
     {
         timerIntervalMs = juce::jmax(20, newIntervalMs);
     }
-    DBG("set timer interval to " + juce::String(timerIntervalMs) + "ms");
+    //DBG("set timer interval to " + juce::String(timerIntervalMs) + "ms");
 }
 
 void SegmentedRegion::paintOverChildren(juce::Graphics& g)
@@ -159,6 +167,13 @@ void SegmentedRegion::paintOverChildren(juce::Graphics& g)
         focusPt.y - focusRadius,
         2 * focusRadius,
         2 * focusRadius);
+
+    if (associatedLfo == nullptr)
+    {
+        stopTimer();
+        DBG("STOP!");
+        return;
+    }
 
     //draw LFO line
     float curLfoPhase = associatedLfo->getLatestModulatedPhase(); //basically the same value as getModulatedValue of the parameter, but won't update that parameter (which would mess with the modulation)
@@ -193,7 +208,7 @@ void SegmentedRegion::paintOverChildren(juce::Graphics& g)
     }
 
     //no more voices playing -> stop rendering
-    DBG("voices of region " + juce::String(ID) + " have stopped. stopping timer...");
+    //DBG("voices of region " + juce::String(ID) + " have stopped. stopping timer...");
     stopTimer();
 }
 

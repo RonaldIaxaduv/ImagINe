@@ -15,6 +15,7 @@
 
 RegionLfo::RegionLfo(int regionID) :
     Lfo(juce::AudioSampleBuffer(), [](float) {; }), //can only initialise waveTable through the base class's constructor...
+    waveTableUnipolar(0, 0),
     frequencyModParameter(0.0), phaseModParameter(1.0), updateIntervalParameter(1.0)
 {
     states[static_cast<int>(RegionLfoStateIndex::unprepared)] = static_cast<RegionLfoState*>(new RegionLfoState_Unprepared(*this));
@@ -23,6 +24,8 @@ RegionLfo::RegionLfo(int regionID) :
     states[static_cast<int>(RegionLfoStateIndex::muted)] = static_cast<RegionLfoState*>(new RegionLfoState_Muted(*this));
     states[static_cast<int>(RegionLfoStateIndex::active)] = static_cast<RegionLfoState*>(new RegionLfoState_Active(*this));
     states[static_cast<int>(RegionLfoStateIndex::activeRealTime)] = static_cast<RegionLfoState*>(new RegionLfoState_ActiveRealTime(*this));
+    int initialisedStates = 6;
+    jassert(initialisedStates == static_cast<int>(RegionLfoStateIndex::StateIndexCount));
 
     currentStateIndex = initialStateIndex;
     currentState = states[static_cast<int>(currentStateIndex)];
@@ -37,21 +40,43 @@ RegionLfo::RegionLfo(const juce::AudioBuffer<float>& waveTable, Polarity polarit
 
 RegionLfo::~RegionLfo()
 {
-    modulatedParameters.clear();
+    DBG("destroying RegionLfo...");
+
+    //unsubscribe from all modulators
+    for (auto itRegion = modulatedParameters.begin(); itRegion != modulatedParameters.end(); itRegion++)
+    {
+        auto* paramArray = *itRegion;
+
+        for (auto itParam = paramArray->begin(); itParam != paramArray->end(); itParam++)
+        {
+            (*itParam)->removeModulator(getRegionID());
+        }
+
+        paramArray->clear();
+    }
+
+    //clear arrays
+    modulatedParameters.clear(true);
     modulatedParameterIDs.clear();
     affectedRegionIDs.clear();
 
-    waveTableUnipolar.setSize(0, 0);
-
     //release states
+    currentState = nullptr;
     delete states[static_cast<int>(RegionLfoStateIndex::unprepared)];
     delete states[static_cast<int>(RegionLfoStateIndex::withoutWaveTable)];
     delete states[static_cast<int>(RegionLfoStateIndex::withoutModulatedParameters)];
     delete states[static_cast<int>(RegionLfoStateIndex::muted)];
     delete states[static_cast<int>(RegionLfoStateIndex::active)];
     delete states[static_cast<int>(RegionLfoStateIndex::activeRealTime)];
-    
-    Lfo::~Lfo();
+    int deletedStates = 6;
+    jassert(deletedStates == static_cast<int>(RegionLfoStateIndex::StateIndexCount));
+
+    waveTableUnipolar.setSize(0, 0);
+    waveTable.setSize(0, 0);
+
+    //Lfo::~Lfo(); //this causes a heap exception for some reason -> don't do it
+
+    DBG("RegionLfo destroyed.");
 }
 
 void RegionLfo::setWaveTable(const juce::AudioBuffer<float>& waveTable, Polarity polarityOfPassedWaveTable)
@@ -60,12 +85,12 @@ void RegionLfo::setWaveTable(const juce::AudioBuffer<float>& waveTable, Polarity
 
     switch (polarityOfPassedWaveTable)
     {
-    case unipolar:
+    case Polarity::unipolar:
         this->waveTableUnipolar.makeCopyOf(waveTable);
         calculateBipolarWaveTable();
         break;
 
-    case bipolar:
+    case Polarity::bipolar:
         this->waveTable.makeCopyOf(waveTable);
         calculateUnipolarWaveTable();
         break;

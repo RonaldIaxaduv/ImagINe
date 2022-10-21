@@ -25,6 +25,8 @@ DahdsrEnvelope::DahdsrEnvelope(double delayTimeSeconds,
     states[static_cast<int>(DahdsrEnvelopeStateIndex::decay)] = static_cast<DahdsrEnvelopeState*>(new DahdsrEnvelopeState_Decay(*this));
     states[static_cast<int>(DahdsrEnvelopeStateIndex::sustain)] = static_cast<DahdsrEnvelopeState*>(new DahdsrEnvelopeState_Sustain(*this));
     states[static_cast<int>(DahdsrEnvelopeStateIndex::release)] = static_cast<DahdsrEnvelopeState*>(new DahdsrEnvelopeState_Release(*this));
+    int initialisedStates = 8;
+    jassert(initialisedStates == static_cast<int>(DahdsrEnvelopeStateIndex::StateIndexCount));
 
     currentStateIndex = initialStateIndex;
     currentState = states[static_cast<int>(currentStateIndex)];
@@ -42,9 +44,10 @@ DahdsrEnvelope::DahdsrEnvelope(double delayTimeSeconds,
 
 DahdsrEnvelope::~DahdsrEnvelope()
 {
-    currentState = nullptr;
+    DBG("destroying DahdsrEnvelope...");
 
     //release states
+    currentState = nullptr;
     delete states[static_cast<int>(DahdsrEnvelopeStateIndex::unprepared)];
     delete states[static_cast<int>(DahdsrEnvelopeStateIndex::idle)];
     delete states[static_cast<int>(DahdsrEnvelopeStateIndex::delay)];
@@ -53,6 +56,10 @@ DahdsrEnvelope::~DahdsrEnvelope()
     delete states[static_cast<int>(DahdsrEnvelopeStateIndex::decay)];
     delete states[static_cast<int>(DahdsrEnvelopeStateIndex::sustain)];
     delete states[static_cast<int>(DahdsrEnvelopeStateIndex::release)];
+    int deletedStates = 8;
+    jassert(deletedStates == static_cast<int>(DahdsrEnvelopeStateIndex::StateIndexCount));
+
+    DBG("DahdsrEnvelope destroyed.");
 }
 
 void DahdsrEnvelope::setSampleRate(double newSampleRate)

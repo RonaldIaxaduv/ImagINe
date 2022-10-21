@@ -30,7 +30,8 @@ struct TempSound : public juce::SynthesiserSound
 class AudioEngine  : public juce::AudioSource
 {
 public:
-    AudioEngine(juce::MidiKeyboardState& keyState);
+    AudioEngine(juce::MidiKeyboardState& keyState, juce::AudioProcessor& associatedProcessor);
+    ~AudioEngine() override;
 
     int getNextRegionID();
     int getLastRegionID();
@@ -53,6 +54,7 @@ public:
     juce::Array<ModulatableParameter<double>*> getParameterOfRegion_LfoUpdateInterval(int regionID);
 
     void prepareToPlay(int /*samplesPerBlockExpected*/, double sampleRate) override;
+    void suspendProcessing(bool shouldBeSuspended);
 
     void releaseResources() override;
 
@@ -65,6 +67,8 @@ public:
     void removeLfo(int regionID);
 
 private:
+    juce::AudioProcessor& associatedProcessor;
+
     juce::MidiKeyboardState& keyboardState;
     juce::Synthesiser synth;
     juce::dsp::ProcessSpec specs;

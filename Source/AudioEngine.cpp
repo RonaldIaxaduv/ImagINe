@@ -10,8 +10,8 @@
 
 #include "AudioEngine.h"
 
-AudioEngine::AudioEngine(juce::MidiKeyboardState& keyState) :
-    keyboardState(keyState),
+AudioEngine::AudioEngine(juce::MidiKeyboardState& keyState, juce::AudioProcessor& associatedProcessor) :
+    keyboardState(keyState), associatedProcessor(associatedProcessor),
     specs()
 {
     //for (auto i = 0; i < 4; ++i)                // [1]
@@ -20,6 +20,16 @@ AudioEngine::AudioEngine(juce::MidiKeyboardState& keyState) :
     //synth.addSound(new SamplerOscillator());       // [2]
 
     synth.addSound(new TempSound());
+}
+AudioEngine::~AudioEngine()
+{
+    DBG("destroying AudioEngine...");
+
+    lfos.clear(true);
+
+    juce::AudioSource::~AudioSource();
+
+    DBG("AudioEngine destroyed.");
 }
 
 int AudioEngine::getNextRegionID()
@@ -69,13 +79,14 @@ void AudioEngine::initialiseVoicesForRegion(int regionID)
 }
 int AudioEngine::addVoice(Voice* newVoice)
 {
+    newVoice->prepare(specs);
+
     auto* associatedLfo = getLfo(newVoice->getID());
     if (associatedLfo != nullptr)
     {
         //newVoice->setLfoAdvancer(associatedLfo->getAdvancerFunction()); //make the new voice advance the LFO associated with the same region
         newVoice->setLfo(associatedLfo); //make the new voice advance the LFO associated with the same region
     }
-    newVoice->prepare(specs);
 
     synth.addVoice(newVoice);
 
@@ -204,10 +215,17 @@ void AudioEngine::prepareToPlay(int /*samplesPerBlockExpected*/, double sampleRa
         (*it)->prepare(specs);
     }
 }
+void AudioEngine::suspendProcessing(bool shouldBeSuspended)
+{
+    //synth.allNotesOff(0, false); //force stop all notes
+    associatedProcessor.suspendProcessing(shouldBeSuspended);
+}
 
 void AudioEngine::releaseResources()
 {
-    lfos.clear();
+    DBG("AudioEngine: releasing resources...");
+    lfos.clear(true);
+    DBG("AudioEngine: resources have been released.");
 }
 
 void AudioEngine::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
@@ -285,6 +303,12 @@ void AudioEngine::removeLfo(int regionID) //removes the LFO of the region with t
         }
     }
 
+    if (lfoIndex < 0)
+    {
+        //no LFO with this ID found
+        return;
+    }
+
     for (int i = 0; i < synth.getNumVoices(); ++i)
     {
         auto* curVoice = static_cast<Voice*>(synth.getVoice(i));
@@ -295,5 +319,6 @@ void AudioEngine::removeLfo(int regionID) //removes the LFO of the region with t
         }
     }
 
-    lfos.remove(lfoIndex, true); //removed and deleted
+    //lfos.remove(lfoIndex, true); //removed and deleted
+    lfos.remove(lfoIndex, true);
 }

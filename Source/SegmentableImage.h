@@ -11,7 +11,15 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "SegmentableImageState.h"
+#include "SegmentableImageStateIndex.h"
+#include "SegmentableImageStates.h"
+class SegmentableImageState;
+class SegmentableImageState_Empty;
+class SegmentableImageState_WithImage;
+class SegmentableImageState_DrawingRegion;
+class SegmentableImageState_EditingRegions;
+class SegmentableImageState_PlayingRegions;
+
 #include "SegmentedRegion.h"
 
 
@@ -27,9 +35,9 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
 
-    void setImage(const juce::Image& newImage);
+    void transitionToState(SegmentableImageStateIndex stateToTransitionTo);
 
-    void setState(SegmentableImageState newState);
+    void setImage(const juce::Image& newImage);
 
     //to add point to path
     void mouseDown(const juce::MouseEvent& event) override;
@@ -37,6 +45,18 @@ public:
     //to finish/restart path
     bool keyPressed(const juce::KeyPress& key, juce::Component* originatingComponent) override;
 
+
+    //================================================================
+    
+    void startNewRegion(juce::Point<float> newPt);
+    void addPointToPath(juce::Point<float> newPt);
+
+    void resetPath();
+    void clearRegions();
+
+    void tryCompletePath();
+
+    void deleteLastNode();
 
     //================================================================
 
@@ -48,24 +68,17 @@ public:
     juce::OwnedArray<SegmentedRegion> regions;
 
 private:
-    SegmentableImageState currentState;
+    SegmentableImageState* states[static_cast<int>(SegmentableImageStateIndex::StateIndexCount)];
+    static const SegmentableImageStateIndex initialStateIndex = SegmentableImageStateIndex::empty;
+    SegmentableImageStateIndex currentStateIndex;
+    SegmentableImageState* currentState = nullptr;
 
-    bool hasImage;
-
-    bool drawsPath;
     juce::Path currentPath;
     juce::Array<juce::Point<float>> currentPathPoints; //WIP: normalise these to [0...1] so that, when resizing, the path can be redrawn
 
     AudioEngine* audioEngine;
 
-    void resetPath();
-
-    void tryCompletePath();
-
-    void tryDeleteLastNode();
-
     void addRegion(SegmentedRegion* newRegion);
-    void clearRegions();
 
     void clearPath();
 

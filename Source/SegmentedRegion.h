@@ -33,7 +33,7 @@ class RegionEditorWindow;
 //==============================================================================
 /*
 */
-class SegmentedRegion : public juce::DrawableButton, juce::Timer
+class SegmentedRegion : public juce::DrawableButton, public juce::Timer
 {
 public:
     SegmentedRegion(const juce::Path& outline, const juce::Rectangle<float>& relativeBounds, juce::Colour fillColour, AudioEngine* audioEngine)/* :

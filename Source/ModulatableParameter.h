@@ -42,19 +42,29 @@ public:
         //prepare states
         states[static_cast<int>(ModulatableParameterStateIndex::outdated)] = static_cast<ModulatableParameterState<T>*>(new ModulatableParameterState_Outdated<T>(*this));
         states[static_cast<int>(ModulatableParameterStateIndex::upToDate)] = static_cast<ModulatableParameterState<T>*>(new ModulatableParameterState_UpToDate<T>(*this));
+        int initialisedStates = 2;
+        jassert(initialisedStates == static_cast<int>(ModulatableParameterStateIndex::StateIndexCount));
 
         currentStateIndex = initialStateIndex;
         currentState = states[static_cast<int>(currentStateIndex)];
     }
     ~ModulatableParameter()
     {
+        DBG("destroying ModulatableParameter...");
+
+        //release states
+        currentState = nullptr;
+        delete states[static_cast<int>(ModulatableParameterStateIndex::outdated)];
+        delete states[static_cast<int>(ModulatableParameterStateIndex::upToDate)];
+        int deletedStates = 2;
+        jassert(deletedStates == static_cast<int>(ModulatableParameterStateIndex::StateIndexCount));
+
+        //rest
         modulatingLfos.clear();
         modulatingRegionIDs.clear();
         lfoEvaluationFunctions.clear();
 
-        //release states
-        delete states[static_cast<int>(ModulatableParameterStateIndex::outdated)];
-        delete states[static_cast<int>(ModulatableParameterStateIndex::upToDate)];
+        DBG("ModulatableParameter destroyed.");
     }
 
     typedef double(*lfoEvalFuncPt)(RegionLfo* lfo); //pointer to a function that evaluates the current value of an LFO
@@ -173,10 +183,10 @@ public:
     ModulatableAdditiveParameter(T baseValue) :
         ModulatableParameter<T>::ModulatableParameter(baseValue)
     { }
-    ~ModulatableAdditiveParameter()
+    /*~ModulatableAdditiveParameter() //<- IMPORTANT: this caused some problems with the deletion of some scalars for some reason. luckily it's not needed atm, but if it ever is, look into that issue further.
     {
         ModulatableParameter<T>::~ModulatableParameter<T>();
-    }
+    }*/
 
     void calculateModulatedValue() override
     {
@@ -207,10 +217,10 @@ public:
     ModulatableMultiplicativeParameter(T baseValue) :
         ModulatableParameter<T>::ModulatableParameter(baseValue)
     { }
-    ~ModulatableMultiplicativeParameter()
+    /*~ModulatableMultiplicativeParameter() //<- IMPORTANT: this caused some problems with the deletion of some scalars for some reason. luckily it's not needed atm, but if it ever is, look into that issue further.
     {
         ModulatableParameter<T>::~ModulatableParameter<T>();
-    }
+    }*/
 
     void calculateModulatedValue() override
     {

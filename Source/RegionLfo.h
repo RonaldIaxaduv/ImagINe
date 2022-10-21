@@ -33,7 +33,7 @@ class RegionLfoState_Active;
 class RegionLfo final : public Lfo
 {
 public:
-    enum Polarity : int
+    enum class Polarity : int
     {
         unipolar, //LFO values lie within [0,1].
         bipolar //LFO values lie within [-1,1]. This is the default.

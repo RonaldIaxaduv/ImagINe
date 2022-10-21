@@ -25,6 +25,15 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
 
+    enum class PluginEditorStateIndex : int
+    {
+        Null = 0,
+        Init,
+        Drawing,
+        Editing,
+        Playing
+    };
+
 private:
     //==============================================================================
     void updateState();
@@ -38,7 +47,7 @@ private:
 
     juce::TextButton loadImageButton;
 
-    SegmentableImageState currentState = SegmentableImageState::Null;
+    PluginEditorStateIndex currentState = PluginEditorStateIndex::Null;
 
     juce::Label modeLabel;
     juce::ComboBox modeBox;

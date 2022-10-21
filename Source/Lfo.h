@@ -39,7 +39,7 @@ public:
 
     void initialise(const juce::AudioBuffer<float>& waveTable, const std::function<void(float lfoValue)>& modulationFunction)
     {
-        this->waveTable = waveTable;
+        this->waveTable.makeCopyOf(waveTable);
         this->modulationFunction = modulationFunction;
 
         updateModulatedParameter();

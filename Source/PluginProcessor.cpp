@@ -20,7 +20,7 @@ ImageINeDemoAudioProcessor::ImageINeDemoAudioProcessor()
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
                        ),
-    audioEngine(keyboardState)
+    audioEngine(keyboardState, *this)
 #endif
 {
 }

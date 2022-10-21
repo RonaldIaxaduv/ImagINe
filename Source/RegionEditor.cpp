@@ -148,7 +148,11 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
 
 RegionEditor::~RegionEditor()
 {
+    DBG("destroying RegionEditor...");
+
     associatedRegion = nullptr;
+
+    DBG("RegionEditor destroyed.");
 }
 
 void RegionEditor::paint(juce::Graphics& g)

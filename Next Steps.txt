@@ -20,7 +20,7 @@
 	# create unipolar/bipolar LFO modes
 		# unipolar: rewrites(!) the LFO's values to 0...1  ->  good for velocity modulation for instance
 		# bipolar: rewrites(!) the LFO's values to -1...1  ->  good for pitch modulation for instance
-	- implement other parameters to modulate
+	# implement other parameters to modulate
 		!# there will most likely be one major problem with this: the voices' samples are probably not rendered in parallel; it's more likely that each voice renders 1 entire audio block in order
 			(/) possible, but rather complicated fix: create an array of LFO modulation buffers in each voice. when an LFO updates another region's parameters, it instead writes an LFO modulation buffer (containing the values that it took on during the current block) and adds that block to the modulation buffer lists of every affected other voice as well as the parameter that the buffer should affect. while rendering, a voice will also parse the current sample of every buffer in its LFO modulation list and thus achieve the modulation sample by sample again. not sure how fast/slow this approach would be, though...
 			# other idea: would it be possible for the synth to only render audio blocks one single sample at a time? that would also fix this problem (not sure if it would affect speed though)
@@ -176,21 +176,33 @@
 		#? make sure that when changing the wavefiles of the voices or the LFO, that the new methods for doing so are used!
 		# bug: region's background isn't drawn the first time it appears
 		# bug: the regions' colours aren't displayed in the region editor anymore
-		#? bug: sometimes, after completing a region, the SegmentableImage triggers startNewSubpath of the path object somewhere resulting in an exception
-			- it might've been the incorrectly(?) implemented iterator in the tryDeleteLastNode method. it might be fixed now
+  !		!- bug: sometimes, after completing a region, the SegmentableImage triggers startNewSubpath of the path object somewhere resulting in an exception
+			/ it might've been the incorrectly(?) implemented iterator in the tryDeleteLastNode method. it might be fixed now
+				- nope, that wasn't it...
+			- now that i know how to display the callstack, it should be easier to fix if it occurs again
 		# bug: the regions remain toggleable in edit mode
 	# implement transitionToState method
 	# include states' specialised methods in SegmentedRegion
->> - states for SegmentableImage
-	- create SegmentableImageStateIndex
-	- create states
-	- implement states in SegmentableImage class
-- fix memory leaks that occur when closing the program
+# states for SegmentableImage
+	# create SegmentableImageStateIndex
+	# create states
+	# implement states in SegmentableImage class
+# fix memory leaks that occur when closing the program
+	!- new evidence: the leak also occurs when switching the SegmentableImageStateIndex back to empty!
+		/ i'm beginning to think it might be the SegmentedRegion destructor that doesn't correctly destroy everything yet
+		/ idea: LFOs aren't unsubscribed from their modulated parameters when they're deleted, they just clear the lists of the parameters they modulate!
+		!/ it's the ModulatableParameter destructor! the "delete state" statements sometimes throw exceptions - why?
+			/ idea: maybe the states aren't being initialised? that would mean that in some *constructor*, some parameters aren't initialised (or are using the wrong contructor)!
+			-> nope, actually it isn't.
+		-> now that i finally know how to display the callstack, it's simple... calling the Lfo destructor in the RegionLfo destructor was the problem. this could've been fixed a lot faster man... but i'm still glad it's finally done and gone.
 	- theory 1: some classes just don't destroy their contents correctly
 	- theory 2: the leaks happen in certain states of SegmentableImage (maybe editable, definitely in playable)
 	- theory 3: some leaks happen because AudioEngine is still rendering blocks while some (playing) parts are being deleted
 		-> fix 1: stop audio engine when pressing the close button, then delete all contents
 		-> fix 2: implement locks (probably good idea in the long run, but perhaps too much work for this one fix...)
+- calculate a region's colour from the pixels behind it
+	- use the median of all the colours
+	- also increase the region's transparency by 10-20% -> makes it so that the region maintains some of the background's textures instead of being just a solid colour, should look more professional
 - make it possible to delete regions
 	- to handle all the audio parameters, create a method in the *audio engine*(!) that deletes all voices with the region's id from the LFOs' voice lists, and then all of those voices from the synth
 # bug: samplesUntilUpdate of LFO should be reset to 0 after a voice stops (otherwise, the LFO line will be drawn with a temporal offset...)
