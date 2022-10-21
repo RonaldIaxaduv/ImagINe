@@ -17,7 +17,7 @@ SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangl
     juce::DrawableButton("", ButtonStyle::ImageStretched),
     p(outline),
     relativeBounds(relativeBounds),
-    fillColour(fillColour)
+    fillColour(fillColour), currentLfoLine()
 {
     regionEditorWindow = nullptr;
 
@@ -95,47 +95,90 @@ void SegmentedRegion::initialiseImages()
     DBG("initial size of segmented region: " + getBounds().toString());
     DBG("bounds of the passed path: " + p.getBounds().toString());
 
+    float outlineThickness = 1.0f;
+    float inherentTransparency = 0.70f;
+    float disabledTransparency = 0.20f;
+
     normalImage.setPath(p);
-    normalImage.setFill(juce::FillType(fillColour));
+    normalImage.setFill(juce::FillType(fillColour.withAlpha(inherentTransparency)));
+    //normalImage.setBufferedToImage(true) <- WIP: do this? would this improve performance?
+    //normalImage.setHasFocusOutline
+    normalImage.setStrokeThickness(outlineThickness);
+    normalImage.setStrokeFill(juce::FillType(normalImage.getFill().colour.contrasting()));
     normalImage.setBounds(getBounds());
 
     overImage.setPath(p);
-    overImage.setFill(juce::FillType(fillColour.brighter(0.2f)));
+    overImage.setFill(juce::FillType(fillColour.brighter(0.2f).withAlpha(inherentTransparency)));
+    overImage.setStrokeThickness(outlineThickness);
+    overImage.setStrokeFill(juce::FillType(overImage.getFill().colour.contrasting()));
     overImage.setBounds(getBounds());
 
     downImage.setPath(p);
-    downImage.setFill(juce::FillType(fillColour.darker(0.2f)));
+    downImage.setFill(juce::FillType(fillColour.darker(0.2f).withAlpha(inherentTransparency)));
+    downImage.setStrokeThickness(outlineThickness);
+    downImage.setStrokeFill(juce::FillType(downImage.getFill().colour.contrasting()));
     downImage.setBounds(getBounds());
 
     disabledImage.setPath(p);
-    disabledImage.setFill(juce::FillType(fillColour.withAlpha(0.5f)));
+    disabledImage.setFill(juce::FillType(fillColour.withAlpha(disabledTransparency)));
+    disabledImage.setStrokeThickness(outlineThickness);
+    disabledImage.setStrokeFill(juce::FillType(disabledImage.getFill().colour.contrasting()));
     disabledImage.setBounds(getBounds());
 
 
     normalImageOn.setPath(p);
-    normalImageOn.setFill(juce::FillType(fillColour.darker(0.4f)));
+    normalImageOn.setFill(juce::FillType(fillColour.darker(0.4f).withAlpha(inherentTransparency)));
+    normalImageOn.setStrokeThickness(outlineThickness);
+    normalImageOn.setStrokeFill(juce::FillType(normalImageOn.getFill().colour.contrasting()));
     normalImageOn.setBounds(getBounds());
 
     overImageOn.setPath(p);
-    overImageOn.setFill(juce::FillType(fillColour.darker(0.2f)));
+    overImageOn.setFill(juce::FillType(fillColour.darker(0.2f).withAlpha(inherentTransparency)));
+    overImageOn.setStrokeThickness(outlineThickness);
+    overImageOn.setStrokeFill(juce::FillType(overImageOn.getFill().colour.contrasting()));
     overImageOn.setBounds(getBounds());
 
     downImageOn.setPath(p);
-    downImageOn.setFill(juce::FillType(fillColour.darker(0.6f)));
+    downImageOn.setFill(juce::FillType(fillColour.darker(0.6f).withAlpha(inherentTransparency)));
+    downImageOn.setStrokeThickness(outlineThickness);
+    downImageOn.setStrokeFill(juce::FillType(downImageOn.getFill().colour.contrasting()));
     downImageOn.setBounds(getBounds());
 
     disabledImageOn.setPath(p);
-    disabledImageOn.setFill(juce::FillType(fillColour.darker(0.4f).withAlpha(0.5f)));
+    disabledImageOn.setFill(juce::FillType(fillColour.darker(0.4f).withAlpha(disabledTransparency)));
+    disabledImageOn.setStrokeThickness(outlineThickness);
+    disabledImageOn.setStrokeFill(juce::FillType(disabledImageOn.getFill().colour.contrasting()));
     disabledImageOn.setBounds(getBounds());
 
     setImages(&normalImage, &overImage, &downImage, &disabledImage, &normalImageOn, &overImageOn, &downImageOn, &disabledImageOn);
 
     setColour(ColourIds::backgroundOnColourId, juce::Colours::transparentBlack); //otherwise, the button has a grey background colour while the button is toggled on
+    lfoLineColour = juce::Colour::contrasting(fillColour, fillColour.contrasting());
 }
 
 void SegmentedRegion::timerCallback()
 {
-    repaint(); //WIP: could the redrawn area be reduced?
+    //repaint(); //WIP: could the redrawn area be reduced?
+
+    juce::Rectangle<float> previousArea(juce::jmin(currentLfoLine.getStartX(), currentLfoLine.getEndX()),
+                                        juce::jmin(currentLfoLine.getStartY(), currentLfoLine.getEndY()),
+                                        juce::jmax(currentLfoLine.getStartX(), currentLfoLine.getEndX()) - juce::jmin(currentLfoLine.getStartX(), currentLfoLine.getEndX()),
+                                        juce::jmax(currentLfoLine.getStartY(), currentLfoLine.getEndY()) - juce::jmin(currentLfoLine.getStartY(), currentLfoLine.getEndY()));
+
+    float curLfoPhase = associatedLfo->getLatestModulatedPhase(); //basically the same value as getModulatedValue of the parameter, but won't update that parameter (which would mess with the modulation)
+    juce::Point<float> focusPt(focus.x * getBounds().getWidth(),
+        focus.y * getBounds().getHeight()); 
+    juce::Point<float> outlinePt = p.getPointAlongPath(curLfoPhase * p.getLength(), juce::AffineTransform(), juce::Path::defaultToleranceForMeasurement);
+    currentLfoLine = juce::Line<float>(focusPt.x, focusPt.y,
+                                       outlinePt.x, outlinePt.y);
+
+    juce::Rectangle<float> currentArea(juce::jmin(currentLfoLine.getStartX(), currentLfoLine.getEndX()),
+                                       juce::jmin(currentLfoLine.getStartY(), currentLfoLine.getEndY()),
+                                       juce::jmax(currentLfoLine.getStartX(), currentLfoLine.getEndX()) - juce::jmin(currentLfoLine.getStartX(), currentLfoLine.getEndX()),
+                                       juce::jmax(currentLfoLine.getStartY(), currentLfoLine.getEndY()) - juce::jmin(currentLfoLine.getStartY(), currentLfoLine.getEndY()));
+
+    repaint(previousArea.expanded(lfoLineThickness, lfoLineThickness).toNearestInt());
+    repaint(currentArea.expanded(lfoLineThickness, lfoLineThickness).toNearestInt());
 }
 void SegmentedRegion::setTimerInterval(int newIntervalMs)
 {
@@ -176,18 +219,22 @@ void SegmentedRegion::paintOverChildren(juce::Graphics& g)
     }
 
     //draw LFO line
-    float curLfoPhase = associatedLfo->getLatestModulatedPhase(); //basically the same value as getModulatedValue of the parameter, but won't update that parameter (which would mess with the modulation)
+    //float curLfoPhase = associatedLfo->getLatestModulatedPhase(); //basically the same value as getModulatedValue of the parameter, but won't update that parameter (which would mess with the modulation)
 
     if (isPlaying)
-        g.setColour(juce::Colour::contrasting(fillColour, fillColour.contrasting()));
+        g.setColour(lfoLineColour);
     else
-        g.setColour(juce::Colour::contrasting(fillColour, fillColour.contrasting()).withAlpha(0.5f)); //faded when not playing
+        g.setColour(lfoLineColour.withAlpha(0.5f)); //faded when not playing
 
     //draw line from focus point to point on the outline that corresponds to the associated LFO's current phase
-    juce::Point<float> outlinePt = p.getPointAlongPath(curLfoPhase * p.getLength(), juce::AffineTransform(), juce::Path::defaultToleranceForMeasurement);
-    g.drawLine(focusPt.x, focusPt.y,
-        outlinePt.x, outlinePt.y,
-        3.0f);
+    //juce::Point<float> outlinePt = p.getPointAlongPath(curLfoPhase * p.getLength(), juce::AffineTransform(), juce::Path::defaultToleranceForMeasurement);
+    //g.drawLine(focusPt.x, focusPt.y,
+    //    outlinePt.x, outlinePt.y,
+    //    lfoLineThickness);
+    g.setColour(juce::Colours::black);
+    g.drawLine(currentLfoLine, lfoLineThickness);
+    g.setColour(lfoLineColour);
+    g.drawLine(currentLfoLine, lfoLineThickness * 0.5f);
 
     //check whether the update interval changed (e.g. due to modulation)
     //int newTimerIntervalMs = static_cast<int>(associatedLfo->getUpdateInterval_Milliseconds());
@@ -501,34 +548,6 @@ juce::String SegmentedRegion::getFileName()
 
 //protected
 
-//void SegmentedRegion::buttonStateChanged() //void handleButtonStateChanged() //void clicked(const juce::ModifierKeys& modifiers) override
-//{
-//    juce::DrawableButton::buttonStateChanged();
-//
-//    //clicked(modifiers); //base class stuff
-//
-//    //modifiers.isRightButtonDown() -> differentiate between left and right mouse button like this
-//
-//    switch (currentState)
-//    {
-//    case SegmentedRegionState::Playable:
-//        switch (getState())
-//        {
-//        case juce::Button::ButtonState::buttonDown:
-//            if (isToggleable() && getToggleState() == true) //when toggleable, toggle music on or off. turning it on is handled in the other case
-//                stopPlaying();
-//            else //not in toggle mode or toggling on
-//                startPlaying();
-//            break;
-//        default:
-//            if (!isToggleable())
-//                stopPlaying();
-//            break;
-//        }
-//
-//        break;
-//    }
-//}
 void SegmentedRegion::buttonStateChanged() //void handleButtonStateChanged() //void clicked(const juce::ModifierKeys& modifiers) override
 {
     currentState->buttonStateChanged();

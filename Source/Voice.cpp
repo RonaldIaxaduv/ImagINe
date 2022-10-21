@@ -54,6 +54,24 @@ Voice::~Voice()
 {
     DBG("destroying Voice...");
 
+    //unsubscribe any modulators (otherwise, access violations will happen when the window is closed while regions are playing!)
+    auto levelModulators = levelParameter.getModulators();
+    for (auto* it = levelModulators.begin(); it != levelModulators.end(); it++)
+    {
+        (*it)->removeRegionModulation(getID());
+    }
+    auto pitchModulators = pitchShiftParameter.getModulators();
+    for (auto* it = pitchModulators.begin(); it != pitchModulators.end(); it++)
+    {
+        (*it)->removeRegionModulation(getID());
+    }
+    auto playbackPositionModulators = playbackPositionParameter.getModulators();
+    for (auto* it = playbackPositionModulators.begin(); it != playbackPositionModulators.end(); it++)
+    {
+        (*it)->removeRegionModulation(getID());
+    }
+
+    //release osc
     delete osc;
     osc = nullptr;
 
@@ -380,14 +398,13 @@ void Voice::transitionToState(VoiceStateIndex stateToTransitionTo)
 
         case VoiceStateIndex::stopped_noLfo:
             currentBufferPos = 0.0; //reset when stopping
-            associatedLfo->resetSamplesUntilUpdate(); //necessary so that the LFO line on the region doesn't go out of sync
             nonInstantStateFound = true;
             DBG("Voice stopped and without LFO");
             break;
 
         case VoiceStateIndex::stopped_Lfo:
             currentBufferPos = 0.0; //reset when stopping
-            associatedLfo->resetSamplesUntilUpdate(); //necessary so that the LFO line on the region doesn't go out of sync
+            //associatedLfo->resetSamplesUntilUpdate(); //necessary so that the LFO line on the region doesn't go out of sync
             nonInstantStateFound = true;
             DBG("Voice stopped and with LFO");
             break;

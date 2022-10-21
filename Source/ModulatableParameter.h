@@ -105,6 +105,12 @@ public:
 
         //LFO does not exist in the list -> done
     }
+    juce::Array<RegionLfo*> getModulators()
+    {
+        juce::Array<RegionLfo*> output;
+        output.addArray(modulatingLfos);
+        return output;
+    }
 
     T getBaseValue()
     {

@@ -97,13 +97,17 @@ private:
     SegmentedRegionStateIndex currentStateIndex;
     SegmentedRegionState* currentState = nullptr;
 
+    bool shouldBeToggleable = false;
+
     bool isPlaying = false;
     int currentVoiceIndex = 0;
     int timerIntervalMs = 50; //-> 20.0f Hz
-    bool shouldBeToggleable = false;
+    juce::Line<float> currentLfoLine;
+    float lfoLineThickness = 3.0f;
 
     juce::Path p; //also acts as a hitbox
     juce::Colour fillColour;
+    juce::Colour lfoLineColour;
     juce::DrawablePath normalImage; //normal image when not toggleable or toggled off
     juce::DrawablePath overImage; //image when hovering over the button when not toggleable or toggled off
     juce::DrawablePath downImage; //image when clicking the button when not toggleable or toggled off

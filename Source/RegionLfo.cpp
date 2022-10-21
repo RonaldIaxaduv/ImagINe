@@ -71,8 +71,8 @@ RegionLfo::~RegionLfo()
     int deletedStates = 6;
     jassert(deletedStates == static_cast<int>(RegionLfoStateIndex::StateIndexCount));
 
-    waveTableUnipolar.setSize(0, 0);
-    waveTable.setSize(0, 0);
+    //waveTableUnipolar.setSize(0, 0); //not necessary
+    //waveTable.setSize(0, 0); //not necessary
 
     //Lfo::~Lfo(); //this causes a heap exception for some reason -> don't do it
 

@@ -200,9 +200,14 @@
 	- theory 3: some leaks happen because AudioEngine is still rendering blocks while some (playing) parts are being deleted
 		-> fix 1: stop audio engine when pressing the close button, then delete all contents
 		-> fix 2: implement locks (probably good idea in the long run, but perhaps too much work for this one fix...)
-- calculate a region's colour from the pixels behind it
-	- use the median of all the colours
-	- also increase the region's transparency by 10-20% -> makes it so that the region maintains some of the background's textures instead of being just a solid colour, should look more professional
+# calculate a region's colour from the pixels behind it
+	# use the median of all the colours
+	# also increase the region's transparency by 10-20% -> makes it so that the region maintains some of the background's textures instead of being just a solid colour, should look more professional
+# draw LFO line with a black outline
+# draw segmented region with a contrasting outline
+- bug: when closing the window with a lot of regions on it, some of the parameters end up containing invalid modulators, thus causing an exception
+	- pretty sure some LFOs aren't correctly unsubscribed when LFOs/Voices/? are deleted
+- check whether it's possible to resize VSTs
 - make it possible to delete regions
 	- to handle all the audio parameters, create a method in the *audio engine*(!) that deletes all voices with the region's id from the LFOs' voice lists, and then all of those voices from the synth
 # bug: samplesUntilUpdate of LFO should be reset to 0 after a voice stops (otherwise, the LFO line will be drawn with a temporal offset...)

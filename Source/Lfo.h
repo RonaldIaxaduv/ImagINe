@@ -34,7 +34,7 @@ public:
 
     ~Lfo()
     {
-        waveTable.setSize(0, 0);
+        //waveTable.setSize(0, 0); //not necessary
     }
 
     void initialise(const juce::AudioBuffer<float>& waveTable, const std::function<void(float lfoValue)>& modulationFunction)
