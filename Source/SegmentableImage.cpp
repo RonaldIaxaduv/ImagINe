@@ -67,7 +67,6 @@ void SegmentableImage::paint(juce::Graphics& g)
 
     if (currentPathPoints.size() > 0)
     {
-        g.setColour(juce::Colours::gold);
         //g.strokePath(currentPath, juce::PathStrokeType(5.0f, juce::PathStrokeType::JointStyle::curved, juce::PathStrokeType::EndCapStyle::rounded));
         //g.fillPath(currentPath);
 
@@ -75,13 +74,23 @@ void SegmentableImage::paint(juce::Graphics& g)
         float dotRadius = 2.0f, lineThickness = 1.5f;
 
         p1 = currentPathPoints[0];
-        g.fillEllipse(p1.x - dotRadius, p1.y - dotRadius, dotRadius * 2, dotRadius * 2);
+        g.setColour(juce::Colours::black);
+        g.fillEllipse(p1.x - dotRadius, p1.y - dotRadius, dotRadius * 2.0f, dotRadius * 2.0f);
+        g.setColour(juce::Colours::gold);
+        g.fillEllipse(p1.x - dotRadius, p1.y - dotRadius, dotRadius * 1.5f, dotRadius * 1.5f);
 
         for (int i = 1; i < currentPathPoints.size(); ++i)
         {
             p2 = currentPathPoints[i];
+            g.setColour(juce::Colours::black);
             g.drawLine(juce::Line<float>(p1, p2), lineThickness);
-            g.fillEllipse(p2.x - dotRadius, p2.y - dotRadius, dotRadius * 2, dotRadius * 2);
+            g.setColour(juce::Colours::gold);
+            g.drawLine(juce::Line<float>(p1, p2), lineThickness * 0.666f);
+            
+            g.setColour(juce::Colours::black);
+            g.fillEllipse(p2.x - dotRadius, p2.y - dotRadius, dotRadius * 2.0f, dotRadius * 2.0f);
+            g.setColour(juce::Colours::gold);
+            g.fillEllipse(p2.x - dotRadius, p2.y - dotRadius, dotRadius * 1.5f, dotRadius * 1.5f);
             p1 = p2;
         }
     }
@@ -217,7 +226,7 @@ bool SegmentableImage::keyPressed(const juce::KeyPress& key, juce::Component* or
 
 void SegmentableImage::startNewRegion(juce::Point<float> newPt)
 {
-    if (getBounds().contains(newPt.toInt()))
+    if (getLocalBounds().contains(newPt.toInt()))
     {
         DBG("new path: " + newPt.toString());
         currentPath.startNewSubPath(newPt);
@@ -228,7 +237,7 @@ void SegmentableImage::startNewRegion(juce::Point<float> newPt)
 }
 void SegmentableImage::addPointToPath(juce::Point<float> newPt)
 {
-    if (getBounds().contains(newPt.toInt()))
+    if (getLocalBounds().contains(newPt.toInt()))
     {
         DBG("next point: " + newPt.toString());
         currentPath.lineTo(newPt);
@@ -263,6 +272,7 @@ void SegmentableImage::tryCompletePath()
 
     //finish path
     currentPath.closeSubPath();
+    audioEngine->suspendProcessing(true);
 
     //calculate bounds
     DBG("calculating region's bounds...");
@@ -279,27 +289,33 @@ void SegmentableImage::tryCompletePath()
     //juce::Random rng;
     //juce::Colour fillColour = juce::Colour::fromHSV(rng.nextFloat(), 0.6f + 0.4f * rng.nextFloat(), 0.6f + 0.4f * rng.nextFloat(), 1.0f); //random for now
     
-    //calculate histogram of the pixels within the path
+    //calculate histogram of the pixels within the path (the commented out version's calculations are more exact (more colours aggregated), but a lot slower)
     juce::Image associatedImage = getImage();
     juce::HashMap<juce::String, int> colourHistogram;
-    float xMin = relativeBounds.getX() * associatedImage.getWidth();
-    float xMax = (relativeBounds.getX() + relativeBounds.getWidth()) * associatedImage.getWidth();
-    float yMin = relativeBounds.getY() * associatedImage.getHeight();
-    float yMax = (relativeBounds.getY() + relativeBounds.getHeight()) * associatedImage.getHeight();
-    float scaleX = origParentBounds.getWidth() / static_cast<float>(associatedImage.getWidth());
-    float scaleY = origParentBounds.getHeight() / static_cast<float>(associatedImage.getHeight());
-    //DBG("image search region: x[" + juce::String(xMin) + ", " + juce::String(xMax) + "], y[" + juce::String(yMin) + ", " + juce::String(yMax) + "]");
-    //DBG("path search region: x[" + juce::String(xMin * scaleX) + ", " + juce::String(xMax * scaleX) + "], y[" + juce::String(yMin * scaleY) + ", " + juce::String(yMax * scaleY) + "]");
+    //float xMin = relativeBounds.getX() * associatedImage.getWidth();
+    //float xMax = (relativeBounds.getX() + relativeBounds.getWidth()) * associatedImage.getWidth();
+    //float yMin = relativeBounds.getY() * associatedImage.getHeight();
+    //float yMax = (relativeBounds.getY() + relativeBounds.getHeight()) * associatedImage.getHeight();
+    //float scaleX = origParentBounds.getWidth() / static_cast<float>(associatedImage.getWidth());
+    //float scaleY = origParentBounds.getHeight() / static_cast<float>(associatedImage.getHeight());
+    float xMin = origRegionBounds.getX();
+    float xMax = origRegionBounds.getX() + origRegionBounds.getWidth();
+    float yMin = origRegionBounds.getY();
+    float yMax = origRegionBounds.getY() + origRegionBounds.getHeight();
+    float scaleX = static_cast<float>(associatedImage.getWidth()) / origParentBounds.getWidth();
+    float scaleY = static_cast<float>(associatedImage.getHeight()) / origParentBounds.getHeight();
+    DBG("image search region: x[" + juce::String(xMin) + ", " + juce::String(xMax) + "], y[" + juce::String(yMin) + ", " + juce::String(yMax) + "]");
+    DBG("path search region: x[" + juce::String(xMin * scaleX) + ", " + juce::String(xMax * scaleX) + "], y[" + juce::String(yMin * scaleY) + ", " + juce::String(yMax * scaleY) + "]");
     for (float x = xMin; x <= xMax; ++x)
     {
         for (float y = yMin; y <= yMax; ++y)
         {
             //check whether the point is actually contained within the path (origParentBounds is only the largest rectangle containing all points in the path!)
-            if (currentPath.contains(x * scaleX, y * scaleY))
+            if (currentPath.contains(x, y)) //(currentPath.contains(x * scaleX, y * scaleY))
             {
                 //contained! -> add pixel to the histogram
-                juce::Colour nextColour = associatedImage.getPixelAt(static_cast<int>(x), static_cast<int>(y));
-                //DBG(juce::String(x) + ", " + juce::String(y) + ": " + juce::String(nextColour.getRed()) + ", " + juce::String(nextColour.getGreen()) + ", " + juce::String(nextColour.getBlue()));
+                //juce::Colour nextColour = associatedImage.getPixelAt(static_cast<int>(x), static_cast<int>(y));
+                juce::Colour nextColour = associatedImage.getPixelAt(static_cast<int>(x * scaleX), static_cast<int>(y * scaleY));
                 if (!colourHistogram.contains(nextColour.toString()))
                 {
                     //new colour -> add to histogram
@@ -313,24 +329,25 @@ void SegmentableImage::tryCompletePath()
             }
         }
     }
+    DBG("histogram contains " + juce::String(colourHistogram.size()) + " entries.");
 
     //calculate the average colour
-    double totalR = 0.0, totalG = 0.0, totalB = 0.0;
-    double totalCount = 0;
-    for (juce::HashMap<juce::String, int>::Iterator it (colourHistogram); it.next();)
-    {
-        juce::Colour c = juce::Colour::fromString(it.getKey());
-        double count = static_cast<double>(it.getValue());
+    //double totalR = 0.0, totalG = 0.0, totalB = 0.0;
+    //double totalCount = 0;
+    //for (juce::HashMap<juce::String, int>::Iterator it (colourHistogram); it.next();)
+    //{
+    //    juce::Colour c = juce::Colour::fromString(it.getKey());
+    //    double count = static_cast<double>(it.getValue());
 
-        totalR = static_cast<double>(c.getRed()) * count;
-        totalG = static_cast<double>(c.getGreen()) * count;
-        totalB = static_cast<double>(c.getBlue()) * count;
-        totalCount += count;
-    }
+    //    totalR = static_cast<double>(c.getRed()) * count;
+    //    totalG = static_cast<double>(c.getGreen()) * count;
+    //    totalB = static_cast<double>(c.getBlue()) * count;
+    //    totalCount += count;
+    //}
     //DBG("totals: " + juce::String(totalR) + ", " + juce::String(totalG) + ", " + juce::String(totalB) + ", " + juce::String(totalCount));
-    juce::Colour averageColour = juce::Colour(juce::uint8(static_cast<int>(totalR / totalCount)),
-                                              juce::uint8(static_cast<int>(totalG / totalCount)),
-                                              juce::uint8(static_cast<int>(totalB / totalCount)));
+    //juce::Colour averageColour = juce::Colour(juce::uint8(static_cast<int>(totalR / totalCount)),
+    //                                          juce::uint8(static_cast<int>(totalG / totalCount)),
+    //                                          juce::uint8(static_cast<int>(totalB / totalCount)));
     //DBG("average colour: " + juce::String(averageColour.getRed()) + ", " + juce::String(averageColour.getGreen()) + ", " + juce::String(averageColour.getBlue()));
 
     //calculate (squared) distance of every contained colour to the average colour
@@ -340,9 +357,14 @@ void SegmentableImage::tryCompletePath()
     {
         //calculate (squared) distance to the average colour
         juce::Colour c = juce::Colour::fromString(it.getKey());
-        double distanceSq = static_cast<double>(c.getRed() - averageColour.getRed()) * static_cast<double>(c.getRed() - averageColour.getRed()) +
-                            static_cast<double>(c.getGreen() - averageColour.getGreen()) * static_cast<double>(c.getGreen() - averageColour.getGreen()) +
-                            static_cast<double>(c.getBlue() - averageColour.getBlue()) * static_cast<double>(c.getBlue() - averageColour.getBlue());
+        //double distanceSq = static_cast<double>(c.getRed() - averageColour.getRed()) * static_cast<double>(c.getRed() - averageColour.getRed()) +
+        //                    static_cast<double>(c.getGreen() - averageColour.getGreen()) * static_cast<double>(c.getGreen() - averageColour.getGreen()) +
+        //                    static_cast<double>(c.getBlue() - averageColour.getBlue()) * static_cast<double>(c.getBlue() - averageColour.getBlue());
+        
+        //calculate (squared) distance from (0,0,0)
+        double distanceSq = static_cast<double>(c.getRed()) * static_cast<double>(c.getRed()) +
+            static_cast<double>(c.getGreen()) * static_cast<double>(c.getGreen()) +
+            static_cast<double>(c.getBlue()) * static_cast<double>(c.getBlue());
 
         //insert into the lists according to the distance
         int indexToInsertAt = 0;
@@ -377,6 +399,8 @@ void SegmentableImage::tryCompletePath()
     resetPath();
     transitionToState(SegmentableImageStateIndex::withImage);
     DBG("new region has been added successfully.");
+
+    audioEngine->suspendProcessing(false);
 }
 
 void SegmentableImage::deleteLastNode()

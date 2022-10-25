@@ -154,6 +154,7 @@ void SegmentedRegion::initialiseImages()
 
     setColour(ColourIds::backgroundOnColourId, juce::Colours::transparentBlack); //otherwise, the button has a grey background colour while the button is toggled on
     lfoLineColour = juce::Colour::contrasting(fillColour, fillColour.contrasting());
+    focusPointColour = fillColour.contrasting();
 }
 
 void SegmentedRegion::timerCallback()
@@ -165,6 +166,12 @@ void SegmentedRegion::timerCallback()
                                         juce::jmax(currentLfoLine.getStartX(), currentLfoLine.getEndX()) - juce::jmin(currentLfoLine.getStartX(), currentLfoLine.getEndX()),
                                         juce::jmax(currentLfoLine.getStartY(), currentLfoLine.getEndY()) - juce::jmin(currentLfoLine.getStartY(), currentLfoLine.getEndY()));
 
+    if (associatedLfo == nullptr)
+    {
+        DBG("NO LFO SET YET"); //if the code arrives here, this method might need a state-dependent implementation...
+        return;
+    }
+    
     float curLfoPhase = associatedLfo->getLatestModulatedPhase(); //basically the same value as getModulatedValue of the parameter, but won't update that parameter (which would mess with the modulation)
     juce::Point<float> focusPt(focus.x * getBounds().getWidth(),
         focus.y * getBounds().getHeight()); 
@@ -204,7 +211,7 @@ void SegmentedRegion::paintOverChildren(juce::Graphics& g)
         focus.y * getBounds().getHeight());
 
     //draw focus point
-    g.setColour(fillColour.contrasting());
+    g.setColour(focusPointColour);
     float focusRadius = 2.5f;
     g.fillEllipse(focusPt.x - focusRadius,
         focusPt.y - focusRadius,
@@ -231,10 +238,10 @@ void SegmentedRegion::paintOverChildren(juce::Graphics& g)
     //g.drawLine(focusPt.x, focusPt.y,
     //    outlinePt.x, outlinePt.y,
     //    lfoLineThickness);
-    g.setColour(juce::Colours::black);
+    g.setColour(focusPointColour);
     g.drawLine(currentLfoLine, lfoLineThickness);
     g.setColour(lfoLineColour);
-    g.drawLine(currentLfoLine, lfoLineThickness * 0.5f);
+    g.drawLine(currentLfoLine, lfoLineThickness * 0.666f);
 
     //check whether the update interval changed (e.g. due to modulation)
     //int newTimerIntervalMs = static_cast<int>(associatedLfo->getUpdateInterval_Milliseconds());

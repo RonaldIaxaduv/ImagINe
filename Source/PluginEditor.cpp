@@ -31,6 +31,8 @@ ImageINeDemoAudioProcessorEditor::ImageINeDemoAudioProcessorEditor (ImageINeDemo
     addAndMakeVisible(image);
     addKeyListener(&image);
 
+    //setResizable(true, true); //set during state changes
+    setResizeLimits(100, 100, 4096, 2160); //maximum resolution: 4k
     setSize(600, 400);
 
     modeBox.setSelectedId(1); //set state to init
@@ -57,7 +59,7 @@ void ImageINeDemoAudioProcessorEditor::paint (juce::Graphics& g)
 void ImageINeDemoAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds();
-    auto modeArea = area;
+    juce::Rectangle<int> modeArea;
 
     switch (currentState)
     {
@@ -73,34 +75,55 @@ void ImageINeDemoAudioProcessorEditor::resized()
         modeArea = area.removeFromTop(20);
         modeLabel.setBounds(modeArea.removeFromLeft(50).reduced(2, 2));
         modeBox.setBounds(modeArea.reduced(2, 2));
-
-        image.setBounds(area.reduced(10, 10));
         break;
 
     case PluginEditorStateIndex::Editing:
         modeArea = area.removeFromTop(20);
         modeLabel.setBounds(modeArea.removeFromLeft(50).reduced(2, 2));
         modeBox.setBounds(modeArea.reduced(2, 2));
-
-        image.setBounds(area.reduced(10, 10));
         break;
 
     case PluginEditorStateIndex::Playing:
         modeArea = area.removeFromTop(20);
         modeLabel.setBounds(modeArea.removeFromLeft(50).reduced(2, 2));
         modeBox.setBounds(modeArea.reduced(2, 2));
-
-        image.setBounds(area.reduced(10, 10));
         break;
 
     default:
         break;
     }
 
+    area = area.reduced(5, 5); //leave some space towards the sides
 
-    //^- WIP: make it so that the image's width-height-ratio is automatically preserved
-    //(like when setting its ImagePlacement to centred, just with its actual bounds)
-    //-> will make it a little nicer to look at
+    auto origImgBounds = image.getImage().getBounds();
+
+    if (origImgBounds.getWidth() == 0 || origImgBounds.getHeight() == 0)
+    {
+        //no image set yet
+        image.setBounds(area);
+        return;
+    }
+
+    float origImgAspect = static_cast<float>(origImgBounds.getWidth()) / static_cast<float>(origImgBounds.getHeight());
+    float currentAspect = static_cast<float>(area.getWidth()) / static_cast<float>(area.getHeight());
+
+    //preserve aspect ratio of the original image
+    if (origImgAspect > currentAspect)
+    {
+        //image is narrower vertically than the window area
+        image.setBounds(area.getX(),
+                        area.getY() + static_cast<int>(0.5f * (static_cast<float>(area.getHeight()) - static_cast<float>(area.getWidth()) / origImgAspect)),
+                        juce::jmax(1, area.getWidth()),
+                        juce::jmax(1, static_cast<int>(static_cast<float>(area.getWidth()) / origImgAspect)));
+    }
+    else
+    {
+        //window area is narrower vertically than the image
+        image.setBounds(area.getX() + static_cast<int>(0.5f * (static_cast<float>(area.getWidth()) - static_cast<float>(area.getHeight()) * origImgAspect)),
+                        area.getY(),
+                        juce::jmax(1, static_cast<int>(static_cast<float>(area.getHeight()) * origImgAspect)),
+                        juce::jmax(1, area.getHeight()));
+    }
 }
 
 void ImageINeDemoAudioProcessorEditor::showLoadImageDialogue()
@@ -146,8 +169,9 @@ void ImageINeDemoAudioProcessorEditor::updateState()
 
             loadImageButton.setVisible(true);
             image.setVisible(false);
-
             image.transitionToState(SegmentableImageStateIndex::empty);
+
+            setResizable(true, true);
 
             break;
 
@@ -159,8 +183,9 @@ void ImageINeDemoAudioProcessorEditor::updateState()
 
             loadImageButton.setVisible(false);
             image.setVisible(true);
-
             image.transitionToState(SegmentableImageStateIndex::withImage); //if its current state was drawingRegion, it will remain at that state
+
+            setResizable(true, true);
 
             break;
 
@@ -172,8 +197,9 @@ void ImageINeDemoAudioProcessorEditor::updateState()
 
             loadImageButton.setVisible(false);
             image.setVisible(true);
-
             image.transitionToState(SegmentableImageStateIndex::editingRegions);
+
+            setResizable(false, false);
 
             break;
 
@@ -185,8 +211,9 @@ void ImageINeDemoAudioProcessorEditor::updateState()
 
             loadImageButton.setVisible(false);
             image.setVisible(true);
-
             image.transitionToState(SegmentableImageStateIndex::playingRegions);
+
+            setResizable(false, false);
 
             break;
 
