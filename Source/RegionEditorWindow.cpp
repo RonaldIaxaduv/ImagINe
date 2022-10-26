@@ -24,12 +24,17 @@ RegionEditorWindow::RegionEditorWindow(juce::String name, SegmentedRegion* regio
 #else
     setResizable(true, true);
     setResizeLimits(100, 200, 4096, 2160); //max resolution: 4k
-    centreWithSize(300, 600);
+    centreWithSize(400, 600);
 #endif
 
     setVisible(true);
     setTitle("Region " + juce::String(region->getID()));
     addToDesktop();
+}
+
+void RegionEditorWindow::refreshEditor()
+{
+    static_cast<RegionEditor*>(getContentComponent())->refreshParameters();
 }
 
 void RegionEditorWindow::closeButtonPressed() 

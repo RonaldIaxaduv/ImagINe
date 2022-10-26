@@ -58,10 +58,9 @@ SegmentedRegion::~SegmentedRegion()
 
     stopTimer();
 
-    //WIP maybe the close button of the editor window will have to be pressed before dropping the pointer
     if (regionEditorWindow != nullptr)
     {
-        DBG("RegionEditorWindow still alive -> deleting");
+        //close editor window
         regionEditorWindow.deleteAndZero();
     }
 
@@ -73,13 +72,13 @@ SegmentedRegion::~SegmentedRegion()
     int deletedStates = 3;
     jassert(deletedStates == static_cast<int>(SegmentedRegionStateIndex::StateIndexCount));
 
-    //release Voice(s)
-    associatedVoices.clear();
-    audioEngine->removeVoicesWithID(getID());
-
     //release LFO
     associatedLfo = nullptr;
     audioEngine->removeLfo(getID()); //exception freeing heap after the LFO has been destroyed -> some invalid member?
+
+    //release Voice(s)
+    associatedVoices.clear();
+    audioEngine->removeVoicesWithID(getID());
 
     //release audio engine
     audioEngine = nullptr;
@@ -161,12 +160,7 @@ void SegmentedRegion::initialiseImages()
 
 void SegmentedRegion::timerCallback()
 {
-    //repaint(); //WIP: could the redrawn area be reduced?
-
-    juce::Rectangle<float> previousArea(juce::jmin(currentLfoLine.getStartX(), currentLfoLine.getEndX()),
-                                        juce::jmin(currentLfoLine.getStartY(), currentLfoLine.getEndY()),
-                                        juce::jmax(currentLfoLine.getStartX(), currentLfoLine.getEndX()) - juce::jmin(currentLfoLine.getStartX(), currentLfoLine.getEndX()),
-                                        juce::jmax(currentLfoLine.getStartY(), currentLfoLine.getEndY()) - juce::jmin(currentLfoLine.getStartY(), currentLfoLine.getEndY()));
+    //repaint(); //this is highly inefficient because it redraws lots of unchanged space
 
     if (associatedLfo == nullptr)
     {
@@ -174,11 +168,16 @@ void SegmentedRegion::timerCallback()
         return;
     }
     
+    //calculate area previously taken on by currentLfoLine
+    juce::Rectangle<float> previousArea(juce::jmin(currentLfoLine.getStartX(), currentLfoLine.getEndX()),
+        juce::jmin(currentLfoLine.getStartY(), currentLfoLine.getEndY()),
+        juce::jmax(currentLfoLine.getStartX(), currentLfoLine.getEndX()) - juce::jmin(currentLfoLine.getStartX(), currentLfoLine.getEndX()),
+        juce::jmax(currentLfoLine.getStartY(), currentLfoLine.getEndY()) - juce::jmin(currentLfoLine.getStartY(), currentLfoLine.getEndY()));
+
+    //update currentLfoLine
     float curLfoPhase = associatedLfo->getLatestModulatedPhase(); //basically the same value as getModulatedValue of the parameter, but won't update that parameter (which would mess with the modulation)
-    juce::Point<float> focusPt(focus.x * getBounds().getWidth(),
-        focus.y * getBounds().getHeight()); 
     juce::Point<float> outlinePt = p.getPointAlongPath(curLfoPhase * p.getLength(), juce::AffineTransform(), juce::Path::defaultToleranceForMeasurement);
-    currentLfoLine = juce::Line<float>(focusPt.x, focusPt.y,
+    currentLfoLine = juce::Line<float>(focusAbs.x, focusAbs.y,
                                        outlinePt.x, outlinePt.y);
 
     juce::Rectangle<float> currentArea(juce::jmin(currentLfoLine.getStartX(), currentLfoLine.getEndX()),
@@ -186,8 +185,9 @@ void SegmentedRegion::timerCallback()
                                        juce::jmax(currentLfoLine.getStartX(), currentLfoLine.getEndX()) - juce::jmin(currentLfoLine.getStartX(), currentLfoLine.getEndX()),
                                        juce::jmax(currentLfoLine.getStartY(), currentLfoLine.getEndY()) - juce::jmin(currentLfoLine.getStartY(), currentLfoLine.getEndY()));
 
-    repaint(previousArea.expanded(lfoLineThickness, lfoLineThickness).toNearestInt());
-    repaint(currentArea.expanded(lfoLineThickness, lfoLineThickness).toNearestInt());
+    //repaint(previousArea.expanded(lfoLineThickness, lfoLineThickness).toNearestInt());
+    //repaint(currentArea.expanded(lfoLineThickness, lfoLineThickness).toNearestInt());
+    repaint(previousArea.getUnion(currentArea).expanded(lfoLineThickness, lfoLineThickness).toNearestInt()); //this might be faster than the above, because paintOverChildren might be called twice otherwise(?)
 }
 void SegmentedRegion::setTimerInterval(int newIntervalMs)
 {
@@ -209,17 +209,6 @@ void SegmentedRegion::paintOverChildren(juce::Graphics& g)
     //if the normal paint method were used, the button images would be in front of whatever is drawn there.
     //with this method, everything is drawn in front of the button images.
 
-    juce::Point<float> focusPt(focus.x * getBounds().getWidth(),
-        focus.y * getBounds().getHeight());
-
-    //draw focus point
-    g.setColour(focusPointColour);
-    float focusRadius = 2.5f;
-    g.fillEllipse(focusPt.x - focusRadius,
-        focusPt.y - focusRadius,
-        2.0f * focusRadius,
-        2.0f * focusRadius);
-
     if (associatedLfo == nullptr)
     {
         stopTimer();
@@ -227,23 +216,30 @@ void SegmentedRegion::paintOverChildren(juce::Graphics& g)
         return;
     }
 
-    //draw LFO line
-    //float curLfoPhase = associatedLfo->getLatestModulatedPhase(); //basically the same value as getModulatedValue of the parameter, but won't update that parameter (which would mess with the modulation)
-
-    if (isPlaying)
-        g.setColour(lfoLineColour);
-    else
-        g.setColour(lfoLineColour.withAlpha(0.5f)); //faded when not playing
-
     //draw line from focus point to point on the outline that corresponds to the associated LFO's current phase
-    //juce::Point<float> outlinePt = p.getPointAlongPath(curLfoPhase * p.getLength(), juce::AffineTransform(), juce::Path::defaultToleranceForMeasurement);
-    //g.drawLine(focusPt.x, focusPt.y,
-    //    outlinePt.x, outlinePt.y,
-    //    lfoLineThickness);
+    if (isPlaying)
+    {
+        //draw LFO line
+        g.setColour(focusPointColour); //for creating an outline
+        g.drawLine(currentLfoLine, lfoLineThickness);
+        g.setColour(lfoLineColour); //main line
+        g.drawLine(currentLfoLine, lfoLineThickness * 0.8f);
+    }
+    else
+    {
+        //draw LFO line, but with reduced alpha
+        g.setColour(focusPointColour.withAlpha(0.5f)); //for creating an outline
+        g.drawLine(currentLfoLine, lfoLineThickness);
+        g.setColour(lfoLineColour.withAlpha(0.5f)); //main line
+        g.drawLine(currentLfoLine, lfoLineThickness * 0.8f);
+    }
+
+    //draw focus point (looks better when drawn after the line)
     g.setColour(focusPointColour);
-    g.drawLine(currentLfoLine, lfoLineThickness);
-    g.setColour(lfoLineColour);
-    g.drawLine(currentLfoLine, lfoLineThickness * 0.666f);
+    g.fillEllipse(focusAbs.x - focusRadius,
+                  focusAbs.y - focusRadius,
+                  2.0f * focusRadius,
+                  2.0f * focusRadius);
 
     //check whether the update interval changed (e.g. due to modulation)
     //int newTimerIntervalMs = static_cast<int>(associatedLfo->getUpdateInterval_Milliseconds());
@@ -272,6 +268,10 @@ void SegmentedRegion::resized() //WIP: for some reason, this is called when hove
 {
     //recalculate hitbox
     p.scaleToFit(0.0f, 0.0f, (float)getWidth(), (float)getHeight(), false);
+
+    //update (actual) focus point position
+    focusAbs = juce::Point<float>(focus.x * getBounds().getWidth(),
+                                  focus.y * getBounds().getHeight());
 
     //repaint LFO line
     timerCallback();
@@ -474,6 +474,18 @@ int SegmentedRegion::getID()
     return ID;
 }
 
+juce::Point<float> SegmentedRegion::getFocusPoint()
+{
+    return focus;
+}
+void SegmentedRegion::setFocusPoint(juce::Point<float> newFocusPoint) //does not recalculate wavetable!
+{
+    focus = newFocusPoint;
+    focusAbs = juce::Point<float>(focus.x * getBounds().getWidth(),
+                                  focus.y * getBounds().getHeight());
+    timerCallback(); //redraws LFO line
+}
+
 bool SegmentedRegion::isEditorOpen()
 {
     return regionEditorWindow != nullptr;
@@ -485,6 +497,13 @@ void SegmentedRegion::sendEditorToFront()
 void SegmentedRegion::openEditor()
 {
     regionEditorWindow = juce::Component::SafePointer<RegionEditorWindow>(new RegionEditorWindow("Region " + juce::String(ID) + " Editor", this));
+}
+void SegmentedRegion::refreshEditor()
+{
+    if (regionEditorWindow != nullptr)
+    {
+        regionEditorWindow->refreshEditor();
+    }
 }
 
 void SegmentedRegion::startPlaying()

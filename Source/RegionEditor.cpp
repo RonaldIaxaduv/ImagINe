@@ -201,6 +201,11 @@ SegmentedRegion* RegionEditor::getAssociatedRegion()
     return associatedRegion;
 }
 
+void RegionEditor::refreshParameters()
+{
+    copyRegionParameters();
+}
+
 
 
 
@@ -211,7 +216,7 @@ void RegionEditor::setChildVisibility(bool shouldBeVisible)
     selectedFileLabel.setVisible(shouldBeVisible);
     selectFileButton.setVisible(shouldBeVisible);
 
-    colourPickerWIP.setVisible(shouldBeVisible);
+    colourPickerWIP.setVisible(false); //WIP - probably not necessary anymore tbh
 
     focusPositionLabel.setVisible(shouldBeVisible);
     focusPositionX.setVisible(shouldBeVisible);
@@ -242,8 +247,8 @@ void RegionEditor::copyRegionParameters()
     else
         selectedFileLabel.setText("Selected file: " + associatedRegion->getFileName(), juce::NotificationType::dontSendNotification);
 
-    focusPositionX.setValue(associatedRegion->focus.getX(), juce::NotificationType::dontSendNotification);
-    focusPositionY.setValue(associatedRegion->focus.getY(), juce::NotificationType::dontSendNotification);
+    focusPositionX.setValue(associatedRegion->getFocusPoint().getX(), juce::NotificationType::dontSendNotification);
+    focusPositionY.setValue(associatedRegion->getFocusPoint().getY(), juce::NotificationType::dontSendNotification);
 
     toggleModeButton.setToggleState(associatedRegion->getShouldBeToggleable(), juce::NotificationType::dontSendNotification);
 
@@ -263,6 +268,7 @@ void RegionEditor::copyRegionParameters()
         pitchQuantisationChoice.setEnabled(false);
     }
 
+    lfoEditor.updateAvailableVoices();
     lfoEditor.copyParameters();
 }
 
@@ -325,9 +331,7 @@ void RegionEditor::selectFile()
 
 void RegionEditor::updateFocusPosition()
 {
-    associatedRegion->focus.setX(static_cast<float>(focusPositionX.getValue()));
-    associatedRegion->focus.setY(static_cast<float>(focusPositionY.getValue()));
-    associatedRegion->timerCallback(); //this is what recalculates the LFO line coords
+    associatedRegion->setFocusPoint(juce::Point<float>(static_cast<float>(focusPositionX.getValue()), static_cast<float>(focusPositionY.getValue())));
 }
 
 void RegionEditor::renderLfoWaveform()

@@ -69,9 +69,13 @@ public:
 
     int getID();
 
+    juce::Point<float> getFocusPoint();
+    void setFocusPoint(juce::Point<float> newFocusPoint);
+
     bool isEditorOpen();
     void sendEditorToFront();
     void openEditor();
+    void refreshEditor();
 
     void startPlaying();
     void stopPlaying();
@@ -81,7 +85,6 @@ public:
     juce::Array<Voice*> getAssociatedVoices();
     juce::String getFileName();
 
-    juce::Point<float> focus;
     juce::Rectangle<float> relativeBounds;
 
 protected:
@@ -103,12 +106,18 @@ private:
     int currentVoiceIndex = 0;
     int timerIntervalMs = 50; //-> 20.0f Hz
     juce::Line<float> currentLfoLine;
-    float lfoLineThickness = 4.0f;
+    const float lfoLineThickness = 4.0f;
 
     juce::Path p; //also acts as a hitbox
+
+    const float focusRadius = 2.5f;
+    juce::Point<float> focus;
+    juce::Point<float> focusAbs; //focus, but applied to the current (actual) bounds of the region
+
     juce::Colour fillColour;
     juce::Colour lfoLineColour;
     juce::Colour focusPointColour;
+
     juce::DrawablePath normalImage; //normal image when not toggleable or toggled off
     juce::DrawablePath overImage; //image when hovering over the button when not toggleable or toggled off
     juce::DrawablePath downImage; //image when clicking the button when not toggleable or toggled off

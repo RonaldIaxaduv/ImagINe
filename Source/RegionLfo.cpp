@@ -42,7 +42,7 @@ RegionLfo::~RegionLfo()
 {
     DBG("destroying RegionLfo...");
 
-    //unsubscribe from all modulators
+    //unsubscribe all modulated parameters
     for (auto itRegion = modulatedParameters.begin(); itRegion != modulatedParameters.end(); itRegion++)
     {
         auto* paramArray = *itRegion;
@@ -59,6 +59,32 @@ RegionLfo::~RegionLfo()
     modulatedParameters.clear(true);
     modulatedParameterIDs.clear();
     affectedRegionIDs.clear();
+
+    //unsubscribe all modulators (otherwise, access violations will happen when the window is closed while regions are playing!)
+    int unsubscribedModulators = 0;
+
+    auto frequencyModulators = frequencyModParameter.getModulators();
+    for (auto* it = frequencyModulators.begin(); it != frequencyModulators.end(); it++)
+    {
+        (*it)->removeRegionModulation(getRegionID());
+    }
+    unsubscribedModulators++;
+
+    auto phaseModulators = phaseModParameter.getModulators();
+    for (auto* it = phaseModulators.begin(); it != phaseModulators.end(); it++)
+    {
+        (*it)->removeRegionModulation(getRegionID());
+    }
+    unsubscribedModulators++;
+
+    auto updateIntervalModulators = updateIntervalParameter.getModulators();
+    for (auto* it = updateIntervalModulators.begin(); it != updateIntervalModulators.end(); it++)
+    {
+        (*it)->removeRegionModulation(getRegionID());
+    }
+    unsubscribedModulators++;
+
+    jassert(unsubscribedModulators == 3);
 
     //release states
     currentState = nullptr;

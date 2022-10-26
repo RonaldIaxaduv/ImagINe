@@ -23,6 +23,8 @@ class RegionEditorWindow : public juce::DocumentWindow
 public:
     RegionEditorWindow(juce::String name, SegmentedRegion* region);
 
+    void refreshEditor();
+
     void closeButtonPressed() override;
 
     /* Note: Be careful if you override any DocumentWindow methods - the base

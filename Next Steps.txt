@@ -46,6 +46,8 @@
 			/ use the shape's area (bounds) in relation to that of the full image -> being >=2/3 of the image's area should result in full modulation depth
 			!- DUDE, it's not even necessary to use its area: just use the *ACTUAL* length of the line, don't normalise it! DONE! positive side effect: that way, the user still has some influence over the form's mod depth!
 				- easier to implement for the unipolar wavetable, so calculate that first, and calculate the bipolar wavetable from the unipolar one
+				?- still subtract the minimum line length (in relation to the current focus point) since it only adds a fixed offset?
+				- add a textbox in the region/LFO editor that shows the depth of the LFO with the current focus point
 (# outline animations for the LFOs)
 !# add a second column of toggle buttons to the LFO voice list that invert the modulation for that region
 	-> this would be quite powerful since it enables call-and-response patterns (e.g. while one voice is loud another is quiet / while one voice is high another is low / ...)
@@ -241,14 +243,32 @@
 	-> didn't call timerCallback() during resize() (which was a problem because the LFO line coords are recalculated there)
 # bug: the LFO line isn't redrawn when the focus point is shifted
 	-> same mistake as above
-- minor bug: window is still resizable even when in editing/playing mode
-!- bug: when closing the window with a lot of regions on it, some of the parameters end up containing invalid modulators, thus causing an exception
-	- pretty sure some LFOs aren't correctly unsubscribed when LFOs/Voices/? are deleted
+# region counter should reset when the last region is deleted (not just when all regions are deleted at once)
+# refresh open region editors when a region is deleted
+# increase thickness of inner LFO line
+# slightly increase the starting width of the region editor window
+# set initial update rate to 10ms
+# show yes-no prompt before deleting a region!
+#? improve processing speed of redrawing the LFO line
+!# bug: when closing the window with a lot of regions on it, some of the parameters end up containing invalid modulators, thus causing an exception
+	# pretty sure some LFOs aren't correctly unsubscribed when LFOs/Voices/? are deleted
+	# seems like it's probably voice parameters that haven't been unsubscribed after the voice has been deleted(?)
+		-> ahh, the LFO didn't unsubscribe other LFOs from its parameters. should hopefully be fixed now.
 - serialisation
 - implement play path(s)
 
 - implement more scales
-
+- implement more parameters
+	- current LFO phase (rename current implementation "LFO phase multiplier)"
+	- current playback position (rename current implementation "current playback position multiplier")
+- add a button next to the LFO phase editor to switch its units to ms instead of Hz
+- add a combobox to the region editor to switch between "simple options" and "advanced options" to make things easier to get into
+	- ADSR instead of DAHDSR, no setting for the peak volume
+	- no update rate slider
+	- no pitch quantisation settings
+	- no initial LFO phase / phase multiplier, playback pos / pos multiplier settings (in case i'm adding these options at some point)
+- minor bug: window is still resizable even when in editing/playing mode
+	- dunno why this happens... the handle doesn't show anymore, so the command seems to go through, so why does it still allow dragging?
 
 
 

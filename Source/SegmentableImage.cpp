@@ -467,6 +467,7 @@ void SegmentableImage::clearRegions()
 void SegmentableImage::removeRegion(int regionID)
 {
     int i = 0;
+    bool regionRemoved = false;
     for (auto it = regions.begin(); it != regions.end(); ++it, ++i)
     {
         if ((*it)->getID() == regionID)
@@ -476,12 +477,28 @@ void SegmentableImage::removeRegion(int regionID)
             audioEngine->suspendProcessing(true);
             regions.remove(i, true); //automatically removes voices, LFOs etc.
             audioEngine->suspendProcessing(false);
-            return; //no two regions with the same ID
+
+            regionRemoved = true;
+            break; //no two regions with the same ID
         }
     }
 
-    //WIP: if a region has been deleted, tell all other regions to update their region editors, if they have that window currently open
+    if (!regionRemoved)
+    {
+        return;
+    }
 
+    //if a region has been deleted, tell all other regions to update their region editors, if they have that window currently open
+    for (auto it = regions.begin(); it != regions.end(); ++it, ++i)
+    {
+        (*it)->refreshEditor();
+    }
+
+    if (regions.size() == 0)
+    {
+        //last region deleted -> reset engine's region counter
+        audioEngine->resetRegionIDs();
+    }
 }
 
 void SegmentableImage::clearPath()

@@ -54,22 +54,31 @@ Voice::~Voice()
 {
     DBG("destroying Voice...");
 
-    //unsubscribe any modulators (otherwise, access violations will happen when the window is closed while regions are playing!)
+    //unsubscribe all modulators (otherwise, access violations will happen when the window is closed while regions are playing!)
+    int unsubscribedModulators = 0;
+    
     auto levelModulators = levelParameter.getModulators();
     for (auto* it = levelModulators.begin(); it != levelModulators.end(); it++)
     {
         (*it)->removeRegionModulation(getID());
     }
+    unsubscribedModulators++;
+
     auto pitchModulators = pitchShiftParameter.getModulators();
     for (auto* it = pitchModulators.begin(); it != pitchModulators.end(); it++)
     {
         (*it)->removeRegionModulation(getID());
     }
+    unsubscribedModulators++;
+
     auto playbackPositionModulators = playbackPositionParameter.getModulators();
     for (auto* it = playbackPositionModulators.begin(); it != playbackPositionModulators.end(); it++)
     {
         (*it)->removeRegionModulation(getID());
     }
+    unsubscribedModulators++;
+
+    jassert(unsubscribedModulators == 3);
 
     //release osc
     delete osc;

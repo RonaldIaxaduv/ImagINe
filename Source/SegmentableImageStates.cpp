@@ -183,7 +183,24 @@ bool SegmentableImageState_DrawingRegion::keyPressed(const juce::KeyPress& key, 
 
         if (region != static_cast<juce::Component*>(&image))
         {
-            image.removeRegion(static_cast<SegmentedRegion*>(region)->getID());
+            //define message box and its callback
+            void(*f)(int, SegmentableImage*, int) = [](int result, SegmentableImage* image, int regionID)
+            {
+                if (result > 0)
+                {
+                    image->removeRegion(regionID);
+                }
+            };
+            juce::ModalComponentManager::Callback* cb = juce::ModalCallbackFunction::withParam(f, &image, static_cast<SegmentedRegion*>(region)->getID());
+
+
+            auto result = juce::NativeMessageBox::showYesNoBox(juce::MessageBoxIconType::WarningIcon,
+                "Delete Region?",
+                "Are you sure that you would like to delete Region " + juce::String(static_cast<SegmentedRegion*>(region)->getID()) + "?",
+                region,
+                cb);
+
+            return true;
         }
     }
 
@@ -243,7 +260,24 @@ bool SegmentableImageState_EditingRegions::keyPressed(const juce::KeyPress& key,
 
         if (region != static_cast<juce::Component*>(&image))
         {
-            image.removeRegion(static_cast<SegmentedRegion*>(region)->getID());
+            //define message box and its callback
+            void(*f)(int, SegmentableImage*, int) = [](int result, SegmentableImage* image, int regionID)
+            {
+                if (result > 0)
+                {
+                    image->removeRegion(regionID);
+                }
+            };
+            juce::ModalComponentManager::Callback* cb = juce::ModalCallbackFunction::withParam(f, &image, static_cast<SegmentedRegion*>(region)->getID());
+
+
+            auto result = juce::NativeMessageBox::showYesNoBox(juce::MessageBoxIconType::WarningIcon,
+                                                              "Delete Region?",
+                                                              "Are you sure that you would like to delete region " + juce::String(static_cast<SegmentedRegion*>(region)->getID()) + "?",
+                                                              region,
+                                                              cb);
+
+            return true;
         }
     }
 

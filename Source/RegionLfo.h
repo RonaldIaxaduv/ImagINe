@@ -122,7 +122,7 @@ protected:
     float depth = 1.0f; //intensity of the modulation
 
     int updateInterval = 0; //the LFO doesn't update with every sample. instead, a certain time interval (in samples) needs to pass until another update happens. higher values should generally decrease CPU usage.
-    float updateIntervalMs = 0.0f; //update interval in milliseconds
+    float updateIntervalMs = 10.0f; //update interval in milliseconds
 
     void updateModulatedParameter() override;
     void updateModulatedParameterUnsafe();
