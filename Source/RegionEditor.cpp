@@ -9,6 +9,7 @@
 */
 
 #include "RegionEditor.h"
+#include "SegmentableImage.h"
 
 
 //public
@@ -132,11 +133,6 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     //LFO editor
     addChildComponent(lfoEditor);
 
-    //delete region
-    deleteRegionButton.setButtonText("Delete Region");
-    deleteRegionButton.onClick = [this] { deleteRegion(); };
-    addChildComponent(deleteRegionButton);
-
     //other preparations
     copyRegionParameters();
     setChildVisibility(true);
@@ -196,10 +192,6 @@ void RegionEditor::resized()
         pitchQuantisationLabel.setBounds(pitchQuantisationArea.removeFromLeft(pitchQuantisationArea.getWidth() / 3));
         pitchQuantisationChoice.setBounds(pitchQuantisationArea);
 
-
-
-        deleteRegionButton.setBounds(area.removeFromBottom(20));
-
         lfoEditor.setBounds(area); //fill rest with lfoEditor
     }
 }
@@ -238,8 +230,6 @@ void RegionEditor::setChildVisibility(bool shouldBeVisible)
     pitchQuantisationChoice.setVisible(shouldBeVisible);
 
     lfoEditor.setVisible(shouldBeVisible);
-
-    deleteRegionButton.setVisible(shouldBeVisible);
 }
 
 void RegionEditor::copyRegionParameters()
@@ -299,42 +289,36 @@ void RegionEditor::selectFile()
             {
                 auto duration = (float)reader->lengthInSamples / reader->sampleRate;               // [3]
 
-                if (true)//(duration <= 7)
+                associatedRegion->getAudioEngine()->suspendProcessing(true); //pause the audio engine to ensure that loading the file doesn't change the audio thread's priority
+
+                //juce::AudioSampleBuffer tempBuffer();
+                tempBuffer.setSize((int)reader->numChannels, (int)reader->lengthInSamples);  // [4]
+                reader->read(&tempBuffer,                                                      // [5]
+                    0,                                                                //  [5.1]
+                    (int)reader->lengthInSamples,                                    //  [5.2]
+                    0,                                                                //  [5.3]
+                    true,                                                             //  [5.4]
+                    true);                                                            //  [5.5]
+                //position = 0;                                                                   // [6]
+                //setAudioChannels(0, (int)reader->numChannels);                                // [7]
+
+                associatedRegion->setBuffer(tempBuffer, file.getFileName(), reader->sampleRate);
+                selectedFileLabel.setText(file.getFileName(), juce::NotificationType::dontSendNotification);
+
+                lfoEditor.updateAvailableVoices();
+                updateAllVoiceSettings(); //sets currently selected volume, pitch etc.
+
+                juce::Array<DahdsrEnvelope*> associatedEnvelopes;
+                juce::Array<Voice*> associatedVoices = associatedRegion->getAssociatedVoices();
+                for (auto itVoice = associatedVoices.begin(); itVoice != associatedVoices.end(); itVoice++)
                 {
-                    //juce::AudioSampleBuffer tempBuffer();
-                    tempBuffer.setSize((int)reader->numChannels, (int)reader->lengthInSamples);  // [4]
-                    reader->read(&tempBuffer,                                                      // [5]
-                        0,                                                                //  [5.1]
-                        (int)reader->lengthInSamples,                                    //  [5.2]
-                        0,                                                                //  [5.3]
-                        true,                                                             //  [5.4]
-                        true);                                                            //  [5.5]
-                    //position = 0;                                                                   // [6]
-                    //setAudioChannels(0, (int)reader->numChannels);                                // [7]
-
-                    associatedRegion->setBuffer(tempBuffer, file.getFileName(), reader->sampleRate);
-                    selectedFileLabel.setText(file.getFileName(), juce::NotificationType::dontSendNotification);
-                    
-                    lfoEditor.updateAvailableVoices();
-                    updateAllVoiceSettings(); //sets currently selected volume, pitch etc.
-
-                    juce::Array<DahdsrEnvelope*> associatedEnvelopes;
-                    juce::Array<Voice*> associatedVoices = associatedRegion->getAssociatedVoices();
-                    for (auto itVoice = associatedVoices.begin(); itVoice != associatedVoices.end(); itVoice++)
-                    {
-                        associatedEnvelopes.add((*itVoice)->getEnvelope());
-                    }
-                    dahdsrEditor.setAssociatedEnvelopes(associatedEnvelopes);
-
-                    copyRegionParameters(); //updates pitch quantisation, makes sure nothing's missing
+                    associatedEnvelopes.add((*itVoice)->getEnvelope());
                 }
-                else
-                {
-                    // handle the error that the file is 2 seconds or longer..
-                    DBG("[invalid file - callback WIP]");
+                dahdsrEditor.setAssociatedEnvelopes(associatedEnvelopes);
 
-                    associatedRegion->setBuffer(juce::AudioSampleBuffer(), "", 0.0); //empty buffer
-                }
+                copyRegionParameters(); //updates pitch quantisation, makes sure nothing's missing
+
+                associatedRegion->getAudioEngine()->suspendProcessing(false);
             }
         });
 }
@@ -343,7 +327,7 @@ void RegionEditor::updateFocusPosition()
 {
     associatedRegion->focus.setX(static_cast<float>(focusPositionX.getValue()));
     associatedRegion->focus.setY(static_cast<float>(focusPositionY.getValue()));
-    associatedRegion->repaint();
+    associatedRegion->timerCallback(); //this is what recalculates the LFO line coords
 }
 
 void RegionEditor::renderLfoWaveform()
@@ -388,9 +372,4 @@ void RegionEditor::updatePlaybackPosition()
     {
         //(*it)->setBasePlaybackPosition(playbackPositionSlider.getValue());
     }
-}
-
-void RegionEditor::deleteRegion()
-{
-    //WIP: later, this will remove the associated Region from the canvas
 }

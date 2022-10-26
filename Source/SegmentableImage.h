@@ -53,6 +53,8 @@ public:
 
     void resetPath();
     void clearRegions();
+    void removeRegionAsync(int regionID);
+    void removeRegion(int regionID);
 
     void tryCompletePath();
 
@@ -73,10 +75,12 @@ private:
     SegmentableImageStateIndex currentStateIndex;
     SegmentableImageState* currentState = nullptr;
 
-    juce::Path currentPath;
+    juce::Path currentPath; //allows to easily reduce the area that has to be redrawn when adding/removing drawing points
     juce::Array<juce::Point<float>> currentPathPoints; //WIP: normalise these to [0...1] so that, when resizing, the path can be redrawn
 
     AudioEngine* audioEngine;
+
+    juce::Rectangle<float> getAbsolutePathBounds();
 
     void addRegion(SegmentedRegion* newRegion);
 

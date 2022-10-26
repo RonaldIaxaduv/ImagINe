@@ -203,22 +203,18 @@
 	- theory 3: some leaks happen because AudioEngine is still rendering blocks while some (playing) parts are being deleted
 		-> fix 1: stop audio engine when pressing the close button, then delete all contents
 		-> fix 2: implement locks (probably good idea in the long run, but perhaps too much work for this one fix...)
-- calculate a region's colour from the pixels behind it
+# calculate a region's colour from the pixels behind it
 	# use the median of all the colours
 	# also increase the region's transparency by 10-20% -> makes it so that the region maintains some of the background's textures instead of being just a solid colour, should look more professional
-	?- actually, is it even calculated correctly atm?
-		- probably no, see https://en.wikipedia.org/wiki/Median#Multivariate_median
-	- still a little slow atm
-		- don't iterate over the image's original size - instead, iterate over the images size in the window and map the iterated values to positions in the original image
+	?# actually, is it even calculated correctly atm?
+		# probably no, see https://en.wikipedia.org/wiki/Median#Multivariate_median
+	# still a little slow atm
+		# don't iterate over the image's original size - instead, iterate over the images size in the window and map the iterated values to positions in the original image
 		- ?
 # draw LFO line with a black outline
 # draw segmented region with a contrasting outline
-- bug: when closing the window with a lot of regions on it, some of the parameters end up containing invalid modulators, thus causing an exception
-	- pretty sure some LFOs aren't correctly unsubscribed when LFOs/Voices/? are deleted
-- check whether it's possible to resize VSTs
+# check whether it's possible to resize VSTs
 	- huh, apparently it should be possible o.ô -> look into that further!
-- make it possible to delete regions
-	- to handle all the audio parameters, create a method in the *audio engine*(!) that deletes all voices with the region's id from the LFOs' voice lists, and then all of those voices from the synth
 # bug: samplesUntilUpdate of LFO should be reset to 0 after a voice stops (otherwise, the LFO line will be drawn with a temporal offset...)
 # bug: ^- the playback position should do so as well - does it?
 # bug: LFO line doesn't recognise modulations of the RegionLfo's update interval
@@ -230,8 +226,27 @@
 	-> solution: since this is a problem that'll only occur once (at least presumably) and not in other instances of ModulatableParameter, it should be fine to just create a new variable that stores the latest modulated phase, and a getter method for that variable 
 # add an option to make the pitch shift quantised to either semitones or a normal scale (might be possible to do with the interpolation tables?)
 	- this would add SO MUCH since actual, non-chaotic *melodies* could be created with it using a region that pitch mods itself at a slow interval and a second region that alters the first region's update rate or LFO rate
+# reset region counter when re-initialising the image
+# make it possible to delete regions
+	/ to handle all the audio parameters, create a method in the *audio engine*(!) that deletes all voices with the region's id from the LFOs' voice lists, and then all of those voices from the synth
+		-> obsolete now
+	- ugh, seems like it'll be necessary to create a new SegmentableImageState for this, it can't be handled from the RegionEditor because it'll throw access exceptions from trying to delete a parent while its child is running code...
+		!# actually, just add a key binding to delete regions using the delete button during drawing/editing!
+# stop playing regions when switching to drawing mode (editing mode should be fine, enables user to open editor windows for some quick adjustments while playing without any interruptions - see next line)
+# close region editor windows when switching to drawing mode (playing mode should be fine - in fact, being able to leave the editor windows open while playing would be extremely handy)
+# suspend processing of the audio engine while loading in new audio files
+# bug: resizing breaks the positions of drawing points
+	-> reason: the point values are currently absolute, not relative -> should be a pretty easy fix tbh
+# bug: the LFO line isn't drawn before the region is first played
+	-> didn't call timerCallback() during resize() (which was a problem because the LFO line coords are recalculated there)
+# bug: the LFO line isn't redrawn when the focus point is shifted
+	-> same mistake as above
+- minor bug: window is still resizable even when in editing/playing mode
+!- bug: when closing the window with a lot of regions on it, some of the parameters end up containing invalid modulators, thus causing an exception
+	- pretty sure some LFOs aren't correctly unsubscribed when LFOs/Voices/? are deleted
 - serialisation
 - implement play path(s)
+
 - implement more scales
 
 

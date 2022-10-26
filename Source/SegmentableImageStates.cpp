@@ -175,6 +175,17 @@ bool SegmentableImageState_DrawingRegion::keyPressed(const juce::KeyPress& key, 
         image.tryCompletePath();
         return true;
     }
+    else if (key == juce::KeyPress::deleteKey)
+    {
+        //try to delete region (if there is any here)
+        auto mousePos = image.getMouseXYRelative();
+        juce::Component* region = image.getComponentAt(mousePos.getX(), mousePos.getY());
+
+        if (region != static_cast<juce::Component*>(&image))
+        {
+            image.removeRegion(static_cast<SegmentedRegion*>(region)->getID());
+        }
+    }
 
     //else
     DBG("unhandled key");
@@ -224,7 +235,17 @@ bool SegmentableImageState_EditingRegions::keyPressed(const juce::KeyPress& key,
 
     DBG(key.getTextCharacter());
 
-    //currently no key bindings for this state
+    if (key == juce::KeyPress::deleteKey)
+    {
+        //try to delete region (if there is any here)
+        auto mousePos = image.getMouseXYRelative();
+        juce::Component* region = image.getComponentAt(mousePos.getX(), mousePos.getY());
+
+        if (region != static_cast<juce::Component*>(&image))
+        {
+            image.removeRegion(static_cast<SegmentedRegion*>(region)->getID());
+        }
+    }
 
     //else
     DBG("unhandled key");

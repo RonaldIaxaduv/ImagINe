@@ -36,6 +36,7 @@ public:
     int getNextRegionID();
     int getLastRegionID();
     int addNewRegion(const juce::Colour& regionColour);
+    void resetRegionIDs();
 
     juce::Colour getRegionColour(int regionID);
     void changeRegionColour(int regionID, juce::Colour newColour);

@@ -47,7 +47,9 @@ SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangl
     renderLfoWaveform(); //initialises LFO further (generates its wavetable)
 
     setBuffer(juce::AudioSampleBuffer(), "", 0.0); //no audio file set yet -> empty buffer
-    DBG(juce::String(p.getLength()));
+    
+    //currentLfoLine = juce::Line<float>(juce::Point<float>(0.0f, 0.0f), juce::Point<float>(static_cast<float>(getWidth()), static_cast<float>(getHeight()))); //diagonal -> entire region will be redrawn (a little hacky, but ensures that the LFO line is drawn before the region is first played)
+    //repaint(); //paints the LFO line
 }
 
 SegmentedRegion::~SegmentedRegion()
@@ -57,7 +59,7 @@ SegmentedRegion::~SegmentedRegion()
     stopTimer();
 
     //WIP maybe the close button of the editor window will have to be pressed before dropping the pointer
-    if (regionEditorWindow)
+    if (regionEditorWindow != nullptr)
     {
         DBG("RegionEditorWindow still alive -> deleting");
         regionEditorWindow.deleteAndZero();
@@ -215,8 +217,8 @@ void SegmentedRegion::paintOverChildren(juce::Graphics& g)
     float focusRadius = 2.5f;
     g.fillEllipse(focusPt.x - focusRadius,
         focusPt.y - focusRadius,
-        2 * focusRadius,
-        2 * focusRadius);
+        2.0f * focusRadius,
+        2.0f * focusRadius);
 
     if (associatedLfo == nullptr)
     {
@@ -271,6 +273,9 @@ void SegmentedRegion::resized() //WIP: for some reason, this is called when hove
     //recalculate hitbox
     p.scaleToFit(0.0f, 0.0f, (float)getWidth(), (float)getHeight(), false);
 
+    //repaint LFO line
+    timerCallback();
+
     juce::DrawableButton::resized();
 }
 
@@ -309,6 +314,16 @@ void SegmentedRegion::transitionToState(SegmentedRegionStateIndex stateToTransit
             setToggleState(false, juce::NotificationType::dontSendNotification);
             setToggleable(false);
             setClickingTogglesState(false);
+
+            if (isPlaying)
+            {
+                stopPlaying();
+            }
+
+            if (regionEditorWindow != nullptr)
+            {
+                regionEditorWindow.deleteAndZero(); //close editor window
+            }
 
             DBG("SegmentedRegion not interactable");
             break;
@@ -360,40 +375,12 @@ void SegmentedRegion::triggerDrawableButtonStateChanged()
     juce::DrawableButton::buttonStateChanged();
 }
 
-//void SegmentedRegion::clicked(const juce::ModifierKeys& modifiers)
-//{
-//    juce::Button::buttonStateChanged();
-//
-//    //clicked(modifiers); //base class stuff
-//
-//    //modifiers.isRightButtonDown() -> differentiate between left and right mouse button like this
-//
-//    switch (currentState)
-//    {
-//    case SegmentedRegionState::Standby:
-//        DBG("*stands by*");
-//        break;
-//
-//    case SegmentedRegionState::Editing:
-//        DBG("*shows editor window*");
-//        if (regionEditorWindow != nullptr)
-//        {
-//            regionEditorWindow->toFront(true);
-//        }
-//        else
-//        {
-//            regionEditorWindow = juce::Component::SafePointer<RegionEditorWindow>(new RegionEditorWindow("Region " + juce::String(ID) + " Editor", this));
-//        }
-//        break;
-//
-//    case SegmentedRegionState::Playable:
-//        //handled though buttonStateChanged
-//        break;
-//    }
-//}
 void SegmentedRegion::clicked(const juce::ModifierKeys& modifiers)
 {
-    return currentState->clicked(modifiers);
+    if (modifiers.isLeftButtonDown())
+    {
+        return currentState->clicked(modifiers);
+    }
 }
 
 void SegmentedRegion::setBuffer(juce::AudioSampleBuffer newBuffer, juce::String fileName, double origSampleRate)

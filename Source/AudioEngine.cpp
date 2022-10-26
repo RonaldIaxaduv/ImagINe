@@ -53,6 +53,11 @@ int AudioEngine::addNewRegion(const juce::Colour& regionColour)
 
     return newRegionID;
 }
+void AudioEngine::resetRegionIDs()
+{
+    regionIdCounter = -1;
+    regionColours.clear();
+}
 
 juce::Colour AudioEngine::getRegionColour(int regionID)
 {

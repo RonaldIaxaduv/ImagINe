@@ -49,8 +49,6 @@ private:
     void updatePitch();
     void updatePlaybackPosition();
 
-    void deleteRegion();
-
     //================================================================
     SegmentedRegion* associatedRegion;
 
@@ -77,8 +75,6 @@ private:
     juce::ComboBox pitchQuantisationChoice;
 
     LfoEditor lfoEditor;
-
-    juce::TextButton deleteRegionButton;
 
     std::unique_ptr<juce::FileChooser> fc;
     juce::AudioFormatManager formatManager;

@@ -28,8 +28,6 @@ SegmentableImage::SegmentableImage(AudioEngine* audioEngine) : juce::ImageCompon
     currentState = states[static_cast<int>(currentStateIndex)];
 
     //initialise remaining members
-    //currentPathPoints = { };
-    //regions = { };
     this->audioEngine = audioEngine;
 
     setSize(500, 500);
@@ -67,30 +65,34 @@ void SegmentableImage::paint(juce::Graphics& g)
 
     if (currentPathPoints.size() > 0)
     {
-        //g.strokePath(currentPath, juce::PathStrokeType(5.0f, juce::PathStrokeType::JointStyle::curved, juce::PathStrokeType::EndCapStyle::rounded));
-        //g.fillPath(currentPath);
+        //paint currently drawn path
+        float width = static_cast<float>(getWidth());
+        float height = static_cast<float>(getHeight());
 
         juce::Point<float> p1, p2;
-        float dotRadius = 2.0f, lineThickness = 1.5f;
+        float dotRadius = 2.0f, lineThickness = 2.0f;
 
         p1 = currentPathPoints[0];
+        p1.setXY(p1.getX() * width, p1.getY() * height); //convert relative coords to absolute coords
         g.setColour(juce::Colours::black);
         g.fillEllipse(p1.x - dotRadius, p1.y - dotRadius, dotRadius * 2.0f, dotRadius * 2.0f);
         g.setColour(juce::Colours::gold);
-        g.fillEllipse(p1.x - dotRadius, p1.y - dotRadius, dotRadius * 1.5f, dotRadius * 1.5f);
+        g.fillEllipse(p1.x - dotRadius * 0.75f, p1.y - dotRadius * 0.75f, dotRadius * 1.5f, dotRadius * 1.5f);
 
         for (int i = 1; i < currentPathPoints.size(); ++i)
         {
             p2 = currentPathPoints[i];
+            p2.setXY(p2.getX() * width, p2.getY() * height); //convert relative coords to absolute coords
             g.setColour(juce::Colours::black);
             g.drawLine(juce::Line<float>(p1, p2), lineThickness);
             g.setColour(juce::Colours::gold);
-            g.drawLine(juce::Line<float>(p1, p2), lineThickness * 0.666f);
+            g.drawLine(juce::Line<float>(p1, p2), lineThickness * 0.5f);
             
             g.setColour(juce::Colours::black);
             g.fillEllipse(p2.x - dotRadius, p2.y - dotRadius, dotRadius * 2.0f, dotRadius * 2.0f);
             g.setColour(juce::Colours::gold);
-            g.fillEllipse(p2.x - dotRadius, p2.y - dotRadius, dotRadius * 1.5f, dotRadius * 1.5f);
+            g.fillEllipse(p2.x - dotRadius * 0.75f, p2.y - dotRadius * 0.75f, dotRadius * 1.5f, dotRadius * 1.5f);
+            
             p1 = p2;
         }
     }
@@ -107,9 +109,9 @@ void SegmentableImage::resized()
     {
         auto relativeBounds = r->relativeBounds;
         juce::Rectangle<float> newBounds(relativeBounds.getX() * curBounds.getWidth(),
-            relativeBounds.getY() * curBounds.getHeight(),
-            relativeBounds.getWidth() * curBounds.getWidth(),
-            relativeBounds.getHeight() * curBounds.getHeight());
+                                         relativeBounds.getY() * curBounds.getHeight(),
+                                         relativeBounds.getWidth() * curBounds.getWidth(),
+                                         relativeBounds.getHeight() * curBounds.getHeight());
         r->setBounds(newBounds.toNearestInt());
     }
 }
@@ -228,10 +230,15 @@ void SegmentableImage::startNewRegion(juce::Point<float> newPt)
 {
     if (getLocalBounds().contains(newPt.toInt()))
     {
-        DBG("new path: " + newPt.toString());
-        currentPath.startNewSubPath(newPt);
-        currentPathPoints.add(newPt);
-        repaint(currentPath.getBounds().expanded(3.0f, 3.0f).toNearestInt());
+        juce::Point<float> relativePt(newPt.getX() / static_cast<float>(getWidth()), newPt.getY() / static_cast<float>(getHeight()));
+        //DBG("new path: " + newPt.toString());
+        DBG("new path: " + relativePt.toString());
+
+        //currentPath.startNewSubPath(newPt);
+        currentPath.startNewSubPath(relativePt);
+        //currentPathPoints.add(newPt);
+        currentPathPoints.add(relativePt); //convert absolute coords to relative coords
+        repaint(getAbsolutePathBounds().expanded(3.0f, 3.0f).toNearestInt());
         transitionToState(SegmentableImageStateIndex::drawingRegion);
     }
 }
@@ -239,16 +246,37 @@ void SegmentableImage::addPointToPath(juce::Point<float> newPt)
 {
     if (getLocalBounds().contains(newPt.toInt()))
     {
-        DBG("next point: " + newPt.toString());
-        currentPath.lineTo(newPt);
-        currentPathPoints.add(newPt);
-        repaint(currentPath.getBounds().expanded(3.0f, 3.0f).toNearestInt());
+        juce::Point<float> relativePt(newPt.getX() / static_cast<float>(getWidth()), newPt.getY() / static_cast<float>(getHeight()));
+        //DBG("next point: " + newPt.toString());
+        DBG("next point: " + relativePt.toString());
+
+        //currentPath.lineTo(newPt);
+        currentPath.lineTo(relativePt);
+        //currentPathPoints.add(newPt);
+        currentPathPoints.add(juce::Point<float>(newPt.getX() / static_cast<float>(getWidth()), newPt.getY() / static_cast<float>(getHeight()))); //convert absolute coords to relative coords
+        repaint(getAbsolutePathBounds().expanded(3.0f, 3.0f).toNearestInt());
     }
 }
 
 
 
 
+
+juce::Rectangle<float> SegmentableImage::getAbsolutePathBounds()
+{
+    juce::Rectangle<float> relativeBounds = currentPath.getBounds();
+
+    juce::Rectangle<float> output;
+    output = output
+        .withX(relativeBounds.getX() * static_cast<float>(getWidth()))
+        .withY(relativeBounds.getY() * static_cast<float>(getHeight()))
+        .withWidth(relativeBounds.getWidth() * static_cast<float>(getWidth()))
+        .withHeight(relativeBounds.getHeight() * static_cast<float>(getHeight()));
+
+    DBG("absolute path bounds: " + output.toString());
+
+    return output;
+}
 
 void SegmentableImage::resetPath()
 {
@@ -276,7 +304,7 @@ void SegmentableImage::tryCompletePath()
 
     //calculate bounds
     DBG("calculating region's bounds...");
-    juce::Rectangle<float> origRegionBounds(currentPath.getBounds().toFloat());
+    juce::Rectangle<float> origRegionBounds(getAbsolutePathBounds());
     juce::Rectangle<float> origParentBounds(getBounds().toFloat());
     juce::Rectangle<float> relativeBounds(origRegionBounds.getX() / origParentBounds.getWidth(),
         origRegionBounds.getY() / origParentBounds.getHeight(),
@@ -304,6 +332,8 @@ void SegmentableImage::tryCompletePath()
     float yMax = origRegionBounds.getY() + origRegionBounds.getHeight();
     float scaleX = static_cast<float>(associatedImage.getWidth()) / origParentBounds.getWidth();
     float scaleY = static_cast<float>(associatedImage.getHeight()) / origParentBounds.getHeight();
+    float widthDenom = 1.0f / static_cast<float>(getWidth());
+    float heightDenom = 1.0f / static_cast<float>(getHeight());
     DBG("image search region: x[" + juce::String(xMin) + ", " + juce::String(xMax) + "], y[" + juce::String(yMin) + ", " + juce::String(yMax) + "]");
     DBG("path search region: x[" + juce::String(xMin * scaleX) + ", " + juce::String(xMax * scaleX) + "], y[" + juce::String(yMin * scaleY) + ", " + juce::String(yMax * scaleY) + "]");
     for (float x = xMin; x <= xMax; ++x)
@@ -311,7 +341,7 @@ void SegmentableImage::tryCompletePath()
         for (float y = yMin; y <= yMax; ++y)
         {
             //check whether the point is actually contained within the path (origParentBounds is only the largest rectangle containing all points in the path!)
-            if (currentPath.contains(x, y)) //(currentPath.contains(x * scaleX, y * scaleY))
+            if (currentPath.contains(x * widthDenom, y * heightDenom)) //(currentPath.contains(x * scaleX, y * scaleY))
             {
                 //contained! -> add pixel to the histogram
                 //juce::Colour nextColour = associatedImage.getPixelAt(static_cast<int>(x), static_cast<int>(y));
@@ -330,25 +360,6 @@ void SegmentableImage::tryCompletePath()
         }
     }
     DBG("histogram contains " + juce::String(colourHistogram.size()) + " entries.");
-
-    //calculate the average colour
-    //double totalR = 0.0, totalG = 0.0, totalB = 0.0;
-    //double totalCount = 0;
-    //for (juce::HashMap<juce::String, int>::Iterator it (colourHistogram); it.next();)
-    //{
-    //    juce::Colour c = juce::Colour::fromString(it.getKey());
-    //    double count = static_cast<double>(it.getValue());
-
-    //    totalR = static_cast<double>(c.getRed()) * count;
-    //    totalG = static_cast<double>(c.getGreen()) * count;
-    //    totalB = static_cast<double>(c.getBlue()) * count;
-    //    totalCount += count;
-    //}
-    //DBG("totals: " + juce::String(totalR) + ", " + juce::String(totalG) + ", " + juce::String(totalB) + ", " + juce::String(totalCount));
-    //juce::Colour averageColour = juce::Colour(juce::uint8(static_cast<int>(totalR / totalCount)),
-    //                                          juce::uint8(static_cast<int>(totalG / totalCount)),
-    //                                          juce::uint8(static_cast<int>(totalB / totalCount)));
-    //DBG("average colour: " + juce::String(averageColour.getRed()) + ", " + juce::String(averageColour.getGreen()) + ", " + juce::String(averageColour.getBlue()));
 
     //calculate (squared) distance of every contained colour to the average colour
     juce::Array<juce::Colour> coloursSorted;
@@ -392,9 +403,9 @@ void SegmentableImage::tryCompletePath()
 
     DBG("adding new region...");
     SegmentedRegion* newRegion = new SegmentedRegion(currentPath, relativeBounds, fillColour, audioEngine);
-    newRegion->setBounds(currentPath.getBounds().toNearestInt());
+    newRegion->setBounds(getAbsolutePathBounds().toNearestInt());
     addRegion(newRegion);
-    //newRegion->triggerButtonStateChanged();
+    //newRegion->triggerButtonStateChanged(); //not necessary
     newRegion->triggerDrawableButtonStateChanged();
     resetPath();
     transitionToState(SegmentableImageStateIndex::withImage);
@@ -412,18 +423,23 @@ void SegmentableImage::deleteLastNode()
     {
         //reconstruct path object up to the previously second last point
         int i = 0;
+        float width = static_cast<float>(getWidth());
+        float height = static_cast<float>(getHeight());
         for (auto itPt = currentPathPoints.begin(); itPt != currentPathPoints.end(); itPt++, i++)
         {
+            //juce::Point<float> absolutePt = juce::Point<float>(itPt->getX() * width, itPt->getY() * height); //convert back to absolute coords
             if (i == 0)
             {
                 currentPath.startNewSubPath(*itPt);
+                //currentPath.startNewSubPath(absolutePt);
             }
             else
             {
                 currentPath.lineTo(*itPt);
+                //currentPath.lineTo(absolutePt);
             }
         }
-        repaint(currentPath.getBounds().expanded(3.0f, 3.0f).toNearestInt());
+        repaint(getAbsolutePathBounds().expanded(3.0f, 3.0f).toNearestInt());
     }
     else //currentPathPoints.isEmpty()
     {
@@ -445,12 +461,32 @@ void SegmentableImage::clearRegions()
     }
     audioEngine->suspendProcessing(true);
     regions.clear(true);
+    audioEngine->resetRegionIDs();
     audioEngine->suspendProcessing(false);
+}
+void SegmentableImage::removeRegion(int regionID)
+{
+    int i = 0;
+    for (auto it = regions.begin(); it != regions.end(); ++it, ++i)
+    {
+        if ((*it)->getID() == regionID)
+        {
+            //found the region -> remove
+            removeChildComponent(*it);
+            audioEngine->suspendProcessing(true);
+            regions.remove(i, true); //automatically removes voices, LFOs etc.
+            audioEngine->suspendProcessing(false);
+            return; //no two regions with the same ID
+        }
+    }
+
+    //WIP: if a region has been deleted, tell all other regions to update their region editors, if they have that window currently open
+
 }
 
 void SegmentableImage::clearPath()
 {
-    auto formerArea = currentPath.getBounds().expanded(3.0f, 3.0f).toNearestInt();
+    auto formerArea = getAbsolutePathBounds().expanded(3.0f, 3.0f).toNearestInt();
     currentPath.clear();
     //currentPathPoints remain! if you want to remove them, use resetPath() instead.
     repaint(formerArea);

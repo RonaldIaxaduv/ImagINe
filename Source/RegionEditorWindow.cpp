@@ -14,7 +14,7 @@ RegionEditorWindow::RegionEditorWindow(juce::String name, SegmentedRegion* regio
     : DocumentWindow(name,
         juce::Desktop::getInstance().getDefaultLookAndFeel()
         .findColour(juce::ResizableWindow::backgroundColourId),
-        DocumentWindow::allButtons)
+        DocumentWindow::minimiseButton | DocumentWindow::closeButton)
 {
     setUsingNativeTitleBar(false);
     setContentOwned(new RegionEditor(region), true);
@@ -23,6 +23,7 @@ RegionEditorWindow::RegionEditorWindow(juce::String name, SegmentedRegion* regio
     setFullScreen(true);
 #else
     setResizable(true, true);
+    setResizeLimits(100, 200, 4096, 2160); //max resolution: 4k
     centreWithSize(300, 600);
 #endif
 
