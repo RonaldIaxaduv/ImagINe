@@ -231,8 +231,6 @@ void SegmentableImage::startNewRegion(juce::Point<float> newPt)
     if (getLocalBounds().contains(newPt.toInt()))
     {
         juce::Point<float> relativePt(newPt.getX() / static_cast<float>(getWidth()), newPt.getY() / static_cast<float>(getHeight()));
-        //DBG("new path: " + newPt.toString());
-        DBG("new path: " + relativePt.toString());
 
         //currentPath.startNewSubPath(newPt);
         currentPath.startNewSubPath(relativePt);
@@ -247,8 +245,6 @@ void SegmentableImage::addPointToPath(juce::Point<float> newPt)
     if (getLocalBounds().contains(newPt.toInt()))
     {
         juce::Point<float> relativePt(newPt.getX() / static_cast<float>(getWidth()), newPt.getY() / static_cast<float>(getHeight()));
-        //DBG("next point: " + newPt.toString());
-        DBG("next point: " + relativePt.toString());
 
         //currentPath.lineTo(newPt);
         currentPath.lineTo(relativePt);
@@ -266,16 +262,11 @@ juce::Rectangle<float> SegmentableImage::getAbsolutePathBounds()
 {
     juce::Rectangle<float> relativeBounds = currentPath.getBounds();
 
-    juce::Rectangle<float> output;
-    output = output
+    return juce::Rectangle<float>()
         .withX(relativeBounds.getX() * static_cast<float>(getWidth()))
         .withY(relativeBounds.getY() * static_cast<float>(getHeight()))
         .withWidth(relativeBounds.getWidth() * static_cast<float>(getWidth()))
-        .withHeight(relativeBounds.getHeight() * static_cast<float>(getHeight()));
-
-    DBG("absolute path bounds: " + output.toString());
-
-    return output;
+        .withHeight(relativeBounds.getHeight() * static_cast<float>(getHeight()));;
 }
 
 void SegmentableImage::resetPath()

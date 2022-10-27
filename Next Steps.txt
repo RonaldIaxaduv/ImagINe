@@ -15,8 +15,8 @@
 		# when checking/unchecking items from the list, update the LFO's voice array
 			# fixed order: smallest region id to largest region id
 		# bug: LFOs currently don't modulate their own associated region, only other regions
- !		- later: when deleting regions, make sure to adjust the LFOs' lists as well!
-			- make the broadcaster a ChangeBroadcaster and add the settings menus as listeners -> notify when the LFOs list changes
+		# later: when deleting regions, make sure to adjust the LFOs' lists as well!
+			/ make the broadcaster a ChangeBroadcaster and add the settings menus as listeners -> notify when the LFOs list changes
 	# create unipolar/bipolar LFO modes
 		# unipolar: rewrites(!) the LFO's values to 0...1  ->  good for velocity modulation for instance
 		# bipolar: rewrites(!) the LFO's values to -1...1  ->  good for pitch modulation for instance
@@ -153,6 +153,7 @@
 		- first comment of the first reply here is also important: https://stackoverflow.com/questions/21215409/does-c-pass-objects-by-value-or-reference
 			- for a more direct example: https://stackoverflow.com/questions/9293674/can-we-reassign-the-reference-in-c#9293732
 	- declare methods as const if they don't change member variables: https://stackoverflow.com/questions/24500909/passing-class-reference-to-function
+  !	- take a look at https://docs.juce.com/master/tutorial_simd_register_optimisation.html
 # bug: LFO line doesn't update when LFO doesn't modulate anything
 	- a RegionLfoState wasn't set up correctly, that's all
 # bug: the LFO line doesn't keep updating while the voice is tailing off (-> just create a bool variable isPlaying in Voice that's checked for that purpose)
@@ -254,13 +255,23 @@
 	# pretty sure some LFOs aren't correctly unsubscribed when LFOs/Voices/? are deleted
 	# seems like it's probably voice parameters that haven't been unsubscribed after the voice has been deleted(?)
 		-> ahh, the LFO didn't unsubscribe other LFOs from its parameters. should hopefully be fixed now.
-- serialisation
-- implement play path(s)
+# give focus point an outline for better visibility
+- make unipolar modulation symmetrical like bipolar modulation (see yesterday's note)
+!- serialisation
+	- saving the SegmentedRegion values will be a challenge actually, cos the ProcessorEditor may be closed when the data is saved (e.g. when the DAW's file is saved)
+	-> new classes SegmentedRegionData, SegmentableImageData -> owned and serialised by *AudioEngine*, pointer provided to and content updated by SegmentedRegion, SegmentableImage
+!- implement play path(s)
+!- check docs.juce.com/master/tutorial_app_plugin_packaging.html
 
+- are mp3s supported yet?
+?- LFO phase modulation doesn't seem to work quite right just yet
+	- setup: 1 region modding its own pitch (no quant) at 5 Hz, another region modding region 1's phase at 0.03 Hz -> wobble should alternate between being strong and weak, but it actually doesn' atm (it seems to be correctly displayed for the LFO line though)
 - implement more scales
 - implement more parameters
-	- current LFO phase (rename current implementation "LFO phase multiplier)"
+	- current LFO phase (rename current implementation "LFO phase multiplier")
+		- is there a way to calculate this modded value efficiently without if cases?
 	- current playback position (rename current implementation "current playback position multiplier")
+		- is there a way to calculate this modded value efficiently without if cases?
 - add a button next to the LFO phase editor to switch its units to ms instead of Hz
 - add a combobox to the region editor to switch between "simple options" and "advanced options" to make things easier to get into
 	- ADSR instead of DAHDSR, no setting for the peak volume

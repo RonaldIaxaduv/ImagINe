@@ -87,6 +87,9 @@ public:
     void prepareUpdateInterval();
     double getMsUntilUpdate();
 
+    float getDepth();
+    void setDepth(float newDepth);
+
 protected:
     int regionID; //ID of the region that this LFO is associated with
 

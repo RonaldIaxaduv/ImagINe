@@ -543,6 +543,18 @@ double RegionLfo::getMsUntilUpdate()
     return 1000.0 * static_cast<double>(samplesUntilUpdate) / sampleRate;
 }
 
+float RegionLfo::getDepth()
+{
+    return depth;
+}
+void RegionLfo::setDepth(float newDepth)
+{
+    depth = newDepth;
+}
+
+
+
+
 bool RegionLfo::isPrepared()
 {
     return currentStateIndex > RegionLfoStateIndex::unprepared; //this yields the desired result, because all states that follow this one will have had to be prepared beforehand

@@ -235,11 +235,16 @@ void SegmentedRegion::paintOverChildren(juce::Graphics& g)
     }
 
     //draw focus point (looks better when drawn after the line)
-    g.setColour(focusPointColour);
+    g.setColour(focusPointColour.contrasting());
     g.fillEllipse(focusAbs.x - focusRadius,
-                  focusAbs.y - focusRadius,
-                  2.0f * focusRadius,
-                  2.0f * focusRadius);
+        focusAbs.y - focusRadius,
+        2.0f * focusRadius,
+        2.0f * focusRadius);
+    g.setColour(focusPointColour);
+    g.fillEllipse(focusAbs.x - focusRadius * 0.75,
+                  focusAbs.y - focusRadius * 0.75,
+                  1.5f * focusRadius,
+                  1.5f * focusRadius);
 
     //check whether the update interval changed (e.g. due to modulation)
     //int newTimerIntervalMs = static_cast<int>(associatedLfo->getUpdateInterval_Milliseconds());
@@ -465,6 +470,14 @@ void SegmentedRegion::renderLfoWaveform()
     {
         associatedLfo->setWaveTable(waveform, RegionLfo::Polarity::unipolar);
     }
+
+    float maxLength = std::sqrtf(static_cast<float>(getParentWidth() * getParentWidth() + getParentHeight() * getParentHeight())); //diagonal of the image (-> longest line)
+    float maxDepthCutoff = 0.4f; //ratio of maxLength required to reach depth=1
+    float actualLength = (std::sqrtf(range.getEnd()) - std::sqrtf(range.getStart())); //subtract (ignore) the minimum length, because the minimum only adds a constant offset
+    actualLength = actualLength / maxLength; //ratio of maxLength
+    float newDepth = juce::jmin(actualLength, maxDepthCutoff) / maxDepthCutoff;
+    associatedLfo->setDepth(newDepth);
+    DBG("new depth: " + juce::String(associatedLfo->getDepth()));
 
     DBG("LFO's waveform has been rendered.");
 }
