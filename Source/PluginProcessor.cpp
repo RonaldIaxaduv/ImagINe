@@ -181,8 +181,14 @@ void ImageINeDemoAudioProcessor::getStateInformation (juce::MemoryBlock& destDat
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
 
-    //audioEngine.serialise(destData);
-    //
+    std::unique_ptr<juce::XmlElement> xml(new juce::XmlElement("ImageINe_Data"));
+    
+    xml->setAttribute("Plugin_Version", JucePlugin_VersionString);
+    xml->setAttribute("Serialisation_Version", serialisation_version);
+
+    audioEngine.serialise(xml.get());
+    
+    copyXmlToBinary(*xml, destData);
 }
 
 void ImageINeDemoAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
@@ -190,8 +196,16 @@ void ImageINeDemoAudioProcessor::setStateInformation (const void* data, int size
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
 
-    //audioEngine.deserialise(data, sizeInByes)
-    //
+    std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+    
+    if (xmlState.get() != nullptr && xmlState->hasTagName("ImageINe_Data"))
+    {
+        //WIP: check whether the XML's serialisation version (see const member variable) is ahead of the current serialisation version.
+        //     if so, don't load it (-> error prompt)!
+
+        audioEngine.deserialise(xmlState.get());
+    }
+
 }
 
 //==============================================================================

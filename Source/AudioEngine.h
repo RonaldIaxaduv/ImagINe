@@ -33,6 +33,9 @@ public:
     AudioEngine(juce::MidiKeyboardState& keyState, juce::AudioProcessor& associatedProcessor);
     ~AudioEngine() override;
 
+    void serialise(juce::XmlElement* xml);
+    void deserialise(juce::XmlElement* xml);
+
     int getNextRegionID();
     int getLastRegionID();
     int addNewRegion(const juce::Colour& regionColour);
@@ -78,6 +81,19 @@ private:
     juce::OwnedArray<RegionLfo> lfos; //one LFO per segmented region which represents that region's outline in relation to its focus point
 
     int regionIdCounter = -1;
+
+    void serialiseRegionColours(juce::XmlElement* xmlAudioEngine);
+    void serialiseRegions(juce::XmlElement* xmlAudioEngine);
+    void serialiseLFOs(juce::XmlElement* xmlAudioEngine);
+    void serialiseVoices(juce::XmlElement* xmlAudioEngine);
+    void serialiseImage(juce::XmlElement* xmlAudioEngine);
+
+    void deserialiseRegionColours(juce::XmlElement* xmlAudioEngine);
+    void deserialiseRegions(juce::XmlElement* xmlAudioEngine);
+    void deserialiseLFOs_main(juce::XmlElement* xmlAudioEngine);
+    void deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine);
+    void deserialiseVoices(juce::XmlElement* xmlAudioEngine);
+    void deserialiseImage(juce::XmlElement* xmlAudioEngine);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioEngine)
 };

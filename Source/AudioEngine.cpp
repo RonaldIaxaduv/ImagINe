@@ -32,6 +32,143 @@ AudioEngine::~AudioEngine()
     DBG("AudioEngine destroyed.");
 }
 
+void AudioEngine::serialise(juce::XmlElement* xml)
+{
+    DBG("serialising AudioEngine...");
+    juce::XmlElement* xmlAudioEngine = xml->createNewChildElement("AudioEngine");
+
+    //serialise region data
+    xmlAudioEngine->setAttribute("regionIdCounter", regionIdCounter);
+    serialiseRegionColours(xmlAudioEngine);
+    serialiseRegions(xmlAudioEngine);
+
+    //serialise LFO data
+    serialiseLFOs(xmlAudioEngine);
+
+    //serialise voice data
+    serialiseVoices(xmlAudioEngine);
+
+    //serialise image data
+    serialiseImage(xmlAudioEngine);
+
+    DBG("AudioEngine has been serialised.");
+}
+void AudioEngine::serialiseRegionColours(juce::XmlElement* xmlAudioEngine)
+{
+    DBG("serialising regionColours...");
+    juce::XmlElement* xmlRegionColours = xmlAudioEngine->createNewChildElement("regionColours");
+
+    xmlRegionColours->setAttribute("size", regionColours.size());
+
+    int i = 0;
+    for (auto itColour = regionColours.begin(); itColour != regionColours.end(); ++itColour, ++i)
+    {
+        xmlRegionColours->setAttribute("Colour_" + juce::String(i), itColour->toString()); //can be converted back via fromString()
+    }
+
+    DBG("regionColours has been serialised.");
+}
+void AudioEngine::serialiseRegions(juce::XmlElement* xmlAudioEngine)
+{
+
+}
+void AudioEngine::serialiseLFOs(juce::XmlElement* xmlAudioEngine)
+{
+    xmlAudioEngine->setAttribute("lfos_size", lfos.size());
+
+    int i = 0;
+    for (auto itLfo = lfos.begin(); itLfo != lfos.end(); ++itLfo, ++i)
+    {
+        juce::XmlElement* xmlLfo = xmlAudioEngine->createNewChildElement("LFO_" + juce::String(i));
+        (*itLfo)->serialise(xmlLfo);
+    }
+}
+void AudioEngine::serialiseVoices(juce::XmlElement* xmlAudioEngine)
+{
+
+}
+void AudioEngine::serialiseImage(juce::XmlElement* xmlAudioEngine)
+{
+
+}
+
+void AudioEngine::deserialise(juce::XmlElement* xml)
+{
+    DBG("deserialising AudioEngine...");
+    juce::XmlElement* xmlAudioEngine = xml->getChildByName("AudioEngine");
+
+    //deserialise region data
+    regionIdCounter = xmlAudioEngine->getIntAttribute("regionIdCounter");
+    deserialiseRegionColours(xmlAudioEngine);
+    deserialiseRegions(xmlAudioEngine);
+
+    //deserialise LFO data (excluding mods)
+    deserialiseLFOs_main(xmlAudioEngine);
+
+    //deserialise voice data
+    deserialiseVoices(xmlAudioEngine);
+
+    //deserialise LFO mods (now that all regions, LFOs and voices have been deserialised)
+    deserialiseLFOs_mods(xmlAudioEngine);
+
+    //deserialise image data
+    deserialiseImage(xmlAudioEngine);
+
+    DBG("AudioEngine has been deserialised.");
+}
+void AudioEngine::deserialiseRegionColours(juce::XmlElement* xmlAudioEngine)
+{
+    DBG("deserialising regionColours...");
+    juce::XmlElement* xmlRegionColours = xmlAudioEngine->getChildByName("regionColours");
+
+    regionColours.clear();
+
+    int size = xmlRegionColours->getIntAttribute("size");
+
+    for (int i = 0; i < size; ++i)
+    {
+        regionColours.add(juce::Colour::fromString(xmlRegionColours->getStringAttribute("Colour_" + juce::String(i))));
+    }
+
+    DBG("regionColours has been deserialised.");
+}
+void AudioEngine::deserialiseRegions(juce::XmlElement* xmlAudioEngine)
+{
+
+}
+void AudioEngine::deserialiseLFOs_main(juce::XmlElement* xmlAudioEngine)
+{
+    int size = xmlAudioEngine->getIntAttribute("lfos_size");
+
+    jassert(size == lfos.size()); //LFOs should already be initialised at this point, because the SegmentedRegion objects are deserialised first
+
+    for (int i = 0; i < size; ++i)
+    {
+        juce::XmlElement* xmlLfo = xmlAudioEngine->getChildByName("LFO_" + juce::String(i));
+        lfos[i]->deserialise_main(xmlLfo);
+    }
+}
+void AudioEngine::deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine)
+{
+    int size = xmlAudioEngine->getIntAttribute("lfos_size");
+
+    jassert(size == lfos.size()); //LFOs should already be initialised at this point, because the SegmentedRegion objects are deserialised first
+
+    for (int i = 0; i < size; ++i)
+    {
+        juce::XmlElement* xmlLfo = xmlAudioEngine->getChildByName("LFO_" + juce::String(i));
+        lfos[i]->deserialise_mods(xmlLfo);
+    }
+}
+void AudioEngine::deserialiseVoices(juce::XmlElement* xmlAudioEngine)
+{
+
+}
+void AudioEngine::deserialiseImage(juce::XmlElement* xmlAudioEngine)
+{
+
+}
+
 int AudioEngine::getNextRegionID()
 {
     return ++regionIdCounter;

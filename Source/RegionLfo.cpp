@@ -552,6 +552,90 @@ void RegionLfo::setDepth(float newDepth)
     depth = newDepth;
 }
 
+void RegionLfo::serialise(juce::XmlElement* xmlLfo)
+{
+    DBG("serialising LFO...");
+
+    xmlLfo->setAttribute("regionID", regionID);
+
+    xmlLfo->setAttribute("currentTablePos", currentTablePos);
+    xmlLfo->setAttribute("depth", depth);
+    xmlLfo->setAttribute("updateIntervalMs", updateIntervalMs);
+
+    xmlLfo->setAttribute("frequencyModParameter_base", frequencyModParameter.getBaseValue());
+    xmlLfo->setAttribute("phaseModParameter_base", phaseModParameter.getBaseValue());
+    xmlLfo->setAttribute("updateIntervalParameter_base", updateIntervalParameter.getBaseValue());
+
+    juce::XmlElement* xmlParameterIDs = xmlLfo->createNewChildElement("modulatedParameterIDs");
+    xmlParameterIDs->setAttribute("size", modulatedParameterIDs.size());
+    int i = 0;
+    for (auto itParamID = modulatedParameterIDs.begin(); itParamID != modulatedParameterIDs.end(); ++itParamID, ++i)
+    {
+        xmlParameterIDs->setAttribute("ID_" + juce::String(i), static_cast<int>(*itParamID));
+    }
+
+    juce::XmlElement* xmlRegionIDs = xmlLfo->createNewChildElement("affectedRegionIDs");
+    xmlRegionIDs->setAttribute("size", affectedRegionIDs.size());
+    i = 0;
+    for (auto itRegionID = affectedRegionIDs.begin(); itRegionID != affectedRegionIDs.end(); ++itRegionID, ++i)
+    {
+        xmlRegionIDs->setAttribute("ID_" + juce::String(i), *itRegionID);
+    }
+
+    //wavetable/wavetableUnipolar not needed, because the LFO will be initialised with its corresponding SegmentedRegion beforehand
+
+    DBG("LFO has been serialised.");
+}
+void RegionLfo::deserialise_main(juce::XmlElement* xmlLfo)
+{
+    DBG("deserialising LFO (excluding mods)..."); //reason: all LFOs and voices have to be initialised, first!
+
+    regionID = xmlLfo->getIntAttribute("regionID");
+
+    currentTablePos = xmlLfo->getDoubleAttribute("currentTablePos");
+    depth = xmlLfo->getDoubleAttribute("depth");
+    updateIntervalMs = xmlLfo->getDoubleAttribute("updateIntervalMs");
+
+    frequencyModParameter.setBaseValue(xmlLfo->getDoubleAttribute("frequencyModParameter_base"));
+    phaseModParameter.setBaseValue(xmlLfo->getDoubleAttribute("phaseModParameter_base"));
+    updateIntervalParameter.setBaseValue(xmlLfo->getDoubleAttribute("updateIntervalParameter_base"));
+
+    DBG("LFO has been deserialised (except for mods).");
+}
+void RegionLfo::deserialise_mods(juce::XmlElement* xmlLfo)
+{
+    DBG("deserialising LFO mods...");
+
+    juce::XmlElement* xmlParameterIDs = xmlLfo->getChildByName("modulatedParameterIDs");
+    int size = xmlParameterIDs->getIntAttribute("size");
+    juce::Array<LfoModulatableParameter> pIDs;
+    for (int i = 0; i < size; ++i)
+    {
+        pIDs.add(static_cast<LfoModulatableParameter>(xmlParameterIDs->getIntAttribute("ID_" + juce::String(i))));
+    }
+
+    juce::XmlElement* xmlRegionIDs = xmlLfo->getChildByName("affectedRegionIDs");
+    size = xmlRegionIDs->getIntAttribute("size");
+    juce::Array<int> rIDs;
+    for (int i = 0; i < size; ++i)
+    {
+        rIDs.add(xmlRegionIDs->getIntAttribute("ID_" + juce::String(i)));
+    }
+
+    if (pIDs.size() != rIDs.size())
+    {
+        //WIP
+        DBG("ID array sizes don't match!");
+    }
+
+    for (int i = 0; i < size; ++i)
+    {
+        addRegionModulation(pIDs[i], rIDs[i], ); //WIP: how to get the parameters? (AudioEngine not accessible from here)
+    }
+
+    DBG("LFO mods have been deserialised.");
+}
+
 
 
 

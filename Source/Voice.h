@@ -109,6 +109,9 @@ public:
 
     DahdsrEnvelope* getEnvelope();
 
+    void serialise(juce::XmlElement* xmlVoice);
+    void deserialise(juce::XmlElement* xmlVoice);
+
 private:
     //states
     VoiceState* states[static_cast<int>(VoiceStateIndex::StateIndexCount)]; //fixed size -> more efficient access

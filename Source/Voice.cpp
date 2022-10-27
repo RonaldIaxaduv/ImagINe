@@ -639,3 +639,12 @@ DahdsrEnvelope* Voice::getEnvelope()
 {
     return &envelope;
 }
+
+void Voice::serialise(juce::XmlElement* xmlVoice)
+{
+    ä
+}
+void Voice::deserialise(juce::XmlElement* xmlVoice)
+{
+    ä
+}
