@@ -53,12 +53,14 @@ public:
 
     void resetPath();
     void clearRegions();
-    void removeRegionAsync(int regionID);
     void removeRegion(int regionID);
 
     void tryCompletePath();
 
     void deleteLastNode();
+
+    void serialise(juce::XmlElement* xmlAudioEngine, juce::Array<juce::MemoryBlock>* attachedData);
+    void deserialise(juce::XmlElement* xmlAudioEngine, juce::Array<juce::MemoryBlock>* attachedData);
 
     //================================================================
 
@@ -77,10 +79,9 @@ private:
 
     juce::Path currentPath; //allows to easily reduce the area that has to be redrawn when adding/removing drawing points
     juce::Array<juce::Point<float>> currentPathPoints; //WIP: normalise these to [0...1] so that, when resizing, the path can be redrawn
+    juce::Rectangle<float> getAbsolutePathBounds();
 
     AudioEngine* audioEngine;
-
-    juce::Rectangle<float> getAbsolutePathBounds();
 
     void addRegion(SegmentedRegion* newRegion);
 

@@ -92,7 +92,7 @@ public:
 
     void serialise(juce::XmlElement* xmlLfo);
     void deserialise_main(juce::XmlElement* xmlLfo);
-    void deserialise_mods(juce::XmlElement* xmlLfo);
+    //void deserialise_mods(juce::XmlElement* xmlLfo);
 
 protected:
     int regionID; //ID of the region that this LFO is associated with

@@ -182,13 +182,24 @@ void ImageINeDemoAudioProcessor::getStateInformation (juce::MemoryBlock& destDat
     // as intermediaries to make it easy to save and load complex data.
 
     std::unique_ptr<juce::XmlElement> xml(new juce::XmlElement("ImageINe_Data"));
+    juce::Array<juce::MemoryBlock> attachedData;
     
     xml->setAttribute("Plugin_Version", JucePlugin_VersionString);
     xml->setAttribute("Serialisation_Version", serialisation_version);
 
-    audioEngine.serialise(xml.get());
+    audioEngine.serialise(xml.get(), &attachedData);
     
     copyXmlToBinary(*xml, destData);
+
+    //TRICK: define an empty list of MemoryBlocks
+    //-> pass a pointer to that list up to the serialisation of SegmentableImage and SegmentedRegion
+    //-> whenever there's an object that cannot be converted to XML, convert it into a MemoryBlock, attach that block to the list and only save the *index* of the block in that list in the XML file
+    //-> when the serialisation is done, the XML file is final (-> size know), and so are the memory blocks (-> size known). thus, they can be written to destData without any problems
+    //  -> before writing the blocks, store the number of contained separate blocks! and for each block (XML included), prepend its size on the stream!
+    //when deserialising, all information to separate the blocks from one another are contained on the stream.
+    //-> restore the XML file and list and pass both into the deserialisation methods
+    //-> whenever there's an object that couldn't be converted to XML, read its index in the list and simply convert the MemoryBlock back
+    //  -> note: is endianness handled?
 }
 
 void ImageINeDemoAudioProcessor::setStateInformation (const void* data, int sizeInBytes)

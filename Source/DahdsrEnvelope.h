@@ -34,11 +34,11 @@ class DahdsrEnvelopeState_Release;
 class DahdsrEnvelope
 {
 public:
-    DahdsrEnvelope(double delayTimeSeconds = 0.0,
-        double attackTimeSeconds = 0.5, double initialLevel = 0.0,
-        double holdTimeSeconds = 0.1, double peakLevel = 1.0,
-        double decayTimeSeconds = 1.0, double sustainLevel = 1.0,
-        double releaseTimeSeconds = 1.0);
+    DahdsrEnvelope(double delayTimeSeconds = defaultDelayTimeSeconds,
+        double attackTimeSeconds = defaultAttackTimeSeconds, double initialLevel = defaultInitialLevel,
+        double holdTimeSeconds = defaultHoldTimeSeconds, double peakLevel = defaultPeakLevel,
+        double decayTimeSeconds = defaultDecayTimeSeconds, double sustainLevel = defaultSustainLevel,
+        double releaseTimeSeconds = defaultReleaseTimeSeconds);
 
     ~DahdsrEnvelope();
 
@@ -84,10 +84,22 @@ public:
     void setReleaseTime(double newTimeInSeconds);
     double getReleaseTime();
 
+    void serialise(juce::XmlElement* xmlParent);
+    void deserialise(juce::XmlElement* xmlParent);
+
 private:
     DahdsrEnvelopeState* states[static_cast<int>(DahdsrEnvelopeStateIndex::StateIndexCount)]; //fixed size -> more efficient access
 
     static const DahdsrEnvelopeStateIndex initialStateIndex = DahdsrEnvelopeStateIndex::unprepared;
     DahdsrEnvelopeStateIndex currentStateIndex;
     DahdsrEnvelopeState* currentState = nullptr; //provides one less array lookup during each access (i.e. every sample)
+
+    static const double defaultDelayTimeSeconds;
+    static const double defaultAttackTimeSeconds;
+    static const double defaultInitialLevel;
+    static const double defaultHoldTimeSeconds;
+    static const double defaultPeakLevel;
+    static const double defaultDecayTimeSeconds;
+    static const double defaultSustainLevel;
+    static const double defaultReleaseTimeSeconds;
 };

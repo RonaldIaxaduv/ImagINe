@@ -10,6 +10,15 @@
 
 #include "DahdsrEnvelope.h"
 
+const double DahdsrEnvelope::defaultDelayTimeSeconds = 0.0;
+const double DahdsrEnvelope::defaultAttackTimeSeconds = 0.1;
+const double DahdsrEnvelope::defaultInitialLevel = 0.0;
+const double DahdsrEnvelope::defaultHoldTimeSeconds = 0.0;
+const double DahdsrEnvelope::defaultPeakLevel = 1.0;
+const double DahdsrEnvelope::defaultDecayTimeSeconds = 0.5;
+const double DahdsrEnvelope::defaultSustainLevel = 1.0;
+const double DahdsrEnvelope::defaultReleaseTimeSeconds = 0.1;
+
 DahdsrEnvelope::DahdsrEnvelope(double delayTimeSeconds,
     double attackTimeSeconds, double initialLevel,
     double holdTimeSeconds, double peakLevel,
@@ -295,4 +304,42 @@ inline void DahdsrEnvelope::setReleaseTime(double newTimeInSeconds)
 double DahdsrEnvelope::getReleaseTime()
 {
     return dynamic_cast<DahdsrEnvelopeState_Release*>(states[static_cast<int>(DahdsrEnvelopeStateIndex::release)])->getTimeInSeconds();
+}
+
+
+
+
+void DahdsrEnvelope::serialise(juce::XmlElement* xmlParent)
+{
+    DBG("serialising DAHDSR envelope...");
+
+    juce::XmlElement* xmlEnvelope = xmlParent->createNewChildElement("DahdsrEnvelope");
+
+    xmlEnvelope->setAttribute("delayTime", getDelayTime());
+    xmlEnvelope->setAttribute("initialLevel", getInitialLevel());
+    xmlEnvelope->setAttribute("attackTime", getAttackTime());
+    xmlEnvelope->setAttribute("peakLevel", getPeakLevel());
+    xmlEnvelope->setAttribute("holdTime", getHoldTime());
+    xmlEnvelope->setAttribute("decayTime", getDecayTime());
+    xmlEnvelope->setAttribute("sustainLevel", getSustainLevel());
+    xmlEnvelope->setAttribute("releaseTime", getReleaseTime());
+
+    DBG("DAHDSR envelope has been serialised.");
+}
+void DahdsrEnvelope::deserialise(juce::XmlElement* xmlParent)
+{
+    DBG("deserialising DAHDSR envelope...");
+
+    juce::XmlElement* xmlEnvelope = xmlParent->getChildByName("DahdsrEnvelope");
+
+    setDelayTime(xmlEnvelope->getDoubleAttribute("delayTime", defaultDelayTimeSeconds));
+    setInitialLevel(xmlEnvelope->getDoubleAttribute("initialLevel", defaultInitialLevel));
+    setAttackTime(xmlEnvelope->getDoubleAttribute("attackTime", defaultAttackTimeSeconds));
+    setPeakLevel(xmlEnvelope->getDoubleAttribute("peakLevel", defaultPeakLevel));
+    setHoldTime(xmlEnvelope->getDoubleAttribute("holdTime", defaultHoldTimeSeconds));
+    setDecayTime(xmlEnvelope->getDoubleAttribute("decayTime", defaultDecayTimeSeconds));
+    setSustainLevel(xmlEnvelope->getDoubleAttribute("sustainLevel", defaultSustainLevel));
+    setReleaseTime(xmlEnvelope->getDoubleAttribute("releaseTime", defaultReleaseTimeSeconds));
+
+    DBG("DAHDSR envelope has been deserialised.");
 }

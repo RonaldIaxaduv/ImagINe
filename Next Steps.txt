@@ -138,9 +138,10 @@
 		- noexcept: tells the compiler that the method won't throw any exceptions -> more optimisations possible
 		- inline / __forceinline: tell the compiler that the method should be inlined
 			- methods that are defined in the header of a file are implicitly inline; if they are defined in the cpp, inline can be added at the beginning. forceinline should be used sparingly as too much inlining may actually hurt performance due to larger binaries and paging
-		# final (classes)
+		- final (classes)
 			- for the state implementations
 			- see https://devblogs.microsoft.com/cppblog/the-performance-benefits-of-final-classes/
+ !			!- currently missing for AudioEngine (and perhaps others, too)
 		/ register keyword?
 			- probably overkill, the compiler should do this automatically already...
 		- when to use references and when not?
@@ -256,22 +257,35 @@
 	# seems like it's probably voice parameters that haven't been unsubscribed after the voice has been deleted(?)
 		-> ahh, the LFO didn't unsubscribe other LFOs from its parameters. should hopefully be fixed now.
 # give focus point an outline for better visibility
-- make unipolar modulation symmetrical like bipolar modulation (see yesterday's note)
 !- serialisation
-	- saving the SegmentedRegion values will be a challenge actually, cos the ProcessorEditor may be closed when the data is saved (e.g. when the DAW's file is saved)
-	-> new classes SegmentedRegionData, SegmentableImageData -> owned and serialised by *AudioEngine*, pointer provided to and content updated by SegmentedRegion, SegmentableImage
+	# saving the SegmentableImage will be a challenge actually, cos the ProcessorEditor may be closed when the data is saved (e.g. when the DAW's file is saved)
+	/> new classes SegmentedRegionData, SegmentableImageData -> owned and serialised by *AudioEngine*, pointer provided to and content updated by SegmentedRegion, SegmentableImage
+		-> a simple pointer to SegmentableImage is enough (the SegmentedRegions are serialised in there)
+	- don't forget to add default values to all deserialised attributes! this is to ensure that the program doesn't crash when certain attributes aren't found in the file (for whatever reason, e.g. tampering etc.)
+	- make sure that all cases are respected, especially the one where no data has been loaded yet!
+!- check whether the ProcessorEditor keeps its state in the DAW, even after the editor has been closed and then reopened
+	- if not, in the Processor, store the pointer to the editor that is (newly) created when it asks for a ProcessorEditor. so when that stored pointer hasn't been initialised, initialise it, otherwise return that stored pointer. that should hopefully fix it.
 !- implement play path(s)
 !- check docs.juce.com/master/tutorial_app_plugin_packaging.html
 
-- are mp3s supported yet?
+
+!- are mp3s supported yet?
 ?- LFO phase modulation doesn't seem to work quite right just yet
 	- setup: 1 region modding its own pitch (no quant) at 5 Hz, another region modding region 1's phase at 0.03 Hz -> wobble should alternate between being strong and weak, but it actually doesn' atm (it seems to be correctly displayed for the LFO line though)
+!- add note bindings to regions
+!- add some kind of information button that displays key mappings for each mode (e.g. using backspace to delete points while in drawing mode)
+	- can be easily implemented using NativeMessageBox (or whatever it was called)!
+!- set help texts for all components
+	- there should already be a method setHelpText for all Component members
+- make unipolar modulation symmetrical like bipolar modulation (see yesterday's note)
+	- maybe only for some parameters (perhaps it only sounds good that way for a select few)
 - implement more scales
 - implement more parameters
 	- current LFO phase (rename current implementation "LFO phase multiplier")
 		- is there a way to calculate this modded value efficiently without if cases?
 	- current playback position (rename current implementation "current playback position multiplier")
 		- is there a way to calculate this modded value efficiently without if cases?
+	- panning
 - add a button next to the LFO phase editor to switch its units to ms instead of Hz
 - add a combobox to the region editor to switch between "simple options" and "advanced options" to make things easier to get into
 	- ADSR instead of DAHDSR, no setting for the peak volume
@@ -283,25 +297,22 @@
 
 
 
-- improve drawing algorithm using image information
-	- differentiate between left and right clicks: left clicks use the automated outline finder, right clicks simply draw straight lines like they do now -> more flexible
 - fix some bugs/things that would cause problems with unknowing users
-	- since regions currently only keep their voice's index, errors would occur if regions that were created earlier than that region were deleted
+	/ since regions currently only keep their voice's index, errors would occur if regions that were created earlier than that region were deleted
 		-> fix: when implementing polyphony, voices will have a certain variable that refers to their region. simply delete only voices with the corresponding variable value -> two birds with one stone
-	- voices would currently keep playing while toggled on and switching to editing -> region could be deleted while playing -> errors in audio buffer!
+	/ voices would currently keep playing while toggled on and switching to editing -> region could be deleted while playing -> errors in audio buffer!
 		-> fix: tell the synth to stop all notes without tailoff when switching from playing to any other state
-		- actually, it's kiiiinda nice to be able to edit an LFO's parameters while the sound is still playing... maybe there's a way to only force a stop when selecting a new audio file?
-	- when setting a region to togglable, they also toggle in editing mode
+		# actually, it's kiiiinda nice to be able to edit an LFO's parameters while the sound is still playing... maybe there's a way to only force a stop when selecting a new audio file?
+	# when setting a region to togglable, they also toggle in editing mode
 		-> fix: only update their toggleable state when switching to playing
 		- see above bug; maybe make an exception for editing mode (but switch all regions to off when switching back to playing mode maybe)
-	- make it so that regions can only be created when at least 3 points have been added to the screen (might already be in the code)
-		(!)- bonus: make it so that regions can only be created if the points aren't on a line
+	# make it so that regions can only be created when at least 3 points have been added to the screen (might already be in the code)
+	(!)- bonus: make it so that regions can only be created if the points aren't on a line
 	- safer audio file loading (see juce tutorial)
-(- panning setting for each region)
-- implement states the cleaner way: using the actual state model (i.e. using interfaces)
-	?- for PluginEditor
-	- for SegmentableImage
-	- for SegmentedRegion
+#? implement states the cleaner way: using the actual state model (i.e. using interfaces)
+	/ for PluginEditor
+	# for SegmentableImage
+	# for SegmentedRegion
 	# for Lfo (updating the parameter while wavetable isn't set currently takes up ressources every sample)
 	# for Voice/Sound probably (again, ressources are taken up while the audio data hasn't been loaded yet)
 !- allow for 2-voice-polyphony
@@ -314,14 +325,32 @@
 		- maybe overwrite this somehow? how will the synth know which sound to play?
 			!- maybe make it so the sound can only play one specific MIDI note, and the region plays that specific note
 				- this has the added benefit that implementing MIDI support for the instrument will be easier - just make that MIDI note adjustable in the region editor!
-- add some kind of information button that displays key mappings for each mode (e.g. using backspace to delete points while in drawing mode)
-(- add playback modes for the voices: Normal (Forward), Oneshot, Forward-Backward, Backward-Forward, Backward)
-!- add an option to quantise the start/stop timings of voices to certain note values corresponding to the DAW's BPM
-	- this would be an amazing quality of life change, but idk how easy this would be... i know that the DAW's BPM should be contained in some MIDI signals, but idk where or when or how to evaluate them to achieve synchronisation
-	- did smth similar in Langton's Ant Sequencer, and it's not quiiiite so easy to do, sadly
-- set help texts for all components
-	- there should already be a method setHelpText for all Component members
 - option to set an LFO's rate to that of its associated region's sound
 - button to reset an LFO's phase
 - perhaps modulate a region's LFO depth with its AHDSR modulator (whether or not it's possible to modulate LFO depth otherwise)
-- add Parameters for the DAW
+- make it necessary to provide a product key
+	- see https://docs.juce.com/master/tutorial_online_unlock_status.html
+	  ^- apparently, there's a way to make this work offline, too!
+
+
+
+
+possible features to add later:
+!- improve drawing algorithm using image information
+	- differentiate between left and right clicks: left clicks use the automated outline finder, right clicks simply draw straight lines like they do now -> more flexible
+!- sync tempo to DAW's BPM
+!- add an option to quantise the start/stop timings of voices to certain note values corresponding to the DAW's BPM
+	- this would be an amazing quality of life change, but idk how easy this would be... i know that the DAW's BPM should be contained in some MIDI signals, but idk where or when or how to evaluate them to achieve synchronisation
+	- did smth similar in Langton's Ant Sequencer, and it's not quiiiite so easy to do, sadly
+- take sidechain input as audio input for regions (writes audio continuously to a small buffer to enable pitch modulation etc.)
+!- make it possible to modulate more than 1 value of every region
+- add further (optional) effects like filters, distortion or reverb
+	-> this won't be all too straightforward sadly... many of these effects require processing that isn't sample-by-sample, i.e. this kind of processing would either have to be separate from all other processing, or the entire way processing currently works would have to be rewritten
+	- make it possible to modulate these effects' parameters
+- add parameters for the DAW to modulate
+- maybe add granular-shift-based pitch shift
+- implement thread-safety-related concepts
+- add playback modes for the voices and LFOs: Normal (Forward), Oneshot (voices only), Forward-Backward, Backward-Forward, Backward
+	-> this could be especially interesting in combination with the playback position/length parameters!
+- more interesting play paths
+	- maybe some more objects (other than regions) that the paths can interact with in some way?

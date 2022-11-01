@@ -29,6 +29,7 @@ SegmentableImage::SegmentableImage(AudioEngine* audioEngine) : juce::ImageCompon
 
     //initialise remaining members
     this->audioEngine = audioEngine;
+    this->audioEngine->registerImage(this);
 
     setSize(500, 500);
 }
@@ -254,21 +255,6 @@ void SegmentableImage::addPointToPath(juce::Point<float> newPt)
     }
 }
 
-
-
-
-
-juce::Rectangle<float> SegmentableImage::getAbsolutePathBounds()
-{
-    juce::Rectangle<float> relativeBounds = currentPath.getBounds();
-
-    return juce::Rectangle<float>()
-        .withX(relativeBounds.getX() * static_cast<float>(getWidth()))
-        .withY(relativeBounds.getY() * static_cast<float>(getHeight()))
-        .withWidth(relativeBounds.getWidth() * static_cast<float>(getWidth()))
-        .withHeight(relativeBounds.getHeight() * static_cast<float>(getHeight()));;
-}
-
 void SegmentableImage::resetPath()
 {
     clearPath();
@@ -307,7 +293,7 @@ void SegmentableImage::tryCompletePath()
     DBG("calculating region's colour...");
     //juce::Random rng;
     //juce::Colour fillColour = juce::Colour::fromHSV(rng.nextFloat(), 0.6f + 0.4f * rng.nextFloat(), 0.6f + 0.4f * rng.nextFloat(), 1.0f); //random for now
-    
+
     //calculate histogram of the pixels within the path (the commented out version's calculations are more exact (more colours aggregated), but a lot slower)
     juce::Image associatedImage = getImage();
     juce::HashMap<juce::String, int> colourHistogram;
@@ -362,7 +348,7 @@ void SegmentableImage::tryCompletePath()
         //double distanceSq = static_cast<double>(c.getRed() - averageColour.getRed()) * static_cast<double>(c.getRed() - averageColour.getRed()) +
         //                    static_cast<double>(c.getGreen() - averageColour.getGreen()) * static_cast<double>(c.getGreen() - averageColour.getGreen()) +
         //                    static_cast<double>(c.getBlue() - averageColour.getBlue()) * static_cast<double>(c.getBlue() - averageColour.getBlue());
-        
+
         //calculate (squared) distance from (0,0,0)
         double distanceSq = static_cast<double>(c.getRed()) * static_cast<double>(c.getRed()) +
             static_cast<double>(c.getGreen()) * static_cast<double>(c.getGreen()) +
@@ -438,12 +424,6 @@ void SegmentableImage::deleteLastNode()
     }
 }
 
-void SegmentableImage::addRegion(SegmentedRegion* newRegion)
-{
-    regions.add(newRegion);
-    newRegion->setAlwaysOnTop(true);
-    addAndMakeVisible(newRegion);
-}
 void SegmentableImage::clearRegions()
 {
     for (auto it = regions.begin(); it != regions.end(); ++it)
@@ -490,6 +470,130 @@ void SegmentableImage::removeRegion(int regionID)
         //last region deleted -> reset engine's region counter
         audioEngine->resetRegionIDs();
     }
+}
+
+void SegmentableImage::serialise(juce::XmlElement* xmlAudioEngine, juce::Array<juce::MemoryBlock>* attachedData)
+{
+    DBG("serialising SegmentableImage...");
+
+    juce::XmlElement* xmlSegmentableImage = xmlAudioEngine->createNewChildElement("SegmentableImage");
+
+    if (getImage().isValid())
+    {
+        //serialise image
+        juce::Image::BitmapData imageData = juce::Image::BitmapData(getImage(), juce::Image::BitmapData::ReadWriteMode::readOnly);
+        juce::MemoryBlock imageMemory(imageData.size);
+        juce::MemoryOutputStream imageStream = juce::MemoryOutputStream(imageMemory, false); //by using this stream, the pixels can be written in a certain endian (unlike memBuffer.append()), ensuring portability. little endian will be used.
+
+        //prepend width, height and format of the image so that they can be read correctly
+        imageStream.writeInt(static_cast<int>(imageData.pixelFormat));
+        imageStream.writeInt(imageData.width);
+        imageStream.writeInt(imageData.height);
+
+        //copy the content of the image - unfortunately, the rows/columns can't be written as a whole, so it has to be done pixel-by-pixel...
+        auto* pixels = imageData.data;
+        for (int i = 0; i < imageData.width * imageData.height; ++i)
+        {
+            imageStream.writeByte(pixels[i]);
+        }
+
+        attachedData->add(imageMemory);
+        xmlSegmentableImage->setAttribute("imageMemory_index", attachedData->size() - 1);
+    }
+    else
+    {
+        //image is empty
+        xmlSegmentableImage->setAttribute("imageMemory_index", -1); //nothing attached
+    }
+
+
+
+    //serialise regions
+    xmlSegmentableImage->setAttribute("regions_size", regions.size());
+    int i = 0;
+    for (auto* itRegion = regions.begin(); itRegion != regions.end(); ++itRegion, ++i)
+    {
+        juce::XmlElement* xmlRegion = xmlSegmentableImage->createNewChildElement("SegmentedRegion_" + juce::String(i));
+        (*itRegion)->serialise(xmlRegion, attachedData);
+    }
+
+    DBG("SegmentableImage has been serialised.");
+}
+void SegmentableImage::deserialise(juce::XmlElement* xmlAudioEngine, juce::Array<juce::MemoryBlock>* attachedData)
+{
+    DBG("deserialising SegmentableImage...");
+
+    juce::XmlElement* xmlSegmentableImage = xmlAudioEngine->getChildByName("SegmentableImage");
+
+    int imageMemoryIndex = xmlSegmentableImage->getIntAttribute("imageMemory_index", -1);
+    if (imageMemoryIndex >= 0 && imageMemoryIndex < attachedData->size())
+    {
+        //deserialise image
+        juce::MemoryBlock imageMemory = (*attachedData)[imageMemoryIndex];
+        juce::MemoryInputStream imageStream = juce::MemoryInputStream(imageMemory, false); //by using this stream, the pixels can be written in a certain endian (unlike memBuffer.append()), ensuring portability. little endian will be used.
+
+        //initialise image. extract width, height and format so that the image can be reconstructed correctly
+        juce::Image reconstructedImage = juce::Image(static_cast<juce::Image::PixelFormat>(imageStream.readInt()),
+                                      imageStream.readInt(),
+                                      imageStream.readInt(),
+                                      false
+                                     );
+        juce::Image::BitmapData imageData = juce::Image::BitmapData(reconstructedImage, juce::Image::BitmapData::ReadWriteMode::writeOnly);
+
+        //copy the content of the image - unfortunately, the rows/columns can't be written as a whole, so it has to be done pixel-by-pixel...
+        auto* pixels = imageData.data;
+        for (int i = 0; i < imageData.width * imageData.height; ++i)
+        {
+            pixels[i] = imageStream.readByte();
+        }
+
+        setImage(reconstructedImage);
+    }
+    else
+    {
+        //image data not contained in attachedData (image was probably empty)
+    }
+
+    //deserialise regions
+    int size = xmlSegmentableImage->getIntAttribute("regions_size", 0);
+    for (int i = 0; i < size; ++i)
+    {
+        juce::XmlElement* xmlRegion = xmlSegmentableImage->getChildByName("SegmentedRegion_" + juce::String(i));
+
+        //generate new region
+        SegmentedRegion* newRegion = new SegmentedRegion(juce::Path(), juce::Rectangle<float>(), juce::Colours::black, audioEngine);
+        addRegion(newRegion);
+        newRegion->triggerDrawableButtonStateChanged();
+
+        //load data to that region
+        newRegion->deserialise(xmlRegion, attachedData);
+    }
+    resized(); //updates all regions' sizes to fit this component
+
+    DBG("SegmentableImage has been deserialised.");
+}
+
+
+
+
+
+
+juce::Rectangle<float> SegmentableImage::getAbsolutePathBounds()
+{
+    juce::Rectangle<float> relativeBounds = currentPath.getBounds();
+
+    return juce::Rectangle<float>()
+        .withX(relativeBounds.getX() * static_cast<float>(getWidth()))
+        .withY(relativeBounds.getY() * static_cast<float>(getHeight()))
+        .withWidth(relativeBounds.getWidth() * static_cast<float>(getWidth()))
+        .withHeight(relativeBounds.getHeight() * static_cast<float>(getHeight()));;
+}
+
+void SegmentableImage::addRegion(SegmentedRegion* newRegion)
+{
+    regions.add(newRegion);
+    newRegion->setAlwaysOnTop(true);
+    addAndMakeVisible(newRegion);
 }
 
 void SegmentableImage::clearPath()

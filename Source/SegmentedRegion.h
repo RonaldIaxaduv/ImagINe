@@ -87,6 +87,9 @@ public:
 
     juce::Rectangle<float> relativeBounds;
 
+    void serialise(juce::XmlElement* xmlRegion, juce::Array<juce::MemoryBlock>* attachedData);
+    void deserialise(juce::XmlElement* xmlRegion, juce::Array<juce::MemoryBlock>* attachedData);
+
 protected:
     void buttonStateChanged() override;
 
@@ -106,11 +109,11 @@ private:
     int currentVoiceIndex = 0;
     int timerIntervalMs = 50; //-> 20.0f Hz
     juce::Line<float> currentLfoLine;
-    const float lfoLineThickness = 4.0f;
+    static const float lfoLineThickness;
 
     juce::Path p; //also acts as a hitbox
 
-    const float focusRadius = 2.5f;
+    static const float focusRadius;
     juce::Point<float> focus;
     juce::Point<float> focusAbs; //focus, but applied to the current (actual) bounds of the region
 
@@ -118,6 +121,9 @@ private:
     juce::Colour lfoLineColour;
     juce::Colour focusPointColour;
 
+    static const float outlineThickness;
+    static const float inherentTransparency;
+    static const float disabledTransparency;
     juce::DrawablePath normalImage; //normal image when not toggleable or toggled off
     juce::DrawablePath overImage; //image when hovering over the button when not toggleable or toggled off
     juce::DrawablePath downImage; //image when clicking the button when not toggleable or toggled off
@@ -130,8 +136,9 @@ private:
     AudioEngine* audioEngine;
     juce::AudioSampleBuffer buffer;
     juce::String audioFileName = "";
-    juce::Array<Voice*> associatedVoices;
+    double origSampleRate = 0.0;
 
+    juce::Array<Voice*> associatedVoices;
     RegionLfo* associatedLfo = nullptr;
 
     juce::Component::SafePointer<RegionEditorWindow> regionEditorWindow;

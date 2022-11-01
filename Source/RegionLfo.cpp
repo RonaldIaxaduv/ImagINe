@@ -602,39 +602,39 @@ void RegionLfo::deserialise_main(juce::XmlElement* xmlLfo)
 
     DBG("LFO has been deserialised (except for mods).");
 }
-void RegionLfo::deserialise_mods(juce::XmlElement* xmlLfo)
-{
-    DBG("deserialising LFO mods...");
-
-    juce::XmlElement* xmlParameterIDs = xmlLfo->getChildByName("modulatedParameterIDs");
-    int size = xmlParameterIDs->getIntAttribute("size");
-    juce::Array<LfoModulatableParameter> pIDs;
-    for (int i = 0; i < size; ++i)
-    {
-        pIDs.add(static_cast<LfoModulatableParameter>(xmlParameterIDs->getIntAttribute("ID_" + juce::String(i))));
-    }
-
-    juce::XmlElement* xmlRegionIDs = xmlLfo->getChildByName("affectedRegionIDs");
-    size = xmlRegionIDs->getIntAttribute("size");
-    juce::Array<int> rIDs;
-    for (int i = 0; i < size; ++i)
-    {
-        rIDs.add(xmlRegionIDs->getIntAttribute("ID_" + juce::String(i)));
-    }
-
-    if (pIDs.size() != rIDs.size())
-    {
-        //WIP
-        DBG("ID array sizes don't match!");
-    }
-
-    for (int i = 0; i < size; ++i)
-    {
-        addRegionModulation(pIDs[i], rIDs[i], ); //WIP: how to get the parameters? (AudioEngine not accessible from here)
-    }
-
-    DBG("LFO mods have been deserialised.");
-}
+//void RegionLfo::deserialise_mods(juce::XmlElement* xmlLfo)
+//{
+//    DBG("deserialising LFO mods...");
+//
+//    juce::XmlElement* xmlParameterIDs = xmlLfo->getChildByName("modulatedParameterIDs");
+//    int size = xmlParameterIDs->getIntAttribute("size");
+//    juce::Array<LfoModulatableParameter> pIDs;
+//    for (int i = 0; i < size; ++i)
+//    {
+//        pIDs.add(static_cast<LfoModulatableParameter>(xmlParameterIDs->getIntAttribute("ID_" + juce::String(i))));
+//    }
+//
+//    juce::XmlElement* xmlRegionIDs = xmlLfo->getChildByName("affectedRegionIDs");
+//    size = xmlRegionIDs->getIntAttribute("size");
+//    juce::Array<int> rIDs;
+//    for (int i = 0; i < size; ++i)
+//    {
+//        rIDs.add(xmlRegionIDs->getIntAttribute("ID_" + juce::String(i)));
+//    }
+//
+//    if (pIDs.size() != rIDs.size())
+//    {
+//        //WIP
+//        DBG("ID array sizes don't match!");
+//    }
+//
+//    for (int i = 0; i < size; ++i)
+//    {
+//        addRegionModulation(pIDs[i], rIDs[i], ); //WIP: how to get the parameters? (AudioEngine not accessible from here)
+//    }
+//
+//    DBG("LFO mods have been deserialised.");
+//}
 
 
 

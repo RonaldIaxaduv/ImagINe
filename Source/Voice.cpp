@@ -642,9 +642,43 @@ DahdsrEnvelope* Voice::getEnvelope()
 
 void Voice::serialise(juce::XmlElement* xmlVoice)
 {
-    ä
+    DBG("serialising Voice...");
+
+    //basic members
+    xmlVoice->setAttribute("regionID", ID);
+    //bufferPos, bufferPosDelta: not needed
+    xmlVoice->setAttribute("currentPitchQuantisationMethod", static_cast<int>(currentPitchQuantisationMethod));
+
+    //parameters
+    xmlVoice->setAttribute("levelParameter_base", levelParameter.getBaseValue());
+    xmlVoice->setAttribute("pitchShiftParameter_base", pitchShiftParameter.getBaseValue());
+    xmlVoice->setAttribute("playbackPositionParameter_base", playbackPositionParameter.getBaseValue());
+
+    //envelope
+    envelope.serialise(xmlVoice);
+
+    //osc: needn't be serialised, because when the SegmentedRegion associated with this voice is deserialised, it will already initialise osc
+
+    DBG("Voice has been serialised.");
 }
 void Voice::deserialise(juce::XmlElement* xmlVoice)
 {
-    ä
+    DBG("deserialising Voice...");
+
+    //basic members
+    ID = xmlVoice->getIntAttribute("regionID");
+    //bufferPos, bufferPosDelta: not needed
+    setPitchQuantisationMethod(static_cast<PitchQuantisationMethod>(xmlVoice->getIntAttribute("currentPitchQuantisationMethod", static_cast<int>(PitchQuantisationMethod::continuous))));
+
+    //parameters
+    levelParameter.setBaseValue(xmlVoice->getDoubleAttribute("levelParameter_base"));
+    pitchShiftParameter.setBaseValue(xmlVoice->getDoubleAttribute("pitchShiftParameter_base"));
+    playbackPositionParameter.setBaseValue(xmlVoice->getDoubleAttribute("playbackPositionParameter_base"));
+
+    //envelope
+    envelope.deserialise(xmlVoice);
+
+    //osc: needn't be deserialised, because when the SegmentedRegion associated with this voice is deserialised, it will already initialise osc
+
+    DBG("Voice has been deserialised.");
 }

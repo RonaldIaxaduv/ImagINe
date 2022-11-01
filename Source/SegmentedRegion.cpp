@@ -11,6 +11,13 @@
 #include "SegmentedRegion.h"
 
 
+//constants
+const float SegmentedRegion::lfoLineThickness = 4.0f;
+const float SegmentedRegion::focusRadius = 2.5f;
+const float SegmentedRegion::outlineThickness = 1.0f;
+const float SegmentedRegion::inherentTransparency = 0.70f;
+const float SegmentedRegion::disabledTransparency = 0.20f;
+
 //public
 
 SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangle<float>& relativeBounds, juce::Colour fillColour, AudioEngine* audioEngine) :
@@ -90,15 +97,19 @@ SegmentedRegion::~SegmentedRegion()
 
 void SegmentedRegion::initialiseImages()
 {
-    setSize(static_cast<int>(500.0f * relativeBounds.getWidth()),
-        static_cast<int>(500.0f * relativeBounds.getHeight())); //must be set before the images are drawn, because drawables require bounds to be displayed! 
+    if (getWidth() == 0 || getHeight() == 0)
+    {
+        DBG("no region size set yet. assigning temporary values.");
+        setSize(static_cast<int>(500.0f * relativeBounds.getWidth()),
+            static_cast<int>(500.0f * relativeBounds.getHeight())); //must be set before the images are drawn, because drawables require bounds to be displayed! the values don't really matter; they are only temporary.
+    }
+    else
+    {
+        DBG("region size already set, no temporary values required.");
+    }
 
     DBG("initial size of segmented region: " + getBounds().toString());
     DBG("bounds of the passed path: " + p.getBounds().toString());
-
-    float outlineThickness = 1.0f;
-    float inherentTransparency = 0.70f;
-    float disabledTransparency = 0.20f;
 
     normalImage.setPath(p);
     normalImage.setFill(juce::FillType(fillColour.withAlpha(inherentTransparency)));
@@ -399,6 +410,7 @@ void SegmentedRegion::setBuffer(juce::AudioSampleBuffer newBuffer, juce::String 
 
     buffer = newBuffer;
     audioFileName = fileName;
+    this->origSampleRate = origSampleRate;
 
     if (audioFileName != "")
     {
@@ -411,7 +423,7 @@ void SegmentedRegion::setBuffer(juce::AudioSampleBuffer newBuffer, juce::String 
         //update buffers
         for (auto itVoice = associatedVoices.begin(); itVoice != associatedVoices.end(); itVoice++)
         {
-            (*itVoice)->setOsc(newBuffer, origSampleRate); //
+            (*itVoice)->setOsc(newBuffer, origSampleRate); //update sampler file in every voice
         }
     }
     else
@@ -567,6 +579,137 @@ juce::Array<Voice*> SegmentedRegion::getAssociatedVoices()
 juce::String SegmentedRegion::getFileName()
 {
     return audioFileName;
+}
+
+void SegmentedRegion::serialise(juce::XmlElement* xmlRegion, juce::Array<juce::MemoryBlock>* attachedData)
+{
+    DBG("serialising SegmentedRegion...");
+
+    xmlRegion->setAttribute("ID", ID);
+    xmlRegion->setAttribute("shouldBeToggleable", shouldBeToggleable);
+    xmlRegion->setAttribute("path", p.toString());
+    xmlRegion->setAttribute("fillColour", fillColour.toString());
+
+    juce::XmlElement* xmlRelativeBounds = xmlRegion->createNewChildElement("relativeBounds");
+    xmlRelativeBounds->setAttribute("x", relativeBounds.getX());
+    xmlRelativeBounds->setAttribute("y", relativeBounds.getY());
+    xmlRelativeBounds->setAttribute("width", relativeBounds.getWidth());
+    xmlRelativeBounds->setAttribute("height", relativeBounds.getHeight());
+
+    juce::XmlElement* xmlFocus = xmlRegion->createNewChildElement("focus");
+    xmlFocus->setAttribute("x", focus.getX());
+    xmlFocus->setAttribute("y", focus.getY());
+
+    xmlRegion->setAttribute("audioFileName", audioFileName);
+    xmlRegion->setAttribute("origSampleRate", origSampleRate);
+
+
+
+    //store buffer in attachedData
+    int numChannels = buffer.getNumChannels();
+    int numSamples = buffer.getNumSamples();
+    size_t bufferMemorySize = static_cast<size_t>(numChannels * numSamples) * sizeof(float);
+
+    if (bufferMemorySize > 0)
+    {
+        juce::MemoryBlock bufferMemory(bufferMemorySize);
+        juce::MemoryOutputStream bufferStream = juce::MemoryOutputStream(bufferMemory, false); //by using this stream, the samples can be written in a certain endian (unlike memBuffer.append()), ensuring portability. little endian will be used.
+
+        //prepend size and number of the channels so that they can be read correctly
+        bufferStream.writeInt(numChannels);
+        bufferStream.writeInt(numSamples);
+
+        //copy the content of the buffer - unfortunately, the channels can't be written as a whole, so it has to be done sample-by-sample...
+        for (int ch = 0; ch < numChannels; ++ch)
+        {
+            //bufferMemory.append(buffer.getReadPointer(ch), static_cast<size_t>(numSamples) * sizeof(float)); //while this would be able to copy a full channel, it wouldn't ensure a specific endian, causing portability issues!
+            auto* samples = buffer.getReadPointer(ch);
+
+            for (int s = 0; s < numSamples; ++s)
+            {
+                bufferStream.writeFloat(samples[s]);
+            }
+        }
+
+        attachedData->add(bufferMemory);
+        xmlRegion->setAttribute("bufferMemory_index", attachedData->size() - 1);
+    }
+    else //bufferMemorySize == 0
+    {
+        xmlRegion->setAttribute("bufferMemory_index", -1); //nothing attached
+    }
+
+    DBG("SegmentedRegion has been serialised.");
+}
+void SegmentedRegion::deserialise(juce::XmlElement* xmlRegion, juce::Array<juce::MemoryBlock>* attachedData)
+{
+    DBG("deserialising SegmentedRegion...");
+
+    ID = xmlRegion->getIntAttribute("ID", -1);
+    shouldBeToggleable = xmlRegion->getBoolAttribute("shouldBeToggleable", false);
+    p.clear();
+    p.restoreFromString(xmlRegion->getStringAttribute("path", ""));
+    fillColour.fromString(xmlRegion->getStringAttribute("fillColour", juce::Colours::black.toString()));
+
+    juce::XmlElement* xmlRelativeBounds = xmlRegion->getChildByName("relativeBounds");
+    relativeBounds.setBounds(xmlRelativeBounds->getDoubleAttribute("x", 0.0),
+                             xmlRelativeBounds->getDoubleAttribute("y", 0.0),
+                             xmlRelativeBounds->getDoubleAttribute("width", 0.0),
+                             xmlRelativeBounds->getDoubleAttribute("height", 0.0)
+                            );
+
+    juce::XmlElement* xmlFocus = xmlRegion->getChildByName("focus");
+    focus.setXY(xmlFocus->getDoubleAttribute("x", 0.5),
+                xmlFocus->getDoubleAttribute("y", 0.5)
+               );
+
+    audioFileName = xmlRegion->getStringAttribute("audioFileName", "");
+    origSampleRate = xmlRegion->getDoubleAttribute("origSampleRate", 0.0);
+
+    //restore buffer from attachedData
+    int bufferMemoryIndex = xmlRegion->getIntAttribute("bufferMemory_index", -1);
+    if (bufferMemoryIndex >= 0 && bufferMemoryIndex < attachedData->size())
+    {
+        //buffer data contained in attachedData -> get block and restore
+        juce::MemoryBlock bufferMemory = (*attachedData)[bufferMemoryIndex];
+        juce::MemoryInputStream bufferStream = juce::MemoryInputStream(bufferMemory, false); //by using this stream, the samples can be read in a certain endian, ensuring portability. little endian will be used.
+
+        //get the size and number of the channels so that they can be read correctly
+        int numChannels = bufferStream.readInt();
+        int numSamples = bufferStream.readInt();
+        juce::AudioSampleBuffer tempBuffer(numChannels, numSamples);
+
+        //copy the content of the buffer - unfortunately, the channels can't be written as a whole, so it has to be done sample-by-sample...
+        for (int ch = 0; ch < numChannels; ++ch)
+        {
+            //bufferMemory.append(buffer.getReadPointer(ch), static_cast<size_t>(numSamples) * sizeof(float)); //while this would be able to copy a full channel, it wouldn't ensure a specific endian, causing portability issues!
+            auto* samples = tempBuffer.getWritePointer(ch);
+
+            for (int s = 0; s < numSamples; ++s)
+            {
+                samples[s] = bufferStream.readFloat();
+            }
+        }
+
+        setBuffer(tempBuffer, audioFileName, origSampleRate); //correctly updates associated voices, too
+    }
+    else
+    {
+        //buffer data not contained in attachedData (buffer was probably empty)
+
+        audioFileName = "";
+        origSampleRate = 0.0;
+        setBuffer(juce::AudioSampleBuffer(), "", 0.0); //sets buffer to be empty. correctly updates associated voices, too
+    }
+
+
+
+    //data has been read. now, re-initialise all remaining components.
+    initialiseImages(); //re-initialises all images
+    renderLfoWaveform(); //updates LFO (generates its wavetable)
+    resized(); //updates focusAbs and redraws the component
+
+    DBG("SegmentedRegion has been deserialised.");
 }
 
 
