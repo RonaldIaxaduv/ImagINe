@@ -46,7 +46,7 @@ public:
     juce::Colour getRegionColour(int regionID);
     void changeRegionColour(int regionID, juce::Colour newColour);
 
-    void initialiseVoicesForRegion(int regionID);
+    void initialiseVoicesForRegion(int regionID, int voiceCount = defaultPolyphony);
     int addVoice(Voice* newVoice);
     juce::Array<Voice*> getVoicesWithID(int regionID);
     bool checkRegionHasVoice(int regionID);
@@ -84,6 +84,8 @@ private:
     int regionIdCounter = -1;
     juce::Array<juce::Colour> regionColours;
     juce::OwnedArray<RegionLfo> lfos; //one LFO per segmented region which represents that region's outline in relation to its focus point
+
+    static const int defaultPolyphony;
 
     void serialiseRegionColours(juce::XmlElement* xmlAudioEngine);
     void serialiseLFOs(juce::XmlElement* xmlAudioEngine);

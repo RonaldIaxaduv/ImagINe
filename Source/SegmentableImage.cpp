@@ -525,52 +525,66 @@ void SegmentableImage::deserialise(juce::XmlElement* xmlAudioEngine, juce::Array
 
     juce::XmlElement* xmlSegmentableImage = xmlAudioEngine->getChildByName("SegmentableImage");
 
-    int imageMemoryIndex = xmlSegmentableImage->getIntAttribute("imageMemory_index", -1);
-    if (imageMemoryIndex >= 0 && imageMemoryIndex < attachedData->size())
+    if (xmlSegmentableImage != nullptr)
     {
-        //deserialise image
-        juce::MemoryBlock imageMemory = (*attachedData)[imageMemoryIndex];
-        juce::MemoryInputStream imageStream = juce::MemoryInputStream(imageMemory, false); //by using this stream, the pixels can be written in a certain endian (unlike memBuffer.append()), ensuring portability. little endian will be used.
-
-        //initialise image. extract width, height and format so that the image can be reconstructed correctly
-        juce::Image reconstructedImage = juce::Image(static_cast<juce::Image::PixelFormat>(imageStream.readInt()),
-                                      imageStream.readInt(),
-                                      imageStream.readInt(),
-                                      false
-                                     );
-        juce::Image::BitmapData imageData = juce::Image::BitmapData(reconstructedImage, juce::Image::BitmapData::ReadWriteMode::writeOnly);
-
-        //copy the content of the image - unfortunately, the rows/columns can't be written as a whole, so it has to be done pixel-by-pixel...
-        auto* pixels = imageData.data;
-        for (int i = 0; i < imageData.width * imageData.height; ++i)
+        int imageMemoryIndex = xmlSegmentableImage->getIntAttribute("imageMemory_index", -1);
+        if (imageMemoryIndex >= 0 && imageMemoryIndex < attachedData->size())
         {
-            pixels[i] = imageStream.readByte();
+            //deserialise image
+            juce::MemoryBlock imageMemory = (*attachedData)[imageMemoryIndex];
+            juce::MemoryInputStream imageStream = juce::MemoryInputStream(imageMemory, false); //by using this stream, the pixels can be written in a certain endian (unlike memBuffer.append()), ensuring portability. little endian will be used.
+
+            //initialise image. extract width, height and format so that the image can be reconstructed correctly
+            juce::Image reconstructedImage = juce::Image(static_cast<juce::Image::PixelFormat>(imageStream.readInt()),
+                                                         imageStream.readInt(),
+                                                         imageStream.readInt(),
+                                                         false
+                                                        );
+            juce::Image::BitmapData imageData = juce::Image::BitmapData(reconstructedImage, juce::Image::BitmapData::ReadWriteMode::writeOnly);
+
+            //copy the content of the image - unfortunately, the rows/columns can't be written as a whole, so it has to be done pixel-by-pixel...
+            auto* pixels = imageData.data;
+            for (int i = 0; i < imageData.width * imageData.height; ++i)
+            {
+                pixels[i] = imageStream.readByte();
+            }
+
+            setImage(reconstructedImage);
+        }
+        else
+        {
+            //image data not contained in attachedData (image was probably empty)
+            DBG("image not contained in attachedData. this might be because the image was simply empty.");
         }
 
-        setImage(reconstructedImage);
+        //deserialise regions
+        int size = xmlSegmentableImage->getIntAttribute("regions_size", 0);
+        for (int i = 0; i < size; ++i)
+        {
+            //generate new region
+            SegmentedRegion* newRegion = new SegmentedRegion(juce::Path(), juce::Rectangle<float>(), juce::Colours::black, audioEngine);
+            addRegion(newRegion);
+            newRegion->triggerDrawableButtonStateChanged();
+
+            juce::XmlElement* xmlRegion = xmlSegmentableImage->getChildByName("SegmentedRegion_" + juce::String(i));
+            if (xmlRegion != nullptr)
+            {
+                //load data to that region
+                newRegion->deserialise(xmlRegion, attachedData);
+            }
+            else
+            {
+                DBG("data of the region at the array index " + juce::String(i) + " could not be found.");
+            }
+        }
+        resized(); //updates all regions' sizes to fit this component
+
+        DBG("SegmentableImage has been deserialised.");
     }
     else
     {
-        //image data not contained in attachedData (image was probably empty)
+        DBG("no SegmentableImage data found.");
     }
-
-    //deserialise regions
-    int size = xmlSegmentableImage->getIntAttribute("regions_size", 0);
-    for (int i = 0; i < size; ++i)
-    {
-        juce::XmlElement* xmlRegion = xmlSegmentableImage->getChildByName("SegmentedRegion_" + juce::String(i));
-
-        //generate new region
-        SegmentedRegion* newRegion = new SegmentedRegion(juce::Path(), juce::Rectangle<float>(), juce::Colours::black, audioEngine);
-        addRegion(newRegion);
-        newRegion->triggerDrawableButtonStateChanged();
-
-        //load data to that region
-        newRegion->deserialise(xmlRegion, attachedData);
-    }
-    resized(); //updates all regions' sizes to fit this component
-
-    DBG("SegmentableImage has been deserialised.");
 }
 
 

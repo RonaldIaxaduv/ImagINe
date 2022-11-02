@@ -602,6 +602,7 @@ void SegmentedRegion::serialise(juce::XmlElement* xmlRegion, juce::Array<juce::M
 
     xmlRegion->setAttribute("audioFileName", audioFileName);
     xmlRegion->setAttribute("origSampleRate", origSampleRate);
+    xmlRegion->setAttribute("polyphony", associatedVoices.size()); //it's better to store this here than in the AudioEngine methods, because here, the Voice classes' oscs can be directly updated with the corresponding buffer
 
 
 
@@ -652,19 +653,44 @@ void SegmentedRegion::deserialise(juce::XmlElement* xmlRegion, juce::Array<juce:
     fillColour.fromString(xmlRegion->getStringAttribute("fillColour", juce::Colours::black.toString()));
 
     juce::XmlElement* xmlRelativeBounds = xmlRegion->getChildByName("relativeBounds");
-    relativeBounds.setBounds(xmlRelativeBounds->getDoubleAttribute("x", 0.0),
-                             xmlRelativeBounds->getDoubleAttribute("y", 0.0),
-                             xmlRelativeBounds->getDoubleAttribute("width", 0.0),
-                             xmlRelativeBounds->getDoubleAttribute("height", 0.0)
-                            );
+    if (xmlRelativeBounds != nullptr)
+    {
+        relativeBounds.setBounds(xmlRelativeBounds->getDoubleAttribute("x", 0.0),
+                                 xmlRelativeBounds->getDoubleAttribute("y", 0.0),
+                                 xmlRelativeBounds->getDoubleAttribute("width", 0.0),
+                                 xmlRelativeBounds->getDoubleAttribute("height", 0.0)
+        );
+    }
+    else
+    {
+        DBG("no relativeBounds data found.");
+        relativeBounds.setBounds(0.0, 0.0, 0.0, 0.0);
+    }
 
     juce::XmlElement* xmlFocus = xmlRegion->getChildByName("focus");
-    focus.setXY(xmlFocus->getDoubleAttribute("x", 0.5),
-                xmlFocus->getDoubleAttribute("y", 0.5)
-               );
+    if (xmlFocus != nullptr)
+    {
+        focus.setXY(xmlFocus->getDoubleAttribute("x", 0.5),
+                    xmlFocus->getDoubleAttribute("y", 0.5)
+                   );
+    }
+    else
+    {
+        DBG("no focus data found.");
+        focus.setXY(0.5, 0.5);
+    }
 
     audioFileName = xmlRegion->getStringAttribute("audioFileName", "");
     origSampleRate = xmlRegion->getDoubleAttribute("origSampleRate", 0.0);
+
+    //apply polyphony (buffers will be updated later)
+    int polyphony = xmlRegion->getIntAttribute("polyphony", 1);
+    if (associatedVoices.size() > 0 && associatedVoices.size() != polyphony)
+    {
+        audioEngine->removeVoicesWithID(getID());
+    }
+    audioEngine->initialiseVoicesForRegion(getID(), polyphony); //initialises the given amount of voices for this region
+    associatedVoices = audioEngine->getVoicesWithID(getID()); //update associated voices
 
     //restore buffer from attachedData
     int bufferMemoryIndex = xmlRegion->getIntAttribute("bufferMemory_index", -1);
@@ -697,6 +723,7 @@ void SegmentedRegion::deserialise(juce::XmlElement* xmlRegion, juce::Array<juce:
     {
         //buffer data not contained in attachedData (buffer was probably empty)
 
+        DBG("buffer not contained in attachedData. this might be because the buffer was simply empty.");
         audioFileName = "";
         origSampleRate = 0.0;
         setBuffer(juce::AudioSampleBuffer(), "", 0.0); //sets buffer to be empty. correctly updates associated voices, too

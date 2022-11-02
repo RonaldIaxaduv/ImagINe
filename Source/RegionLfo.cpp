@@ -12,6 +12,9 @@
 
 #include "RegionLfo.h"
 
+//constants
+const float RegionLfo::defaultUpdateIntervalMs = 10.0f;
+
 
 RegionLfo::RegionLfo(int regionID) :
     Lfo(juce::AudioSampleBuffer(), [](float) {; }), //can only initialise waveTable through the base class's constructor...
@@ -590,51 +593,19 @@ void RegionLfo::deserialise_main(juce::XmlElement* xmlLfo)
 {
     DBG("deserialising LFO (excluding mods)..."); //reason: all LFOs and voices have to be initialised, first!
 
-    regionID = xmlLfo->getIntAttribute("regionID");
+    regionID = xmlLfo->getIntAttribute("regionID", -1);
 
-    currentTablePos = xmlLfo->getDoubleAttribute("currentTablePos");
-    depth = xmlLfo->getDoubleAttribute("depth");
-    updateIntervalMs = xmlLfo->getDoubleAttribute("updateIntervalMs");
+    currentTablePos = xmlLfo->getDoubleAttribute("currentTablePos", 0.0);
+    depth = xmlLfo->getDoubleAttribute("depth", 0.0);
+    updateIntervalMs = xmlLfo->getDoubleAttribute("updateIntervalMs", defaultUpdateIntervalMs);
 
-    frequencyModParameter.setBaseValue(xmlLfo->getDoubleAttribute("frequencyModParameter_base"));
-    phaseModParameter.setBaseValue(xmlLfo->getDoubleAttribute("phaseModParameter_base"));
-    updateIntervalParameter.setBaseValue(xmlLfo->getDoubleAttribute("updateIntervalParameter_base"));
+    frequencyModParameter.setBaseValue(xmlLfo->getDoubleAttribute("frequencyModParameter_base", 0.0));
+    phaseModParameter.setBaseValue(xmlLfo->getDoubleAttribute("phaseModParameter_base", 1.0));
+    updateIntervalParameter.setBaseValue(xmlLfo->getDoubleAttribute("updateIntervalParameter_base", 1.0));
 
     DBG("LFO has been deserialised (except for mods).");
 }
-//void RegionLfo::deserialise_mods(juce::XmlElement* xmlLfo)
-//{
-//    DBG("deserialising LFO mods...");
-//
-//    juce::XmlElement* xmlParameterIDs = xmlLfo->getChildByName("modulatedParameterIDs");
-//    int size = xmlParameterIDs->getIntAttribute("size");
-//    juce::Array<LfoModulatableParameter> pIDs;
-//    for (int i = 0; i < size; ++i)
-//    {
-//        pIDs.add(static_cast<LfoModulatableParameter>(xmlParameterIDs->getIntAttribute("ID_" + juce::String(i))));
-//    }
-//
-//    juce::XmlElement* xmlRegionIDs = xmlLfo->getChildByName("affectedRegionIDs");
-//    size = xmlRegionIDs->getIntAttribute("size");
-//    juce::Array<int> rIDs;
-//    for (int i = 0; i < size; ++i)
-//    {
-//        rIDs.add(xmlRegionIDs->getIntAttribute("ID_" + juce::String(i)));
-//    }
-//
-//    if (pIDs.size() != rIDs.size())
-//    {
-//        //WIP
-//        DBG("ID array sizes don't match!");
-//    }
-//
-//    for (int i = 0; i < size; ++i)
-//    {
-//        addRegionModulation(pIDs[i], rIDs[i], ); //WIP: how to get the parameters? (AudioEngine not accessible from here)
-//    }
-//
-//    DBG("LFO mods have been deserialised.");
-//}
+
 
 
 

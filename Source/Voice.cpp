@@ -666,14 +666,14 @@ void Voice::deserialise(juce::XmlElement* xmlVoice)
     DBG("deserialising Voice...");
 
     //basic members
-    ID = xmlVoice->getIntAttribute("regionID");
+    ID = xmlVoice->getIntAttribute("regionID", -1);
     //bufferPos, bufferPosDelta: not needed
     setPitchQuantisationMethod(static_cast<PitchQuantisationMethod>(xmlVoice->getIntAttribute("currentPitchQuantisationMethod", static_cast<int>(PitchQuantisationMethod::continuous))));
 
     //parameters
-    levelParameter.setBaseValue(xmlVoice->getDoubleAttribute("levelParameter_base"));
-    pitchShiftParameter.setBaseValue(xmlVoice->getDoubleAttribute("pitchShiftParameter_base"));
-    playbackPositionParameter.setBaseValue(xmlVoice->getDoubleAttribute("playbackPositionParameter_base"));
+    levelParameter.setBaseValue(xmlVoice->getDoubleAttribute("levelParameter_base", 0.25));
+    pitchShiftParameter.setBaseValue(xmlVoice->getDoubleAttribute("pitchShiftParameter_base", 0.0));
+    playbackPositionParameter.setBaseValue(xmlVoice->getDoubleAttribute("playbackPositionParameter_base", 1.0));
 
     //envelope
     envelope.deserialise(xmlVoice);

@@ -257,13 +257,17 @@
 	# seems like it's probably voice parameters that haven't been unsubscribed after the voice has been deleted(?)
 		-> ahh, the LFO didn't unsubscribe other LFOs from its parameters. should hopefully be fixed now.
 # give focus point an outline for better visibility
-!- serialisation
+>> !- serialisation
 	# saving the SegmentableImage will be a challenge actually, cos the ProcessorEditor may be closed when the data is saved (e.g. when the DAW's file is saved)
 	/> new classes SegmentedRegionData, SegmentableImageData -> owned and serialised by *AudioEngine*, pointer provided to and content updated by SegmentedRegion, SegmentableImage
 		-> a simple pointer to SegmentableImage is enough (the SegmentedRegions are serialised in there)
-	- don't forget to add default values to all deserialised attributes! this is to ensure that the program doesn't crash when certain attributes aren't found in the file (for whatever reason, e.g. tampering etc.)
+	# i think i may have forgotten to code writing all partial memory blocks onto the final memory block, whoops... ><
+	# don't forget to add default values to all deserialised attributes! this is to ensure that the program doesn't crash when certain attributes aren't found in the file (for whatever reason, e.g. tampering etc.)
+	/ implement the final required update steps in AudioEngine
 	- make sure that all cases are respected, especially the one where no data has been loaded yet!
+	- testing
 !- check whether the ProcessorEditor keeps its state in the DAW, even after the editor has been closed and then reopened
+	-> can be checked using the projucer
 	- if not, in the Processor, store the pointer to the editor that is (newly) created when it asks for a ProcessorEditor. so when that stored pointer hasn't been initialised, initialise it, otherwise return that stored pointer. that should hopefully fix it.
 !- implement play path(s)
 !- check docs.juce.com/master/tutorial_app_plugin_packaging.html
@@ -279,6 +283,15 @@
 	- there should already be a method setHelpText for all Component members
 - make unipolar modulation symmetrical like bipolar modulation (see yesterday's note)
 	- maybe only for some parameters (perhaps it only sounds good that way for a select few)
+!- implement a simple means of randomisation
+	- add a "randomise" button to the region editor
+		-> nice way to quickly randomise everything at once
+	- also in the region editor, make it possible to hover over a component and press ctrl+r to randomise the value of that component
+		-> nice way to randomise only a selected number of components
+	- important: slightly bias the randomness, so that the values produced are actually useful (e.g. don't naively randomise volume - prefer values closer to 0.0dB!)
+!- add a subtle watermark to the image
+	- maybe one little textbox in a corner + a mostly transparent font across the image?
+- use the SynthesiserSound class to store the sampler data for voices (instead of storing the data in each voice separately). that way, the audio data only has to be stored once instead of [polyphony] times, and adding new voices only requires a reference to a region's sound instead of a full update.
 - implement more scales
 - implement more parameters
 	- current LFO phase (rename current implementation "LFO phase multiplier")
@@ -294,6 +307,7 @@
 	- no initial LFO phase / phase multiplier, playback pos / pos multiplier settings (in case i'm adding these options at some point)
 - minor bug: window is still resizable even when in editing/playing mode
 	- dunno why this happens... the handle doesn't show anymore, so the command seems to go through, so why does it still allow dragging?
+
 
 
 
@@ -336,7 +350,7 @@
 
 
 possible features to add later:
-!- improve drawing algorithm using image information
+!- improve region drawing algorithm using image information
 	- differentiate between left and right clicks: left clicks use the automated outline finder, right clicks simply draw straight lines like they do now -> more flexible
 !- sync tempo to DAW's BPM
 !- add an option to quantise the start/stop timings of voices to certain note values corresponding to the DAW's BPM
@@ -347,10 +361,15 @@ possible features to add later:
 - add further (optional) effects like filters, distortion or reverb
 	-> this won't be all too straightforward sadly... many of these effects require processing that isn't sample-by-sample, i.e. this kind of processing would either have to be separate from all other processing, or the entire way processing currently works would have to be rewritten
 	- make it possible to modulate these effects' parameters
-- add parameters for the DAW to modulate
 - maybe add granular-shift-based pitch shift
+(- add parameters for the DAW to modulate)
 - implement thread-safety-related concepts
 - add playback modes for the voices and LFOs: Normal (Forward), Oneshot (voices only), Forward-Backward, Backward-Forward, Backward
 	-> this could be especially interesting in combination with the playback position/length parameters!
 - more interesting play paths
 	- maybe some more objects (other than regions) that the paths can interact with in some way?
+!- GPU-accelerated UI drawing (change the editor window to an openGL-animated window)
+- add visual feedback for playback position/length
+	- probably better to add this only in combination with the GPU-accelerated UI drawing, otherwise it might be too costly
+	- idea 1: use a second (but smaller) pointer line -> regions look a bit like clocks
+	!- idea 2: clockwise wipe on the background of the region, with unplayable areas being greyed out
