@@ -61,7 +61,7 @@ void ImageINeDemoAudioProcessorEditor::resized()
     auto area = getLocalBounds();
     juce::Rectangle<int> modeArea;
 
-    switch (currentState)
+    switch (currentStateIndex)
     {
     case PluginEditorStateIndex::Init:
         loadImageButton.setBounds(area.removeFromTop(20).reduced(2, 2));
@@ -126,6 +126,155 @@ void ImageINeDemoAudioProcessorEditor::resized()
     }
 }
 
+void ImageINeDemoAudioProcessorEditor::transitionToState(PluginEditorStateIndex stateToTransitionTo)
+{
+    currentStateIndex = stateToTransitionTo;
+    DBG("set PluginEditor's current state to " + juce::String(static_cast<int>(currentStateIndex)));
+
+    switch (currentStateIndex)
+    {
+    case PluginEditorStateIndex::Init:
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Init), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Drawing), false);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Editing), false);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Playing), false);
+
+        loadImageButton.setVisible(true);
+        image.setVisible(false);
+        image.transitionToState(SegmentableImageStateIndex::empty);
+
+        setResizable(true, true);
+
+        break;
+
+    case PluginEditorStateIndex::Drawing:
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Init), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Drawing), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Editing), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Playing), true);
+
+        loadImageButton.setVisible(false);
+        image.setVisible(true);
+        image.transitionToState(SegmentableImageStateIndex::withImage); //if its current state was drawingRegion, it will remain at that state
+
+        setResizable(true, true);
+
+        break;
+
+    case PluginEditorStateIndex::Editing:
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Init), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Drawing), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Editing), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Playing), true);
+
+        loadImageButton.setVisible(false);
+        image.setVisible(true);
+        image.transitionToState(SegmentableImageStateIndex::editingRegions);
+
+        setResizable(false, false);
+
+        break;
+
+    case PluginEditorStateIndex::Playing:
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Init), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Drawing), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Editing), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Playing), true);
+
+        loadImageButton.setVisible(false);
+        image.setVisible(true);
+        image.transitionToState(SegmentableImageStateIndex::playingRegions);
+
+        setResizable(false, false);
+
+        break;
+
+    default:
+        throw new std::exception("Invalid state.");
+    }
+
+    if (modeBox.getSelectedId() != static_cast<int>(currentStateIndex))
+    {
+        modeBox.setSelectedId(static_cast<int>(currentStateIndex), juce::NotificationType::dontSendNotification);
+    }
+    resized();
+}
+
+bool ImageINeDemoAudioProcessorEditor::serialise(juce::XmlElement* xmlProcessor, juce::Array<juce::MemoryBlock>* attachedData)
+{
+    DBG("serialising PluginEditor...");
+    bool serialisationSuccessful = true;
+
+    juce::XmlElement* xmlEditor = xmlProcessor->createNewChildElement("PluginEditor");
+
+    //define state that the editor should start up with
+    PluginEditorStateIndex targetStateIndex = PluginEditorStateIndex::Null;
+    if (image.getImage().isNull())
+    {
+        targetStateIndex = PluginEditorStateIndex::Init;
+    }
+    else
+    {
+        //valid image has been set
+        if (!image.hasAtLeastOneRegion())
+        {
+            targetStateIndex = PluginEditorStateIndex::Drawing;
+        }
+        else
+        {
+            //at least one region has been set
+            if (!image.hasAtLeastOneRegionWithAudio())
+            {
+                targetStateIndex = PluginEditorStateIndex::Editing;
+            }
+            else
+            {
+                //at least one region has audio
+                targetStateIndex = PluginEditorStateIndex::Playing;
+            }
+        }
+    }
+    xmlEditor->setAttribute("targetStateIndex", static_cast<int>(targetStateIndex));
+
+    serialisationSuccessful = image.serialise(xmlEditor, attachedData); //stores image and all its regions
+
+    DBG(juce::String(serialisationSuccessful ? "PluginEditor has been serialised." : "PluginEditor could not be serialised."));
+    return serialisationSuccessful;
+}
+bool ImageINeDemoAudioProcessorEditor::deserialise(juce::XmlElement* xmlProcessor, juce::Array<juce::MemoryBlock>* attachedData)
+{
+    DBG("deserialising PluginEditor...");
+    bool deserialisationSuccessful = true;
+
+    juce::XmlElement* xmlEditor = xmlProcessor->getChildByName("PluginEditor");
+
+    if (xmlEditor != nullptr)
+    {
+        deserialisationSuccessful = image.deserialise(xmlEditor, attachedData); //restores image and all its regions
+
+        if (deserialisationSuccessful)
+        {
+            transitionToState(static_cast<PluginEditorStateIndex>(xmlEditor->getIntAttribute("targetStateIndex", static_cast<int>(PluginEditorStateIndex::Init)))); //transition to a fitting state
+        }
+        else
+        {
+            transitionToState(PluginEditorStateIndex::Init);
+        }
+    }
+    else
+    {
+        DBG("no PluginEditor data found.");
+        deserialisationSuccessful = false;
+        transitionToState(PluginEditorStateIndex::Init);
+    }
+
+    DBG(juce::String(deserialisationSuccessful ? "PluginEditor has been deserialised." : "PluginEditor could not be deserialised."));
+    return deserialisationSuccessful;
+}
+
+
+
+
 void ImageINeDemoAudioProcessorEditor::showLoadImageDialogue()
 {
     //image.setImage(juce::ImageFileFormat::loadFrom(juce::File("C:\\Users\\Aaron\\Desktop\\Programmierung\\GitHub\\ImageSegmentationTester\\Test Images\\Re_Legion_big+.jpg")));
@@ -154,73 +303,8 @@ void ImageINeDemoAudioProcessorEditor::showLoadImageDialogue()
 
 void ImageINeDemoAudioProcessorEditor::updateState()
 {
-    if (modeBox.getSelectedId() != 0 && modeBox.getSelectedId() != static_cast<int>(currentState)) //check whether the state has actually changed
+    if (modeBox.getSelectedId() != 0 && modeBox.getSelectedId() != static_cast<int>(currentStateIndex)) //check whether the state has actually changed
     {
-        currentState = static_cast<PluginEditorStateIndex>(modeBox.getSelectedId());
-        DBG("set MainComponent's current state to " + juce::String(static_cast<int>(currentState)));
-
-        switch (currentState)
-        {
-        case PluginEditorStateIndex::Init:
-            modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Init), true);
-            modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Drawing), false);
-            modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Editing), false);
-            modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Playing), false);
-
-            loadImageButton.setVisible(true);
-            image.setVisible(false);
-            image.transitionToState(SegmentableImageStateIndex::empty);
-
-            setResizable(true, true);
-
-            break;
-
-        case PluginEditorStateIndex::Drawing:
-            modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Init), true);
-            modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Drawing), true);
-            modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Editing), true);
-            modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Playing), true);
-
-            loadImageButton.setVisible(false);
-            image.setVisible(true);
-            image.transitionToState(SegmentableImageStateIndex::withImage); //if its current state was drawingRegion, it will remain at that state
-
-            setResizable(true, true);
-
-            break;
-
-        case PluginEditorStateIndex::Editing:
-            modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Init), true);
-            modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Drawing), true);
-            modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Editing), true);
-            modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Playing), true);
-
-            loadImageButton.setVisible(false);
-            image.setVisible(true);
-            image.transitionToState(SegmentableImageStateIndex::editingRegions);
-
-            setResizable(false, false);
-
-            break;
-
-        case PluginEditorStateIndex::Playing:
-            modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Init), true);
-            modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Drawing), true);
-            modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Editing), true);
-            modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Playing), true);
-
-            loadImageButton.setVisible(false);
-            image.setVisible(true);
-            image.transitionToState(SegmentableImageStateIndex::playingRegions);
-
-            setResizable(false, false);
-
-            break;
-
-        default:
-            throw new std::exception("Invalid state.");
-        }
-
-        resized();
+        transitionToState(static_cast<PluginEditorStateIndex>(modeBox.getSelectedId()));
     }
 }

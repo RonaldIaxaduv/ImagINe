@@ -33,7 +33,7 @@ class RegionEditorWindow;
 //==============================================================================
 /*
 */
-class SegmentedRegion : public juce::DrawableButton, public juce::Timer
+class SegmentedRegion final : public juce::DrawableButton, public juce::Timer
 {
 public:
     SegmentedRegion(const juce::Path& outline, const juce::Rectangle<float>& relativeBounds, juce::Colour fillColour, AudioEngine* audioEngine)/* :
@@ -48,9 +48,12 @@ public:
     void setTimerInterval(int newIntervalMs);
 
     void paintOverChildren(juce::Graphics& g) override;
+
     void resized() override;
     bool hitTest(int x, int y) override;
     bool hitTest_Interactable(int x, int y);
+
+    void forceRepaint();
 
     //void setState(SegmentedRegionState newState);
     void transitionToState(SegmentedRegionStateIndex stateToTransitionTo);
@@ -87,8 +90,8 @@ public:
 
     juce::Rectangle<float> relativeBounds;
 
-    void serialise(juce::XmlElement* xmlRegion, juce::Array<juce::MemoryBlock>* attachedData);
-    void deserialise(juce::XmlElement* xmlRegion, juce::Array<juce::MemoryBlock>* attachedData);
+    bool serialise(juce::XmlElement* xmlRegion, juce::Array<juce::MemoryBlock>* attachedData);
+    bool deserialise(juce::XmlElement* xmlRegion, juce::Array<juce::MemoryBlock>* attachedData);
 
 protected:
     void buttonStateChanged() override;

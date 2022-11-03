@@ -257,23 +257,82 @@
 	# seems like it's probably voice parameters that haven't been unsubscribed after the voice has been deleted(?)
 		-> ahh, the LFO didn't unsubscribe other LFOs from its parameters. should hopefully be fixed now.
 # give focus point an outline for better visibility
->> !- serialisation
+!(#) serialisation
 	# saving the SegmentableImage will be a challenge actually, cos the ProcessorEditor may be closed when the data is saved (e.g. when the DAW's file is saved)
 	/> new classes SegmentedRegionData, SegmentableImageData -> owned and serialised by *AudioEngine*, pointer provided to and content updated by SegmentedRegion, SegmentableImage
 		-> a simple pointer to SegmentableImage is enough (the SegmentedRegions are serialised in there)
 	# i think i may have forgotten to code writing all partial memory blocks onto the final memory block, whoops... ><
 	# don't forget to add default values to all deserialised attributes! this is to ensure that the program doesn't crash when certain attributes aren't found in the file (for whatever reason, e.g. tampering etc.)
 	/ implement the final required update steps in AudioEngine
-	- make sure that all cases are respected, especially the one where no data has been loaded yet!
-	- testing
-!- check whether the ProcessorEditor keeps its state in the DAW, even after the editor has been closed and then reopened
+	# make sure that all cases are respected, especially the one where no data has been loaded yet!
+	(#) testing
+		# need to switch the state of the main ProcessorEditor depending on what data is loaded
+			/> could probably be done in SegmentedImage via a call to its parent (-> the editor) somehow
+			#> actually, just make the serialisation of the ProcessorEditor separate from the AudioEngine! that way, AudioEngine doesn't need a reference to SegmentableImage anymore and the state of the editor can be set directly
+			#> if an image, regions and at least one audio file have been set, immediately transition to Playing! if an image and regions but no audiofiles were loaded, go to Editing. if an image has been set but no regions, go to Drawing. otherwise, go to Init.
+		# image doesn't load in correctly (needs to be redrawn from the ProcessorEditor? idk)
+			/> ? (not entirely sure why this is happening tbh, it just loads in partially, looking like the repainting process didn't go through o.ô)
+			/ resizing doesn't fix it, so repainting the component isn't the problem
+				-> is there an internal method to redraw the image of an image component? maybe smth went wrong there and it's just resizing this partially drawn image because of that
+			?/ maybe the old image wasn't deleted correctly?
+			# ugh, actually the image wasn't saved correctly: each pixel needs *several* bytes of data, not just one (usually)
+		(#) regions' visuals don't load in correctly until they're updated
+			/> probably has to do with the image's state - if it's in drawing mode, the regions are disabled. to circumvent this, create a little method that enables, repaints and then disables the regions depending on the state of the image
+			-> ugh, this might be kinda annoying to fix actually since the repaint method doesn't repaint immediately...
+			# forcing to redraw the buttons' backgrounds can be achieved with triggerDrawableButtonStateChanged!
+			#> bandaid fix for now: use juce::Timer::callAfterDelay with repaintAllRegions -> messy and might not work for all users, but at least it works for now...
+		# assertion error with synth_numVoices
+		?/ seems like the parameters aren't assigned correctly yet (they are displayed in the region editor, but they aren't applied. re-applying them in the editor does not fix this, either)
+			-> they seem to be stated correctly in the XML, so it must've smth to do with how they're deserialised
+			?- uhhhh, actually they might work correctly after all. it might just be that i got confused because the inverted parameters are still calculated a little weird atm
+				-> check with pitch, phase and playback parameters instead to make sure!
+		# disable processing while deserialising!
+		!# data that doesn't seem to be loaded correctly yet
+			# regions' fill colours
+			# LFO rate
+				-> saved the base value of the parameter, but the parameter is just a pitch shift basically - the required value is in the Lfo class!
+			/ amp sustain level(?)
+			# update interval (shown correctly, but isn't applied right)
+		# stop further deserialisation if no image could be restored
+		# image isn't reset when transitioning back to Init state, causing it to get saved
+		?# are loaded-in regions set to the correct state?
+			-> there's a chance that they sometimes wouldn't have been, but it's fixed, now
+		# make a test file for starting in each of the editor's states to check whether they work
+			# Init
+			# Drawing
+			# Editing
+			# Playing
+/ oh, there's a method setRepaintsOnMouseActivity -> disable that for SegmentedRegion!
+	-> doesn't do anything with DrawableButtons actually (because they *need* to be able to interact with the cursor to redraw themselves)
+!- check whether the ProcessorEditor keeps its serialised state in the DAW, even after the editor has been closed and then reopened
 	-> can be checked using the projucer
 	- if not, in the Processor, store the pointer to the editor that is (newly) created when it asks for a ProcessorEditor. so when that stored pointer hasn't been initialised, initialise it, otherwise return that stored pointer. that should hopefully fix it.
+?- it might be necessary to optimise the serialisation process (ugh...)
+	-> context: some DAWs call getStateInformation A LOT (e.g. when only 1 parameter handle is turned), i.e. saving all image/audio files in that method but be hell
+		-> BUT since ImageINe doesn't use any parameters currently, it might be safe
 !- implement play path(s)
+	- new states in the ProcessorEditor: "Draw Playpaths", "Edit Playpaths", "Run Playpaths"
+		-> rename "Drawing" to "Draw Regions", "Editing" to "Edit Regions" and "Playing" to "Play Regions"
+	- simplest implementation:
+		- draw a path (like when drawing a region), except maybe that it doesn't necessarily have to be closed(?)
+		- in the paths editor, set its walk speed (name subject to change)
+		- playing the path: clicking the regions doesn't do anything. instead, every playpath generates a little point that wanders alongside its associdated path. when the point enters a region, it's treated like a click during the "Play Regions" mode
+	- additional features:
+		- things that a playpath could do when it interacts with a region:
+			- randomise some of its parameters (maybe even ones like the position of the focus point etc.)
+		- things that a playpath could do when it interacts with another playpath:
+			- set that playpath's runner to the location where the interaction was
+			- start playing the other path, starting from the point of the interaction
+			- reverse that path's direction
+			- randomise some of the other path's parameters
+		- complete only a given number of laps along the path before stopping
 !- check docs.juce.com/master/tutorial_app_plugin_packaging.html
 
 
-!- are mp3s supported yet?
+- warning prompt when switching back to init state while an image (and potentially regions) have been loaded already!
+- display LFO depth in the region editor (somewhat close to where the focus point can be shifted)
+- make the width of the LFO line depend on its depth (1.0 = maximum depth, 0.0 = gone, >0.0 = minimum width)
+!- are mp3s supported yet? if not, absolutely do include them! include as many formats as possible in general.
 ?- LFO phase modulation doesn't seem to work quite right just yet
 	- setup: 1 region modding its own pitch (no quant) at 5 Hz, another region modding region 1's phase at 0.03 Hz -> wobble should alternate between being strong and weak, but it actually doesn' atm (it seems to be correctly displayed for the LFO line though)
 !- add note bindings to regions
@@ -299,6 +358,9 @@
 	- current playback position (rename current implementation "current playback position multiplier")
 		- is there a way to calculate this modded value efficiently without if cases?
 	- panning
+	- stereo width
+	- LFO value multiplication (ringmod)
+	- LFO value addition
 - add a button next to the LFO phase editor to switch its units to ms instead of Hz
 - add a combobox to the region editor to switch between "simple options" and "advanced options" to make things easier to get into
 	- ADSR instead of DAHDSR, no setting for the peak volume
@@ -363,6 +425,7 @@ possible features to add later:
 	- make it possible to modulate these effects' parameters
 - maybe add granular-shift-based pitch shift
 (- add parameters for the DAW to modulate)
+	- WARNING: since some DAWs call getStateInformation really, really often when parameters are changed, this might require a large-scale rework of the serialisation process...
 - implement thread-safety-related concepts
 - add playback modes for the voices and LFOs: Normal (Forward), Oneshot (voices only), Forward-Backward, Backward-Forward, Backward
 	-> this could be especially interesting in combination with the playback position/length parameters!

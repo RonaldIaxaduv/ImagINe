@@ -90,8 +90,8 @@ public:
     float getDepth();
     void setDepth(float newDepth);
 
-    void serialise(juce::XmlElement* xmlLfo);
-    void deserialise_main(juce::XmlElement* xmlLfo);
+    bool serialise(juce::XmlElement* xmlLfo);
+    bool deserialise_main(juce::XmlElement* xmlLfo);
     //void deserialise_mods(juce::XmlElement* xmlLfo);
 
 protected:

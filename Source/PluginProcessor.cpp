@@ -187,55 +187,89 @@ void ImageINeDemoAudioProcessor::getStateInformation (juce::MemoryBlock& destDat
     //-> whenever there's an object that couldn't be converted to XML, read its index in the list and simply convert the MemoryBlock back
     //note: endianness is handled by using juce::MemoryInputStream and juce::MemoryOutputStream objects, which have methods to write variables with a certain endianness
 
-    DBG("serialising all data...");
+    DBG("serialising all data... initial memory block size: " + juce::String(destData.getSize()) + " bytes.");
+    bool serialisationSuccessful = true;
+    bool previouslySuspended = isSuspended();
+    suspendProcessing(true);
 
-    std::unique_ptr<juce::XmlElement> xml(new juce::XmlElement("ImageINe_Data")); //XML file containing most of the data
+    if (getActiveEditor() == nullptr)
+    {
+        DBG("no active editor - serialisation aborted.");
+        suspendProcessing(previouslySuspended);
+        return;
+    }
+
+    std::unique_ptr<juce::XmlElement> xml(new juce::XmlElement("ImageINe_Data")); //XML file containing most of the program's information
     
     //some header attributes to enable dealing with backwards compatibility
     xml->setAttribute("Plugin_Version", JucePlugin_VersionString);
     xml->setAttribute("Serialisation_Version", serialisation_version);
 
-    //serialise all data. data that cannot be converted to XML objects will be stored in additional attached memory blocks, instead. these blocks will be appended after the XML's data block.
+    //serialise all data. data that cannot be converted to XML objects will be stored in additional attached memory blocks, instead.
+    //these blocks will be appended after the XML's data block.
     juce::Array<juce::MemoryBlock> attachedData;
-    audioEngine.serialise(xml.get(), &attachedData);
-    
-    //convert XML file into a memory block
-    juce::MemoryBlock xmlData = juce::MemoryBlock(); //the (temporary) memory block
-    juce::MemoryOutputStream xmlOutStream = juce::MemoryOutputStream(xmlData, false);
-    xml->writeToStream(xmlOutStream, juce::XmlElement::TextFormat::TextFormat().dtd); //write XML to the temporary memory block
-    xmlOutStream.flush(); //if the block that's written on is user-supplied, it's safer to explicitly flush the stream before any more operations, apparently
+    serialisationSuccessful = static_cast<ImageINeDemoAudioProcessorEditor*>(getActiveEditor())->serialise(xml.get(), &attachedData);
 
-
-    //first, write the XML block (including its size) onto the output block
-    juce::MemoryOutputStream outStream = juce::MemoryOutputStream(destData, true); //stream that will write on the final block of memory
-    outStream.writeString("ImageINe_Data_start"); //write an identifier so that the decoder can quickly check whether it's looking at a valid file
-
-    juce::MemoryInputStream xmlInStream = juce::MemoryInputStream(xmlData, false);
-    outStream.writeInt64(static_cast<juce::int64>(xmlData.getSize())); //write XML's size (required to restore the block)
-    outStream.writeFromInputStream(xmlInStream, xmlData.getSize()); //write XML's content
-
-
-    //then, write all of the attached data blocks (including their number and sizes) onto the output block
-    outStream.writeInt(attachedData.size()); //write, how many attached data blocks there are (incl. if there are none)
-    for (auto* itData = attachedData.begin(); itData != attachedData.end(); ++itData)
+    if (serialisationSuccessful)
     {
-        auto block = *itData;
-        juce::MemoryInputStream blockStream = juce::MemoryInputStream(block, false);
+        serialisationSuccessful = audioEngine.serialise(xml.get());
 
-        outStream.writeInt64(static_cast<juce::int64>(block.getSize())); //write block's size (required to restore the block)
-        outStream.writeFromInputStream(blockStream, block.getSize()); //write block's content
+        if (serialisationSuccessful)
+        {
+            //convert XML file into a memory block
+            juce::MemoryBlock xmlData = juce::MemoryBlock(); //the (temporary) memory block
+            juce::MemoryOutputStream xmlOutStream(xmlData, true);
+            xml->writeToStream(xmlOutStream, juce::XmlElement::TextFormat::TextFormat().dtd); //write XML to the temporary memory block
+            xmlOutStream.flush(); //if the block that's written on is user-supplied, it's safer to explicitly flush the stream before any more operations, apparently
+
+
+            //initialise the final output' stream
+            juce::MemoryOutputStream outStream(destData, true); //stream that will write on the final block of memory
+            outStream.writeString("ImageINe_Data_start"); //write an identifier so that the decoder can quickly check whether it's looking at a valid file
+
+
+            //first, write the XML block(including its size) onto the output block
+            juce::MemoryInputStream xmlInStream(xmlData, false);
+            outStream.writeInt64(static_cast<juce::int64>(xmlData.getSize())); //write XML's size (required to restore the block)
+            outStream.writeFromInputStream(xmlInStream, static_cast<juce::int64>(xmlData.getSize())); //write XML's content
+            DBG("XML file has been written. size: " + juce::String(static_cast<juce::int64>(xmlData.getSize())) + " bytes.");
+
+
+            //then, write all of the attached data blocks (including their number and sizes) onto the output block
+            outStream.writeInt(attachedData.size()); //write, how many attached data blocks there are (incl. if there are none)
+            for (auto* itData = attachedData.begin(); itData != attachedData.end(); ++itData)
+            {
+                auto block = *itData;
+                juce::MemoryInputStream blockStream(block, false);
+
+                outStream.writeInt64(static_cast<juce::int64>(block.getSize())); //write block's size (required to restore the block)
+                outStream.writeFromInputStream(blockStream, static_cast<juce::int64>(block.getSize())); //write block's content
+                DBG("an attached block has been written. size: " + juce::String(static_cast<juce::int64>(block.getSize())) + " bytes.");
+            }
+        }
     }
 
-    DBG("all data has been serialised.");
+    DBG(juce::String(serialisationSuccessful ? "all data has been serialised. total size: " + juce::String(destData.getSize()) + " bytes." : "serialisation could not be completed."));
+    suspendProcessing(previouslySuspended);
 }
 
 void ImageINeDemoAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     //used to restore data created by getStateInformation()
 
-    DBG("deserialising all data...");
+    DBG("deserialising all data... total size of the file: " + juce::String(sizeInBytes) + " bytes.");
+    bool deserialisationSuccessful = true;
+    bool previouslySuspended = isSuspended();
+    suspendProcessing(true);
 
-    juce::MemoryInputStream inStream = juce::MemoryInputStream(data, static_cast<size_t>(sizeInBytes), false); //main stream for reading the stored data
+    if (getActiveEditor() == nullptr)
+    {
+        DBG("no active editor - deserialisation aborted.");
+        suspendProcessing(previouslySuspended);
+        return;
+    }
+
+    juce::MemoryInputStream inStream (data, static_cast<size_t>(sizeInBytes), false); //main stream for reading the stored data
 
     //check whether the file actually contains data for this program. to do so, it checks for the identifier that's written in front of all files.
     juce::String identifier = inStream.readString();
@@ -243,17 +277,26 @@ void ImageINeDemoAudioProcessor::setStateInformation (const void* data, int size
     {
         //throw std::exception("invalid file.");
         DBG("invalid file. deserialisation aborted.");
+        suspendProcessing(previouslySuspended);
         return; //do nothing
     }
     //else: valid file -> go on
 
     //extract the contained XML file
-    size_t xmlSize = inStream.readInt64();
+    size_t xmlSize = static_cast<size_t>(inStream.readInt64());
+    DBG("size of the XML file: " + juce::String(xmlSize) + " bytes.");
     juce::MemoryBlock xmlData = juce::MemoryBlock(xmlSize);
-    juce::MemoryOutputStream xmlOutStream = juce::MemoryOutputStream(xmlData, false);
+    juce::MemoryOutputStream xmlOutStream (xmlData, false);
     xmlOutStream.writeFromInputStream(inStream, xmlSize); //copy data from the input stream to the XML's memory block
-    std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(xmlData.getData(), xmlSize)); //convert memory block back to an XML file
+    xmlOutStream.flush();
+    //std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(xmlData.getData(), xmlSize)); //convert memory block back to an XML file
     
+    std::unique_ptr<juce::XmlElement> xmlState = juce::XmlDocument::parse(xmlData.toString()); //convert memory block back to an XML file
+
+    //xml->writeToStream(xmlOutStream, juce::XmlElement::TextFormat::TextFormat().dtd); //write XML to the temporary memory block
+    //xmlOutStream.flush(); //if the block that's written on is user-supplied, it's safer to explicitly flush the stream before any more operations, apparently
+
+
     if (xmlState.get() != nullptr && xmlState->hasTagName("ImageINe_Data"))
     {
         //valid XML file -> go on
@@ -267,22 +310,44 @@ void ImageINeDemoAudioProcessor::setStateInformation (const void* data, int size
         for (int i = 0; i < attachedDataSize; ++i)
         {
             size_t blockSize = inStream.readInt64(); //size of the upcoming memory block
+            DBG("size of the next attached block: " + juce::String(blockSize) + " bytes.");
             juce::MemoryBlock block = juce::MemoryBlock(blockSize);
-            juce::MemoryOutputStream blockStream = juce::MemoryOutputStream(block, false); //stream that writes data onto the block
+            juce::MemoryOutputStream blockStream (block, false); //stream that writes data onto the block
             blockStream.writeFromInputStream(inStream, blockSize); //copy data from input stream to the block
+            blockStream.flush();
             attachedData.add(block); //block completed -> append to list
         }
 
         //deserialise all data using the XML file and the attached data blocks
-        audioEngine.deserialise(xmlState.get(), &attachedData);
+        deserialisationSuccessful = static_cast<ImageINeDemoAudioProcessorEditor*>(getActiveEditor())->deserialise(xmlState.get(), &attachedData);
+        
+        if (deserialisationSuccessful)
+        {
+            deserialisationSuccessful = audioEngine.deserialise(xmlState.get());
+        }
     }
     else
     {
-        DBG("invalid XML file. deserialisation aborted.");
-        return; //do nothing
+        if (xmlState.get() == nullptr)
+        {
+            DBG("invalid XML file.");
+        }
+        else
+        {
+            DBG("invalid XML tag name.");
+        }
+        suspendProcessing(previouslySuspended);
+        deserialisationSuccessful = false;
     }
 
-    DBG("all data has been deserialised.");
+    DBG(juce::String(deserialisationSuccessful ? "all data has been deserialised." : "deserialisation could not be completed."));
+    suspendProcessing(previouslySuspended);
+
+    if (!deserialisationSuccessful)
+    {
+        //if deserialisation failed, transition back to the Init state of the editor (note: it has already been ensured that the editor exists)
+        static_cast<ImageINeDemoAudioProcessorEditor*>(getActiveEditor())->transitionToState(ImageINeDemoAudioProcessorEditor::PluginEditorStateIndex::Init);
+    }
 }
 
 //==============================================================================

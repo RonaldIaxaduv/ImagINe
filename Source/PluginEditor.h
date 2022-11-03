@@ -34,6 +34,11 @@ public:
         Playing
     };
 
+    void transitionToState(PluginEditorStateIndex stateToTransitionTo);
+
+    bool serialise(juce::XmlElement* xmlProcessor, juce::Array<juce::MemoryBlock>* attachedData);
+    bool deserialise(juce::XmlElement* xmlProcessor, juce::Array<juce::MemoryBlock>* attachedData);
+
 private:
     //==============================================================================
     void updateState();
@@ -47,7 +52,7 @@ private:
 
     juce::TextButton loadImageButton;
 
-    PluginEditorStateIndex currentState = PluginEditorStateIndex::Null;
+    PluginEditorStateIndex currentStateIndex = PluginEditorStateIndex::Null;
 
     juce::Label modeLabel;
     juce::ComboBox modeBox;

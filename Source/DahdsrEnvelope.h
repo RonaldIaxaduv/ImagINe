@@ -84,8 +84,8 @@ public:
     void setReleaseTime(double newTimeInSeconds);
     double getReleaseTime();
 
-    void serialise(juce::XmlElement* xmlParent);
-    void deserialise(juce::XmlElement* xmlParent);
+    bool serialise(juce::XmlElement* xmlParent);
+    bool deserialise(juce::XmlElement* xmlParent);
 
 private:
     DahdsrEnvelopeState* states[static_cast<int>(DahdsrEnvelopeStateIndex::StateIndexCount)]; //fixed size -> more efficient access

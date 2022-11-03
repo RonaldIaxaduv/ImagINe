@@ -59,8 +59,8 @@ public:
 
     void deleteLastNode();
 
-    void serialise(juce::XmlElement* xmlAudioEngine, juce::Array<juce::MemoryBlock>* attachedData);
-    void deserialise(juce::XmlElement* xmlAudioEngine, juce::Array<juce::MemoryBlock>* attachedData);
+    bool serialise(juce::XmlElement* xmlEditor, juce::Array<juce::MemoryBlock>* attachedData);
+    bool deserialise(juce::XmlElement* xmlEditor, juce::Array<juce::MemoryBlock>* attachedData);
 
     //================================================================
 
@@ -70,6 +70,8 @@ public:
     //juce::uint8** segmentedPixels; //WIP: "Always prefer a juce::HeapBlock or some other container class." -> change it to that
 
     juce::OwnedArray<SegmentedRegion> regions;
+    bool hasAtLeastOneRegion();
+    bool hasAtLeastOneRegionWithAudio();
 
 private:
     SegmentableImageState* states[static_cast<int>(SegmentableImageStateIndex::StateIndexCount)];
@@ -84,6 +86,7 @@ private:
     AudioEngine* audioEngine;
 
     void addRegion(SegmentedRegion* newRegion);
+    void repaintAllRegions();
 
     void clearPath();
 

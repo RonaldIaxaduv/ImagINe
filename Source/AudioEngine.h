@@ -16,8 +16,6 @@
 #include "Voice.h"
 #include "RegionLfo.h"
 
-class SegmentableImage; //header included in cpp -> no trouble with crossreferences. required only for serialisation.
-
 struct TempSound : public juce::SynthesiserSound
 {
     TempSound() {}
@@ -33,10 +31,8 @@ public:
     AudioEngine(juce::MidiKeyboardState& keyState, juce::AudioProcessor& associatedProcessor);
     ~AudioEngine() override;
 
-    void serialise(juce::XmlElement* xml, juce::Array<juce::MemoryBlock>* attachedData);
-    void deserialise(juce::XmlElement* xml, juce::Array<juce::MemoryBlock>* attachedData);
-
-    void registerImage(SegmentableImage* newAssociatedImage);
+    bool serialise(juce::XmlElement* xml);
+    bool deserialise(juce::XmlElement* xml);
 
     int getNextRegionID();
     int getLastRegionID();
@@ -61,6 +57,7 @@ public:
 
     void prepareToPlay(int /*samplesPerBlockExpected*/, double sampleRate) override;
     void suspendProcessing(bool shouldBeSuspended);
+    bool isSuspended();
 
     void releaseResources() override;
 
@@ -79,24 +76,20 @@ private:
     juce::Synthesiser synth;
     juce::dsp::ProcessSpec specs;
 
-    SegmentableImage* associatedImage = nullptr;
-
     int regionIdCounter = -1;
     juce::Array<juce::Colour> regionColours;
     juce::OwnedArray<RegionLfo> lfos; //one LFO per segmented region which represents that region's outline in relation to its focus point
 
     static const int defaultPolyphony;
 
-    void serialiseRegionColours(juce::XmlElement* xmlAudioEngine);
-    void serialiseLFOs(juce::XmlElement* xmlAudioEngine);
-    void serialiseVoices(juce::XmlElement* xmlAudioEngine);
-    void serialiseImage(juce::XmlElement* xmlAudioEngine, juce::Array<juce::MemoryBlock>* attachedData);
+    bool serialiseRegionColours(juce::XmlElement* xmlAudioEngine);
+    bool serialiseLFOs(juce::XmlElement* xmlAudioEngine);
+    bool serialiseVoices(juce::XmlElement* xmlAudioEngine);
 
-    void deserialiseRegionColours(juce::XmlElement* xmlAudioEngine);
-    void deserialiseLFOs_main(juce::XmlElement* xmlAudioEngine);
-    void deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine);
-    void deserialiseVoices(juce::XmlElement* xmlAudioEngine);
-    void deserialiseImage(juce::XmlElement* xmlAudioEngine, juce::Array<juce::MemoryBlock>* attachedData);
+    bool deserialiseRegionColours(juce::XmlElement* xmlAudioEngine);
+    bool deserialiseLFOs_main(juce::XmlElement* xmlAudioEngine);
+    bool deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine);
+    bool deserialiseVoices(juce::XmlElement* xmlAudioEngine);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioEngine)
 };

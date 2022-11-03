@@ -208,8 +208,6 @@ void DahdsrEnvelopeState_Delay::setTime(double newTimeInSeconds)
     timeInSeconds = newTimeInSeconds;
     timeInSamples = timeInSeconds * sampleRate; //0 if sample rate not set -> should not happen if the states are implemented and updated correctly
 
-    DBG("new delay time: " + juce::String(newTimeInSeconds) + "s (" + juce::String(timeInSamples) + " samples)");
-
     currentSample = 0;
 }
 double DahdsrEnvelopeState_Delay::getTimeInSeconds()

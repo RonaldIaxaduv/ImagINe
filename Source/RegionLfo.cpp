@@ -555,19 +555,17 @@ void RegionLfo::setDepth(float newDepth)
     depth = newDepth;
 }
 
-void RegionLfo::serialise(juce::XmlElement* xmlLfo)
+bool RegionLfo::serialise(juce::XmlElement* xmlLfo)
 {
     DBG("serialising LFO...");
+    bool serialisationSuccessful = true;
 
     xmlLfo->setAttribute("regionID", regionID);
 
     xmlLfo->setAttribute("currentTablePos", currentTablePos);
     xmlLfo->setAttribute("depth", depth);
     xmlLfo->setAttribute("updateIntervalMs", updateIntervalMs);
-
-    xmlLfo->setAttribute("frequencyModParameter_base", frequencyModParameter.getBaseValue());
-    xmlLfo->setAttribute("phaseModParameter_base", phaseModParameter.getBaseValue());
-    xmlLfo->setAttribute("updateIntervalParameter_base", updateIntervalParameter.getBaseValue());
+    xmlLfo->setAttribute("baseFrequency", getBaseFrequency());
 
     juce::XmlElement* xmlParameterIDs = xmlLfo->createNewChildElement("modulatedParameterIDs");
     xmlParameterIDs->setAttribute("size", modulatedParameterIDs.size());
@@ -587,23 +585,23 @@ void RegionLfo::serialise(juce::XmlElement* xmlLfo)
 
     //wavetable/wavetableUnipolar not needed, because the LFO will be initialised with its corresponding SegmentedRegion beforehand
 
-    DBG("LFO has been serialised.");
+    DBG(juce::String(serialisationSuccessful ? "LFO has been serialised." : "LFO could not be serialised."));
+    return serialisationSuccessful;
 }
-void RegionLfo::deserialise_main(juce::XmlElement* xmlLfo)
+bool RegionLfo::deserialise_main(juce::XmlElement* xmlLfo)
 {
-    DBG("deserialising LFO (excluding mods)..."); //reason: all LFOs and voices have to be initialised, first!
+    DBG("deserialising LFO (excluding mods)..."); //reasons why mods are excluded: all LFOs and voices first have to be initialised, and access to the AudioEngine would be necessary (which the LFO doesn't have -> easier to do from the AudioEngine itself)
+    bool deserialisationSuccessful = true;
 
     regionID = xmlLfo->getIntAttribute("regionID", -1);
 
     currentTablePos = xmlLfo->getDoubleAttribute("currentTablePos", 0.0);
     depth = xmlLfo->getDoubleAttribute("depth", 0.0);
-    updateIntervalMs = xmlLfo->getDoubleAttribute("updateIntervalMs", defaultUpdateIntervalMs);
+    setUpdateInterval_Milliseconds(xmlLfo->getDoubleAttribute("updateIntervalMs", defaultUpdateIntervalMs));
+    setBaseFrequency(xmlLfo->getDoubleAttribute("baseFrequency", 0.2));
 
-    frequencyModParameter.setBaseValue(xmlLfo->getDoubleAttribute("frequencyModParameter_base", 0.0));
-    phaseModParameter.setBaseValue(xmlLfo->getDoubleAttribute("phaseModParameter_base", 1.0));
-    updateIntervalParameter.setBaseValue(xmlLfo->getDoubleAttribute("updateIntervalParameter_base", 1.0));
-
-    DBG("LFO has been deserialised (except for mods).");
+    DBG(juce::String(deserialisationSuccessful ? "LFO has been deserialised (except for mods)." : "LFO could not be deserialised (main)."));
+    return deserialisationSuccessful;
 }
 
 

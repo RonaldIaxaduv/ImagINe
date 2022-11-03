@@ -9,7 +9,6 @@
 */
 
 #include "AudioEngine.h"
-#include "SegmentableImage.h"
 
 //constants
 const int AudioEngine::defaultPolyphony = 1;
@@ -32,8 +31,6 @@ AudioEngine::~AudioEngine()
 {
     DBG("destroying AudioEngine...");
 
-    associatedImage = nullptr;
-
     lfos.clear(true);
 
     juce::AudioSource::~AudioSource();
@@ -41,29 +38,35 @@ AudioEngine::~AudioEngine()
     DBG("AudioEngine destroyed.");
 }
 
-void AudioEngine::serialise(juce::XmlElement* xml, juce::Array<juce::MemoryBlock>* attachedData)
+bool AudioEngine::serialise(juce::XmlElement* xml)
 {
     DBG("serialising AudioEngine...");
+    bool serialisationSuccessful = true;
     juce::XmlElement* xmlAudioEngine = xml->createNewChildElement("AudioEngine");
-
-    //serialise image data (includes SegmentedRegions)
-    serialiseImage(xmlAudioEngine, attachedData);
 
     //serialise audio engine's region data
     xmlAudioEngine->setAttribute("regionIdCounter", regionIdCounter);
-    serialiseRegionColours(xmlAudioEngine);
+    serialisationSuccessful = serialiseRegionColours(xmlAudioEngine);
 
-    //serialise LFO data
-    serialiseLFOs(xmlAudioEngine);
+    if (serialisationSuccessful)
+    {
+        //serialise LFO data
+        serialisationSuccessful = serialiseLFOs(xmlAudioEngine);
 
-    //serialise voice data
-    serialiseVoices(xmlAudioEngine);
+        if (serialisationSuccessful)
+        {
+            //serialise voice data
+            serialisationSuccessful = serialiseVoices(xmlAudioEngine);
+        }
+    }
 
-    DBG("AudioEngine has been serialised.");
+    DBG(juce::String(serialisationSuccessful ? "AudioEngine has been serialised." : "AudioEngine could not be serialised."));
+    return serialisationSuccessful;
 }
-void AudioEngine::serialiseRegionColours(juce::XmlElement* xmlAudioEngine)
+bool AudioEngine::serialiseRegionColours(juce::XmlElement* xmlAudioEngine)
 {
     DBG("serialising regionColours...");
+    bool serialisationSuccessful = true;
     juce::XmlElement* xmlRegionColours = xmlAudioEngine->createNewChildElement("regionColours");
 
     xmlRegionColours->setAttribute("size", regionColours.size());
@@ -74,129 +77,153 @@ void AudioEngine::serialiseRegionColours(juce::XmlElement* xmlAudioEngine)
         xmlRegionColours->setAttribute("Colour_" + juce::String(i), itColour->toString()); //can be converted back via fromString()
     }
 
-    DBG("regionColours has been serialised.");
+    DBG(juce::String(serialisationSuccessful ? "regionColours has been serialised." : "regionColours could not be serialised."));
+    return serialisationSuccessful;
 }
-void AudioEngine::serialiseLFOs(juce::XmlElement* xmlAudioEngine)
+bool AudioEngine::serialiseLFOs(juce::XmlElement* xmlAudioEngine)
 {
+    bool serialisationSuccessful = true;
     xmlAudioEngine->setAttribute("lfos_size", lfos.size());
 
-    for (auto itLfo = lfos.begin(); itLfo != lfos.end(); ++itLfo)
+    for (auto itLfo = lfos.begin(); serialisationSuccessful && itLfo != lfos.end(); ++itLfo)
     {
         juce::XmlElement* xmlLfo = xmlAudioEngine->createNewChildElement("LFO_" + juce::String((*itLfo)->getRegionID()));
-        (*itLfo)->serialise(xmlLfo);
+        serialisationSuccessful = (*itLfo)->serialise(xmlLfo);
     }
+
+    return serialisationSuccessful;
 }
-void AudioEngine::serialiseVoices(juce::XmlElement* xmlAudioEngine)
+bool AudioEngine::serialiseVoices(juce::XmlElement* xmlAudioEngine)
 {
     //note: serialise only ONE voice per region, and the total number of voices for that region
     //-> pass the same XmlElement to all [number of voices] Voice members to initialise them all with the same values
 
+    bool serialisationSuccessful = true;
     xmlAudioEngine->setAttribute("synth_numVoices", synth.getNumVoices());
 
-    for (int id = 0; id <= regionIdCounter; ++id)
+    for (int id = 0; serialisationSuccessful && id <= regionIdCounter; ++id)
     {
         auto voices = getVoicesWithID(id);
         
         if (voices.size() > 0) //only create voice data for regions that exist
         {
             juce::XmlElement* xmlVoices = xmlAudioEngine->createNewChildElement("Voices_" + juce::String(id));
-            voices[0]->serialise(xmlVoices); //it's enough to serialise one voice per region, because all other voices have exactly the same parameters
+            serialisationSuccessful = voices[0]->serialise(xmlVoices); //it's enough to serialise one voice per region, because all other voices have exactly the same parameters
         }
     }
-}
-void AudioEngine::serialiseImage(juce::XmlElement* xmlAudioEngine, juce::Array<juce::MemoryBlock>* attachedData)
-{
-    associatedImage->serialise(xmlAudioEngine, attachedData);
+
+    return serialisationSuccessful;
 }
 
-void AudioEngine::deserialise(juce::XmlElement* xml, juce::Array<juce::MemoryBlock>* attachedData)
+bool AudioEngine::deserialise(juce::XmlElement* xml)
 {
     DBG("deserialising AudioEngine...");
+    bool deserialisationSuccessful = true;
+
     juce::XmlElement* xmlAudioEngine = xml->getChildByName("AudioEngine");
 
     if (xmlAudioEngine != nullptr)
     {
-        //deserialise image data (includes SegmentedRegions)
-        deserialiseImage(xmlAudioEngine, attachedData);
-
         //deserialise audio engine's region data
         regionIdCounter = xmlAudioEngine->getIntAttribute("regionIdCounter", 0);
-        deserialiseRegionColours(xmlAudioEngine);
+        deserialisationSuccessful = deserialiseRegionColours(xmlAudioEngine);
 
-        //deserialise LFO data (excluding mods)
-        deserialiseLFOs_main(xmlAudioEngine);
+        if (deserialisationSuccessful)
+        {
+            //deserialise LFO data (excluding mods)
+            deserialisationSuccessful = deserialiseLFOs_main(xmlAudioEngine);
 
-        //deserialise voice data
-        deserialiseVoices(xmlAudioEngine);
+            if (deserialisationSuccessful)
+            {
+                //deserialise voice data
+                deserialisationSuccessful = deserialiseVoices(xmlAudioEngine);
 
-        //deserialise LFO mods (now that all regions, LFOs and voices have been deserialised)
-        deserialiseLFOs_mods(xmlAudioEngine);
-
-        DBG("AudioEngine has been deserialised.");
+                if (deserialisationSuccessful)
+                {
+                    //deserialise LFO mods (now that all regions, LFOs and voices have been deserialised)
+                    deserialisationSuccessful = deserialiseLFOs_mods(xmlAudioEngine);
+                }
+            }
+        }
     }
     else
     {
         DBG("no AudioEngine data found.");
+        deserialisationSuccessful = false;
     }
+
+    DBG(juce::String(deserialisationSuccessful ? "AudioEngine has been deserialised." : "AudioEngine could not be deserialised."));
+    return deserialisationSuccessful;
 }
-void AudioEngine::deserialiseRegionColours(juce::XmlElement* xmlAudioEngine)
+bool AudioEngine::deserialiseRegionColours(juce::XmlElement* xmlAudioEngine)
 {
     DBG("deserialising regionColours...");
+    bool deserialisationSuccessful = true;
+
+    //clear previous data
+    regionColours.clear();
+    
     juce::XmlElement* xmlRegionColours = xmlAudioEngine->getChildByName("regionColours");
 
     if (xmlRegionColours != nullptr)
     {
-        regionColours.clear();
-
         int size = xmlRegionColours->getIntAttribute("size");
         for (int i = 0; i < size; ++i)
         {
-            regionColours.add(juce::Colour::fromString(xmlRegionColours->getStringAttribute("Colour_" + juce::String(i))));
+            regionColours.add(juce::Colour::fromString(xmlRegionColours->getStringAttribute("Colour_" + juce::String(i), juce::Colours::black.toString())));
         }
-
-        DBG("regionColours has been deserialised.");
     }
     else
     {
         DBG("no regionColours data found.");
+        deserialisationSuccessful = false;
     }
+
+    DBG(juce::String(deserialisationSuccessful ? "regionColours has been deserialised." : "regionColours could not be deserialised."));
+    return deserialisationSuccessful;
 }
-void AudioEngine::deserialiseLFOs_main(juce::XmlElement* xmlAudioEngine)
+bool AudioEngine::deserialiseLFOs_main(juce::XmlElement* xmlAudioEngine)
 {
+    bool deserialisationSuccessful = true;
     int size = xmlAudioEngine->getIntAttribute("lfos_size", 0);
 
     jassert(size == lfos.size()); //LFOs should already be initialised at this point, because the SegmentedRegion objects are deserialised first
 
-    for (int i = 0; i <= regionIdCounter; ++i)
+    for (int i = 0; deserialisationSuccessful && i <= regionIdCounter; ++i)
     {
         juce::XmlElement* xmlLfo = xmlAudioEngine->getChildByName("LFO_" + juce::String(lfos[i]->getRegionID()));
 
         if (xmlLfo != nullptr)
         {
-            lfos[i]->deserialise_main(xmlLfo);
+            deserialisationSuccessful = lfos[i]->deserialise_main(xmlLfo);
         }
         else
         {
             DBG("LFO data of region " + juce::String(lfos[i]->getRegionID()) + "'s LFO could not be found.");
-            //don't do anything, leave the LFO at its initial state
+            deserialisationSuccessful = false;
         }
     }
+
+    return deserialisationSuccessful;
 }
-void AudioEngine::deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine)
+bool AudioEngine::deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine)
 {
-    DBG("Deserialising LFO mods...");
+    DBG("deserialising LFO mods...");
+    bool deserialisationSuccessful = true;
 
-    int size = xmlAudioEngine->getIntAttribute("lfos_size", 0);
+    int lfos_size = xmlAudioEngine->getIntAttribute("lfos_size", 0);
 
-    jassert(size == lfos.size()); //LFOs should already be initialised at this point, because the SegmentedRegion objects are deserialised first
+    jassert(lfos_size == lfos.size()); //LFOs should already be initialised at this point, because the SegmentedRegion objects are deserialised first
+    deserialisationSuccessful = (lfos_size == lfos.size());
 
-    for (int i = 0; i <= regionIdCounter; ++i)
+    for (int i = 0; deserialisationSuccessful && i <= regionIdCounter; ++i)
     {
         juce::XmlElement* xmlLfo = xmlAudioEngine->getChildByName("LFO_" + juce::String(lfos[i]->getRegionID()));
 
         if (xmlLfo != nullptr)
         {
             //it's easier to directly implement this here instead of using a method lfos[i]->deserialise_mods(xmlLfo), because deserialising the mods requires access to the AudioEngine, which the LFOs don't have (and would be messy to implement)
+            DBG("deserialising mods of region " + juce::String(lfos[i]->getRegionID()) + "'s LFO...");
 
             juce::XmlElement* xmlParameterIDs = xmlLfo->getChildByName("modulatedParameterIDs");
             juce::Array<LfoModulatableParameter> pIDs;
@@ -211,6 +238,7 @@ void AudioEngine::deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine)
             else
             {
                 DBG("parameter IDs of region " + juce::String(lfos[i]->getRegionID()) + "'s LFO could not be found.");
+                //deserialisationSuccessful = false; //not problematic
                 continue;
             }
 
@@ -227,17 +255,19 @@ void AudioEngine::deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine)
             else
             {
                 DBG("region IDs of region " + juce::String(lfos[i]->getRegionID()) + "'s LFO could not be found.");
+                //deserialisationSuccessful = false; //not problematic
                 continue;
             }
 
             if (pIDs.size() != rIDs.size())
             {
                 DBG("ID sizes of region " + juce::String(lfos[i]->getRegionID()) + "'s LFO don't match!");
+                deserialisationSuccessful = false;
                 continue;
             }
 
             juce::Array<ModulatableParameter<double>*> affectedParams;
-            for (int j = 0; j < size; ++j)
+            for (int j = 0; j < pIDs.size(); ++j)
             {
                 //get affected parameters
                 switch (pIDs[j])
@@ -279,52 +309,54 @@ void AudioEngine::deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine)
                 //apply modulation
                 lfos[i]->addRegionModulation(pIDs[j], rIDs[j], affectedParams);
             }
+
+            DBG(juce::String(deserialisationSuccessful ? "mods of region " + juce::String(lfos[i]->getRegionID()) + "'s LFO have been deserialised." : "mods of region " + juce::String(lfos[i]->getRegionID()) + "'s LFO could not be deserialised."));
         }
         else
         {
             DBG("LFO data of region " + juce::String(lfos[i]->getRegionID()) + "'s LFO could not be found.");
-            //don't do anything, leave the LFO at its initial state (without mods)
+            deserialisationSuccessful = false;
         }
     }
 
-    DBG("LFO mods have been deserialised.");
+    DBG(juce::String(deserialisationSuccessful ? "LFO mods have been deserialised." : "LFO mods could not be deserialised."));
+    return deserialisationSuccessful;
 }
-void AudioEngine::deserialiseVoices(juce::XmlElement* xmlAudioEngine)
+bool AudioEngine::deserialiseVoices(juce::XmlElement* xmlAudioEngine)
 {
     //note: serialise only ONE voice per region, and the total number of voices for that region
     //-> pass the same XmlElement to all [number of voices] Voice members to initialise them all with the same values
+    bool deserialisationSuccessful = true;
 
-    for (int id = 0; id <= regionIdCounter; ++id)
+    for (int id = 0; deserialisationSuccessful && id <= regionIdCounter; ++id)
     {
         juce::XmlElement* xmlVoices = xmlAudioEngine->getChildByName("Voices_" + juce::String(id));
 
         if (xmlVoices != nullptr) //only apply voice data for regions that exist
         {
             //note: the correct polyphony is already ensured within the deserialisation of the associated SegmentedRegion object
+            DBG("deserialising voice data of region " + juce::String(id) + "...");
 
             //load data of all voices (excluding the sound data, which is loaded from their associated SegmentedRegion)
             auto voices = getVoicesWithID(id);
             for (auto itVoice = voices.begin(); itVoice != voices.end(); ++itVoice)
             {
-                (*itVoice)->deserialise(xmlVoices); //deserialise each voice with exactly the same parameters
+                deserialisationSuccessful = (*itVoice)->deserialise(xmlVoices); //deserialise each voice with exactly the same parameters
             }
+
+            DBG(juce::String(deserialisationSuccessful ? "voice data of region " + juce::String(id) + " has been deserialised." : "voice data of region " + juce::String(id) + " could not be deserialised."));
         }
         else
         {
-            DBG("voice data of region " + juce::String(id) + "'s LFO could not be found. this isn't necessarily a problem because the code also checks for voices of already deleted regions.");
+            DBG("voice data of region " + juce::String(id) + " could not be found. this isn't necessarily a problem because the code also checks for voices of already deleted regions.");
         }
     }
 
+    DBG("final number of voices: " + juce::String(synth.getNumVoices()) + " (target was " + juce::String(xmlAudioEngine->getIntAttribute("synth_numVoices", 0)) + ")");
     jassert(synth.getNumVoices() == xmlAudioEngine->getIntAttribute("synth_numVoices", 0));
-}
-void AudioEngine::deserialiseImage(juce::XmlElement* xmlAudioEngine, juce::Array<juce::MemoryBlock>* attachedData)
-{
-    associatedImage->deserialise(xmlAudioEngine, attachedData);
-}
+    deserialisationSuccessful = synth.getNumVoices() == xmlAudioEngine->getIntAttribute("synth_numVoices", 0);
 
-void AudioEngine::registerImage(SegmentableImage* newAssociatedImage)
-{
-    associatedImage = newAssociatedImage;
+    return deserialisationSuccessful;
 }
 
 int AudioEngine::getNextRegionID()
@@ -518,6 +550,10 @@ void AudioEngine::suspendProcessing(bool shouldBeSuspended)
 {
     //synth.allNotesOff(0, false); //force stop all notes
     associatedProcessor.suspendProcessing(shouldBeSuspended);
+}
+bool AudioEngine::isSuspended()
+{
+    return associatedProcessor.isSuspended();
 }
 
 void AudioEngine::releaseResources()

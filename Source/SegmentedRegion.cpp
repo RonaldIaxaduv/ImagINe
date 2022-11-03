@@ -55,6 +55,8 @@ SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangl
 
     setBuffer(juce::AudioSampleBuffer(), "", 0.0); //no audio file set yet -> empty buffer
     
+    setBufferedToImage(true);
+    //setRepaintsOnMouseActivity(false); //doesn't work for DrawableButton sadly (but makes kind of sense since it needs to change its background image while interacting with it)
     //currentLfoLine = juce::Line<float>(juce::Point<float>(0.0f, 0.0f), juce::Point<float>(static_cast<float>(getWidth()), static_cast<float>(getHeight()))); //diagonal -> entire region will be redrawn (a little hacky, but ensures that the LFO line is drawn before the region is first played)
     //repaint(); //paints the LFO line
 }
@@ -302,6 +304,16 @@ bool SegmentedRegion::hitTest(int x, int y)
 bool SegmentedRegion::hitTest_Interactable(int x, int y)
 {
     return p.contains((float)x, (float)y);
+}
+
+void SegmentedRegion::forceRepaint()
+{
+    SegmentedRegionStateIndex previousStateIndex = currentStateIndex;
+
+    transitionToState(SegmentedRegionStateIndex::editable); //trick: transition to a state where hitTest doesn't always return false but actually corresponds to the region's hitbox
+    repaint(); //now repainting should work <- actually, it doesn't... there's not enough of a delay...
+
+    transitionToState(previousStateIndex);
 }
 
 //void SegmentedRegion::setState(SegmentedRegionState newState)
@@ -581,9 +593,10 @@ juce::String SegmentedRegion::getFileName()
     return audioFileName;
 }
 
-void SegmentedRegion::serialise(juce::XmlElement* xmlRegion, juce::Array<juce::MemoryBlock>* attachedData)
+bool SegmentedRegion::serialise(juce::XmlElement* xmlRegion, juce::Array<juce::MemoryBlock>* attachedData)
 {
     DBG("serialising SegmentedRegion...");
+    bool serialisationSuccessful = true;
 
     xmlRegion->setAttribute("ID", ID);
     xmlRegion->setAttribute("shouldBeToggleable", shouldBeToggleable);
@@ -613,12 +626,14 @@ void SegmentedRegion::serialise(juce::XmlElement* xmlRegion, juce::Array<juce::M
 
     if (bufferMemorySize > 0)
     {
+        //serialise buffer
         juce::MemoryBlock bufferMemory(bufferMemorySize);
-        juce::MemoryOutputStream bufferStream = juce::MemoryOutputStream(bufferMemory, false); //by using this stream, the samples can be written in a certain endian (unlike memBuffer.append()), ensuring portability. little endian will be used.
+        juce::MemoryOutputStream bufferStream (bufferMemory, false); //by using this stream, the samples can be written in a certain endian (unlike memBuffer.append()), ensuring portability. little endian will be used.
 
         //prepend size and number of the channels so that they can be read correctly
         bufferStream.writeInt(numChannels);
         bufferStream.writeInt(numSamples);
+        bufferStream.flush();
 
         //copy the content of the buffer - unfortunately, the channels can't be written as a whole, so it has to be done sample-by-sample...
         for (int ch = 0; ch < numChannels; ++ch)
@@ -630,6 +645,7 @@ void SegmentedRegion::serialise(juce::XmlElement* xmlRegion, juce::Array<juce::M
             {
                 bufferStream.writeFloat(samples[s]);
             }
+            bufferStream.flush();
         }
 
         attachedData->add(bufferMemory);
@@ -637,20 +653,23 @@ void SegmentedRegion::serialise(juce::XmlElement* xmlRegion, juce::Array<juce::M
     }
     else //bufferMemorySize == 0
     {
+        //no buffer contained -> nothing to serialise
         xmlRegion->setAttribute("bufferMemory_index", -1); //nothing attached
     }
 
-    DBG("SegmentedRegion has been serialised.");
+    DBG(juce::String(serialisationSuccessful ? "SegmentedRegion has been serialised." : "SegmentedRegion could not be serialised."));
+    return serialisationSuccessful;
 }
-void SegmentedRegion::deserialise(juce::XmlElement* xmlRegion, juce::Array<juce::MemoryBlock>* attachedData)
+bool SegmentedRegion::deserialise(juce::XmlElement* xmlRegion, juce::Array<juce::MemoryBlock>* attachedData)
 {
     DBG("deserialising SegmentedRegion...");
+    bool deserialisationSuccessful = true;
 
     ID = xmlRegion->getIntAttribute("ID", -1);
     shouldBeToggleable = xmlRegion->getBoolAttribute("shouldBeToggleable", false);
     p.clear();
     p.restoreFromString(xmlRegion->getStringAttribute("path", ""));
-    fillColour.fromString(xmlRegion->getStringAttribute("fillColour", juce::Colours::black.toString()));
+    fillColour = juce::Colour::fromString(xmlRegion->getStringAttribute("fillColour", juce::Colours::black.toString()));
 
     juce::XmlElement* xmlRelativeBounds = xmlRegion->getChildByName("relativeBounds");
     if (xmlRelativeBounds != nullptr)
@@ -665,78 +684,88 @@ void SegmentedRegion::deserialise(juce::XmlElement* xmlRegion, juce::Array<juce:
     {
         DBG("no relativeBounds data found.");
         relativeBounds.setBounds(0.0, 0.0, 0.0, 0.0);
+        deserialisationSuccessful = false;
     }
 
-    juce::XmlElement* xmlFocus = xmlRegion->getChildByName("focus");
-    if (xmlFocus != nullptr)
+    if (deserialisationSuccessful)
     {
-        focus.setXY(xmlFocus->getDoubleAttribute("x", 0.5),
-                    xmlFocus->getDoubleAttribute("y", 0.5)
-                   );
-    }
-    else
-    {
-        DBG("no focus data found.");
-        focus.setXY(0.5, 0.5);
-    }
-
-    audioFileName = xmlRegion->getStringAttribute("audioFileName", "");
-    origSampleRate = xmlRegion->getDoubleAttribute("origSampleRate", 0.0);
-
-    //apply polyphony (buffers will be updated later)
-    int polyphony = xmlRegion->getIntAttribute("polyphony", 1);
-    if (associatedVoices.size() > 0 && associatedVoices.size() != polyphony)
-    {
-        audioEngine->removeVoicesWithID(getID());
-    }
-    audioEngine->initialiseVoicesForRegion(getID(), polyphony); //initialises the given amount of voices for this region
-    associatedVoices = audioEngine->getVoicesWithID(getID()); //update associated voices
-
-    //restore buffer from attachedData
-    int bufferMemoryIndex = xmlRegion->getIntAttribute("bufferMemory_index", -1);
-    if (bufferMemoryIndex >= 0 && bufferMemoryIndex < attachedData->size())
-    {
-        //buffer data contained in attachedData -> get block and restore
-        juce::MemoryBlock bufferMemory = (*attachedData)[bufferMemoryIndex];
-        juce::MemoryInputStream bufferStream = juce::MemoryInputStream(bufferMemory, false); //by using this stream, the samples can be read in a certain endian, ensuring portability. little endian will be used.
-
-        //get the size and number of the channels so that they can be read correctly
-        int numChannels = bufferStream.readInt();
-        int numSamples = bufferStream.readInt();
-        juce::AudioSampleBuffer tempBuffer(numChannels, numSamples);
-
-        //copy the content of the buffer - unfortunately, the channels can't be written as a whole, so it has to be done sample-by-sample...
-        for (int ch = 0; ch < numChannels; ++ch)
+        juce::XmlElement* xmlFocus = xmlRegion->getChildByName("focus");
+        if (xmlFocus != nullptr)
         {
-            //bufferMemory.append(buffer.getReadPointer(ch), static_cast<size_t>(numSamples) * sizeof(float)); //while this would be able to copy a full channel, it wouldn't ensure a specific endian, causing portability issues!
-            auto* samples = tempBuffer.getWritePointer(ch);
-
-            for (int s = 0; s < numSamples; ++s)
-            {
-                samples[s] = bufferStream.readFloat();
-            }
+            focus.setXY(xmlFocus->getDoubleAttribute("x", 0.5),
+                xmlFocus->getDoubleAttribute("y", 0.5)
+            );
+        }
+        else
+        {
+            DBG("no focus data found.");
+            focus.setXY(0.5, 0.5);
+            //deserialisationSuccessful = false; //not problematic
         }
 
-        setBuffer(tempBuffer, audioFileName, origSampleRate); //correctly updates associated voices, too
-    }
-    else
-    {
-        //buffer data not contained in attachedData (buffer was probably empty)
+        if (deserialisationSuccessful)
+        {
+            audioFileName = xmlRegion->getStringAttribute("audioFileName", "");
+            origSampleRate = xmlRegion->getDoubleAttribute("origSampleRate", 0.0);
 
-        DBG("buffer not contained in attachedData. this might be because the buffer was simply empty.");
-        audioFileName = "";
-        origSampleRate = 0.0;
-        setBuffer(juce::AudioSampleBuffer(), "", 0.0); //sets buffer to be empty. correctly updates associated voices, too
+            //apply polyphony (buffers will be updated later)
+            int polyphony = xmlRegion->getIntAttribute("polyphony", 1);
+            if (associatedVoices.size() != polyphony)
+            {
+                audioEngine->removeVoicesWithID(getID());
+                audioEngine->initialiseVoicesForRegion(getID(), polyphony); //initialises the given amount of voices for this region
+                associatedVoices = audioEngine->getVoicesWithID(getID()); //update associated voices
+            }
+
+            //restore buffer from attachedData
+            int bufferMemoryIndex = xmlRegion->getIntAttribute("bufferMemory_index", -1);
+            if (bufferMemoryIndex >= 0 && bufferMemoryIndex < attachedData->size())
+            {
+                //buffer data contained in attachedData -> get block and restore
+                juce::MemoryBlock bufferMemory = (*attachedData)[bufferMemoryIndex];
+                juce::MemoryInputStream bufferStream(bufferMemory, false); //by using this stream, the samples can be read in a certain endian, ensuring portability. little endian will be used.
+
+                //get the size and number of the channels so that they can be read correctly
+                int numChannels = bufferStream.readInt();
+                int numSamples = bufferStream.readInt();
+                juce::AudioSampleBuffer tempBuffer(numChannels, numSamples);
+
+                //copy the content of the buffer - unfortunately, the channels can't be written as a whole, so it has to be done sample-by-sample...
+                for (int ch = 0; ch < numChannels; ++ch)
+                {
+                    //bufferMemory.append(buffer.getReadPointer(ch), static_cast<size_t>(numSamples) * sizeof(float)); //while this would be able to copy a full channel, it wouldn't ensure a specific endian, causing portability issues!
+                    auto* samples = tempBuffer.getWritePointer(ch);
+
+                    for (int s = 0; s < numSamples; ++s)
+                    {
+                        samples[s] = bufferStream.readFloat();
+                    }
+                }
+
+                setBuffer(tempBuffer, audioFileName, origSampleRate); //correctly updates associated voices, too
+            }
+            else
+            {
+                //buffer data not contained in attachedData (buffer was probably empty)
+
+                DBG("buffer not contained in attachedData. this might be because the buffer was simply empty.");
+                audioFileName = "";
+                origSampleRate = 0.0;
+                setBuffer(juce::AudioSampleBuffer(), "", 0.0); //sets buffer to be empty. correctly updates associated voices, too
+            }
+        }
     }
+
 
 
 
     //data has been read. now, re-initialise all remaining components.
     initialiseImages(); //re-initialises all images
     renderLfoWaveform(); //updates LFO (generates its wavetable)
-    resized(); //updates focusAbs and redraws the component
+    resized(); //updates focusAbs, calculates the current lfoLine and redraws the component (or rather, it's *supposed* to redraw it...)
 
-    DBG("SegmentedRegion has been deserialised.");
+    DBG(juce::String(deserialisationSuccessful ? "SegmentedRegion has been deserialised." : "SegmentedRegion could not be deserialised."));
+    return deserialisationSuccessful;
 }
 
 

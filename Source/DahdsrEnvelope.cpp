@@ -309,9 +309,10 @@ double DahdsrEnvelope::getReleaseTime()
 
 
 
-void DahdsrEnvelope::serialise(juce::XmlElement* xmlParent)
+bool DahdsrEnvelope::serialise(juce::XmlElement* xmlParent)
 {
     DBG("serialising DAHDSR envelope...");
+    bool serialisationSuccessful = true;
 
     juce::XmlElement* xmlEnvelope = xmlParent->createNewChildElement("DahdsrEnvelope");
 
@@ -324,11 +325,13 @@ void DahdsrEnvelope::serialise(juce::XmlElement* xmlParent)
     xmlEnvelope->setAttribute("sustainLevel", getSustainLevel());
     xmlEnvelope->setAttribute("releaseTime", getReleaseTime());
 
-    DBG("DAHDSR envelope has been serialised.");
+    DBG(juce::String(serialisationSuccessful ? "DAHDSR envelope has been serialised." : "DAHDSR envelope could not be serialised."));
+    return serialisationSuccessful;
 }
-void DahdsrEnvelope::deserialise(juce::XmlElement* xmlParent)
+bool DahdsrEnvelope::deserialise(juce::XmlElement* xmlParent)
 {
     DBG("deserialising DAHDSR envelope...");
+    bool deserialisationSuccessful = true;
 
     juce::XmlElement* xmlEnvelope = xmlParent->getChildByName("DahdsrEnvelope");
 
@@ -342,11 +345,13 @@ void DahdsrEnvelope::deserialise(juce::XmlElement* xmlParent)
         setDecayTime(xmlEnvelope->getDoubleAttribute("decayTime", defaultDecayTimeSeconds));
         setSustainLevel(xmlEnvelope->getDoubleAttribute("sustainLevel", defaultSustainLevel));
         setReleaseTime(xmlEnvelope->getDoubleAttribute("releaseTime", defaultReleaseTimeSeconds));
-
-        DBG("DAHDSR envelope has been deserialised.");
     }
     else
     {
         DBG("no DAHDSR data found.");
+        deserialisationSuccessful = false;
     }
+
+    DBG(juce::String(deserialisationSuccessful ? "DAHDSR envelope has been deserialised." : "DAHDSR envelope could not be deserialised."));
+    return deserialisationSuccessful;
 }

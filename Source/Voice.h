@@ -109,8 +109,8 @@ public:
 
     DahdsrEnvelope* getEnvelope();
 
-    void serialise(juce::XmlElement* xmlVoice);
-    void deserialise(juce::XmlElement* xmlVoice);
+    bool serialise(juce::XmlElement* xmlVoice);
+    bool deserialise(juce::XmlElement* xmlVoice);
 
 private:
     //states

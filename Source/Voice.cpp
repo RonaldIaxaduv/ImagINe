@@ -540,7 +540,6 @@ void Voice::setPitchQuantisationMethod(PitchQuantisationMethod newPitchQuantisat
     }
 
     currentPitchQuantisationMethod = newPitchQuantisationMethod;
-    DBG("set pitch quantisation method to " + juce::String(static_cast<int>(currentPitchQuantisationMethod)));
 }
 PitchQuantisationMethod Voice::getPitchQuantisationMethod()
 {
@@ -640,9 +639,10 @@ DahdsrEnvelope* Voice::getEnvelope()
     return &envelope;
 }
 
-void Voice::serialise(juce::XmlElement* xmlVoice)
+bool Voice::serialise(juce::XmlElement* xmlVoice)
 {
     DBG("serialising Voice...");
+    bool serialisationSuccessful = true;
 
     //basic members
     xmlVoice->setAttribute("regionID", ID);
@@ -655,15 +655,17 @@ void Voice::serialise(juce::XmlElement* xmlVoice)
     xmlVoice->setAttribute("playbackPositionParameter_base", playbackPositionParameter.getBaseValue());
 
     //envelope
-    envelope.serialise(xmlVoice);
+    serialisationSuccessful = envelope.serialise(xmlVoice);
 
     //osc: needn't be serialised, because when the SegmentedRegion associated with this voice is deserialised, it will already initialise osc
 
-    DBG("Voice has been serialised.");
+    DBG(juce::String(serialisationSuccessful ? "Voice has been serialised." : "Voice could not be serialised."));
+    return serialisationSuccessful;
 }
-void Voice::deserialise(juce::XmlElement* xmlVoice)
+bool Voice::deserialise(juce::XmlElement* xmlVoice)
 {
     DBG("deserialising Voice...");
+    bool deserialisationSuccessful = true;
 
     //basic members
     ID = xmlVoice->getIntAttribute("regionID", -1);
@@ -676,9 +678,10 @@ void Voice::deserialise(juce::XmlElement* xmlVoice)
     playbackPositionParameter.setBaseValue(xmlVoice->getDoubleAttribute("playbackPositionParameter_base", 1.0));
 
     //envelope
-    envelope.deserialise(xmlVoice);
+    deserialisationSuccessful = envelope.deserialise(xmlVoice);
 
     //osc: needn't be deserialised, because when the SegmentedRegion associated with this voice is deserialised, it will already initialise osc
 
-    DBG("Voice has been deserialised.");
+    DBG(juce::String(deserialisationSuccessful ? "Voice has been deserialised." : "Voice could not be deserialised."));
+    return deserialisationSuccessful;
 }
