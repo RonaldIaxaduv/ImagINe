@@ -11,7 +11,7 @@
 
 //==============================================================================
 ImageINeDemoAudioProcessorEditor::ImageINeDemoAudioProcessorEditor (ImageINeDemoAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p), image(&p.audioEngine)
+    : AudioProcessorEditor (&p), audioProcessor (p), image(*p.audioEngine.getImage())
 {
     addAndMakeVisible(loadImageButton);
     loadImageButton.setButtonText("Load Image");
@@ -35,14 +35,17 @@ ImageINeDemoAudioProcessorEditor::ImageINeDemoAudioProcessorEditor (ImageINeDemo
     setResizeLimits(100, 100, 4096, 2160); //maximum resolution: 4k
     setSize(600, 400);
 
-    modeBox.setSelectedId(1); //set state to init
+    //modeBox.setSelectedId(static_cast<int>(PluginEditorStateIndex::Init));
+    setStateAccordingToImage();
 }
 
 ImageINeDemoAudioProcessorEditor::~ImageINeDemoAudioProcessorEditor()
 {
     fc = nullptr;
+  
     //removeKeyListener(imagePtr.get());
     removeMouseListener(&image);
+    removeChildComponent(&image); //the image is not a member of the editor. it's contained in the AudioEngine, so it needs to be released.
 }
 
 //==============================================================================
@@ -200,78 +203,6 @@ void ImageINeDemoAudioProcessorEditor::transitionToState(PluginEditorStateIndex 
     resized();
 }
 
-bool ImageINeDemoAudioProcessorEditor::serialise(juce::XmlElement* xmlProcessor, juce::Array<juce::MemoryBlock>* attachedData)
-{
-    DBG("serialising PluginEditor...");
-    bool serialisationSuccessful = true;
-
-    juce::XmlElement* xmlEditor = xmlProcessor->createNewChildElement("PluginEditor");
-
-    //define state that the editor should start up with
-    PluginEditorStateIndex targetStateIndex = PluginEditorStateIndex::Null;
-    if (image.getImage().isNull())
-    {
-        targetStateIndex = PluginEditorStateIndex::Init;
-    }
-    else
-    {
-        //valid image has been set
-        if (!image.hasAtLeastOneRegion())
-        {
-            targetStateIndex = PluginEditorStateIndex::Drawing;
-        }
-        else
-        {
-            //at least one region has been set
-            if (!image.hasAtLeastOneRegionWithAudio())
-            {
-                targetStateIndex = PluginEditorStateIndex::Editing;
-            }
-            else
-            {
-                //at least one region has audio
-                targetStateIndex = PluginEditorStateIndex::Playing;
-            }
-        }
-    }
-    xmlEditor->setAttribute("targetStateIndex", static_cast<int>(targetStateIndex));
-
-    serialisationSuccessful = image.serialise(xmlEditor, attachedData); //stores image and all its regions
-
-    DBG(juce::String(serialisationSuccessful ? "PluginEditor has been serialised." : "PluginEditor could not be serialised."));
-    return serialisationSuccessful;
-}
-bool ImageINeDemoAudioProcessorEditor::deserialise(juce::XmlElement* xmlProcessor, juce::Array<juce::MemoryBlock>* attachedData)
-{
-    DBG("deserialising PluginEditor...");
-    bool deserialisationSuccessful = true;
-
-    juce::XmlElement* xmlEditor = xmlProcessor->getChildByName("PluginEditor");
-
-    if (xmlEditor != nullptr)
-    {
-        deserialisationSuccessful = image.deserialise(xmlEditor, attachedData); //restores image and all its regions
-
-        if (deserialisationSuccessful)
-        {
-            transitionToState(static_cast<PluginEditorStateIndex>(xmlEditor->getIntAttribute("targetStateIndex", static_cast<int>(PluginEditorStateIndex::Init)))); //transition to a fitting state
-        }
-        else
-        {
-            transitionToState(PluginEditorStateIndex::Init);
-        }
-    }
-    else
-    {
-        DBG("no PluginEditor data found.");
-        deserialisationSuccessful = false;
-        transitionToState(PluginEditorStateIndex::Init);
-    }
-
-    DBG(juce::String(deserialisationSuccessful ? "PluginEditor has been deserialised." : "PluginEditor could not be deserialised."));
-    return deserialisationSuccessful;
-}
-
 
 
 
@@ -306,5 +237,31 @@ void ImageINeDemoAudioProcessorEditor::updateState()
     if (modeBox.getSelectedId() != 0 && modeBox.getSelectedId() != static_cast<int>(currentStateIndex)) //check whether the state has actually changed
     {
         transitionToState(static_cast<PluginEditorStateIndex>(modeBox.getSelectedId()));
+    }
+}
+
+void ImageINeDemoAudioProcessorEditor::setStateAccordingToImage()
+{
+    switch (image.getCurrentStateIndex())
+    {
+    case SegmentableImageStateIndex::empty:
+        transitionToState(PluginEditorStateIndex::Init);
+        break;
+
+    case SegmentableImageStateIndex::withImage:
+    case SegmentableImageStateIndex::drawingRegion:
+        transitionToState(PluginEditorStateIndex::Drawing);
+        break;
+
+    case SegmentableImageStateIndex::editingRegions:
+        transitionToState(PluginEditorStateIndex::Editing);
+        break;
+
+    case SegmentableImageStateIndex::playingRegions:
+        transitionToState(PluginEditorStateIndex::Playing);
+        break;
+
+    default:
+        throw std::exception("unhandled SegmentableImageStateIndex.");
     }
 }

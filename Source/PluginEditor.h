@@ -36,9 +36,6 @@ public:
 
     void transitionToState(PluginEditorStateIndex stateToTransitionTo);
 
-    bool serialise(juce::XmlElement* xmlProcessor, juce::Array<juce::MemoryBlock>* attachedData);
-    bool deserialise(juce::XmlElement* xmlProcessor, juce::Array<juce::MemoryBlock>* attachedData);
-
 private:
     //==============================================================================
     void updateState();
@@ -53,11 +50,12 @@ private:
     juce::TextButton loadImageButton;
 
     PluginEditorStateIndex currentStateIndex = PluginEditorStateIndex::Null;
+    void setStateAccordingToImage();
 
     juce::Label modeLabel;
     juce::ComboBox modeBox;
 
-    SegmentableImage image;
+    SegmentableImage& image;
 
     std::unique_ptr<juce::FileChooser> fc;
 

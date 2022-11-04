@@ -214,6 +214,10 @@ void SegmentableImage::transitionToState(SegmentableImageStateIndex stateToTrans
 
     //repaint();
 }
+SegmentableImageStateIndex SegmentableImage::getCurrentStateIndex()
+{
+    return currentStateIndex;
+}
 
 void SegmentableImage::setImage(const juce::Image& newImage)
 {
@@ -498,12 +502,15 @@ void SegmentableImage::removeRegion(int regionID)
     }
 }
 
-bool SegmentableImage::serialise(juce::XmlElement* xmlProcessor, juce::Array<juce::MemoryBlock>* attachedData)
+bool SegmentableImage::serialise(juce::XmlElement* xmlParent, juce::Array<juce::MemoryBlock>* attachedData)
 {
     DBG("serialising SegmentableImage...");
     bool serialisationSuccessful = true;
 
-    juce::XmlElement* xmlSegmentableImage = xmlProcessor->createNewChildElement("SegmentableImage");
+    juce::XmlElement* xmlSegmentableImage = xmlParent->createNewChildElement("SegmentableImage");
+
+    //define state that the image should start up with (that state will also determine the state that the editor will start up in)
+    xmlSegmentableImage->setAttribute("targetStateIndex", static_cast<int>(getTargetStateIndex()));
 
     if (getImage().isValid())
     {
@@ -551,12 +558,12 @@ bool SegmentableImage::serialise(juce::XmlElement* xmlProcessor, juce::Array<juc
     DBG(juce::String(serialisationSuccessful ? "SegmentableImage has been serialised." : "SegmentableImage could not be serialised."));
     return serialisationSuccessful;
 }
-bool SegmentableImage::deserialise(juce::XmlElement* xmlProcessor, juce::Array<juce::MemoryBlock>* attachedData)
+bool SegmentableImage::deserialise(juce::XmlElement* xmlParent, juce::Array<juce::MemoryBlock>* attachedData)
 {
     DBG("deserialising SegmentableImage...");
     bool deserialisationSuccessful = true;
 
-    juce::XmlElement* xmlSegmentableImage = xmlProcessor->getChildByName("SegmentableImage");
+    juce::XmlElement* xmlSegmentableImage = xmlParent->getChildByName("SegmentableImage");
 
     if (xmlSegmentableImage != nullptr)
     {
@@ -607,22 +614,52 @@ bool SegmentableImage::deserialise(juce::XmlElement* xmlProcessor, juce::Array<j
                     //deserialisationSuccessful = false; //not problematic
                 }
             }
-            getParentComponent()->resized(); //adjust this components shape to that of the window (depends on the image's aspect ratio, which most likely changed). also updates all regions' sizes to fit this component
+            if (getParentComponent() != nullptr)
+            {
+                getParentComponent()->resized(); //adjust this components shape to that of the window (depends on the image's aspect ratio, which most likely changed). also updates all regions' sizes to fit this component
+            }
             juce::Timer::callAfterDelay(100, [this] { repaintAllRegions(); }); //WIP: this is kinda messy, but at least it works. if called without a delay, the regions won't correctly repaint themselves, causing their lfoLines to be in the wrong position until one hovers over them or clicks them
         }
         else
         {
-            //image data not contained in attachedData (image was probably empty)
-            DBG("image not contained in attachedData. this might be because the image was simply empty.");
-
-            //no regions to deserialise when the image is empty
-            jassert(xmlSegmentableImage->getIntAttribute("regions_size", 0) == 0);
+            //image data not contained in attachedData
+            if (static_cast<SegmentableImageStateIndex>(xmlSegmentableImage->getIntAttribute("targetStateIndex", static_cast<int>(SegmentableImageStateIndex::StateIndexCount))) == SegmentableImageStateIndex::empty && xmlSegmentableImage->getIntAttribute("regions_size", 0) == 0)
+            {
+                //target state was empty and no regions have been stored -> seems like a normal empty image
+                DBG("image not contained in attachedData. this is most likely because the image was originally empty.");
+            }
+            else
+            {
+                //no image data, but either the target state required an image, or region data has been stored (which would also have required an image)!
+                DBG("image not contained in attachedData. it seems like this should *not* have been the case, though!");
+                deserialisationSuccessful = false;
+            }
         }
     }
     else
     {
         DBG("no SegmentableImage data found.");
         deserialisationSuccessful = false;
+    }
+
+    if (!deserialisationSuccessful)
+    {
+        transitionToState(SegmentableImageStateIndex::empty);
+    }
+    else
+    {
+        SegmentableImageStateIndex targetStateIndex = SegmentableImageStateIndex::StateIndexCount;
+        if (xmlSegmentableImage->hasAttribute("targetStateIndex"))
+        {
+            //transition to the intended state of the image
+            targetStateIndex = static_cast<SegmentableImageStateIndex>(xmlSegmentableImage->getIntAttribute("targetStateIndex", static_cast<int>(SegmentableImageStateIndex::empty)));
+        }
+        else
+        {
+            //targetStateIndex not contained -> not a problem, just automatically determine the best target state for the image
+            targetStateIndex = getTargetStateIndex();
+        }
+        transitionToState(targetStateIndex);
     }
 
     DBG(juce::String(deserialisationSuccessful ? "SegmentableImage has been deserialised." : "SegmentableImage could not be deserialised."));
@@ -655,7 +692,37 @@ bool SegmentableImage::hasAtLeastOneRegionWithAudio()
 
 
 
+SegmentableImageStateIndex SegmentableImage::getTargetStateIndex()
+{
+    SegmentableImageStateIndex targetStateIndex = SegmentableImageStateIndex::StateIndexCount;
+    if (getImage().isNull())
+    {
+        targetStateIndex = SegmentableImageStateIndex::empty;
+    }
+    else
+    {
+        //valid image has been set
+        if (!hasAtLeastOneRegion())
+        {
+            targetStateIndex = SegmentableImageStateIndex::withImage; //will set the editor to its Drawing state
+        }
+        else
+        {
+            //at least one region has been set
+            if (!hasAtLeastOneRegionWithAudio())
+            {
+                targetStateIndex = SegmentableImageStateIndex::editingRegions;
+            }
+            else
+            {
+                //at least one region has audio
+                targetStateIndex = SegmentableImageStateIndex::playingRegions;
+            }
+        }
+    }
 
+    return targetStateIndex;
+}
 
 juce::Rectangle<float> SegmentableImage::getAbsolutePathBounds()
 {

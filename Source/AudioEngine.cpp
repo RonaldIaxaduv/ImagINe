@@ -10,6 +10,8 @@
 
 #include "AudioEngine.h"
 
+#include "SegmentableImage.h"
+
 //constants
 const int AudioEngine::defaultPolyphony = 1;
 
@@ -20,16 +22,17 @@ AudioEngine::AudioEngine(juce::MidiKeyboardState& keyState, juce::AudioProcessor
     keyboardState(keyState), associatedProcessor(associatedProcessor),
     specs()
 {
-    //for (auto i = 0; i < 4; ++i)                // [1]
-    //    synth.addVoice(new Voice());
-
-    //synth.addSound(new SamplerOscillator());       // [2]
+    //associatedImage = std::make_unique<SegmentableImage>(new SegmentableImage(this));
+    associatedImage = new SegmentableImage(this);
 
     synth.addSound(new TempSound());
 }
 AudioEngine::~AudioEngine()
 {
     DBG("destroying AudioEngine...");
+
+    //associatedImage will be deleted automatically (unique_ptr)
+    delete associatedImage;
 
     lfos.clear(true);
 
@@ -38,30 +41,41 @@ AudioEngine::~AudioEngine()
     DBG("AudioEngine destroyed.");
 }
 
-bool AudioEngine::serialise(juce::XmlElement* xml)
+bool AudioEngine::serialise(juce::XmlElement* xml, juce::Array<juce::MemoryBlock>* attachedData)
 {
     DBG("serialising AudioEngine...");
     bool serialisationSuccessful = true;
     juce::XmlElement* xmlAudioEngine = xml->createNewChildElement("AudioEngine");
 
-    //serialise audio engine's region data
-    xmlAudioEngine->setAttribute("regionIdCounter", regionIdCounter);
-    serialisationSuccessful = serialiseRegionColours(xmlAudioEngine);
+    //serialise image
+    serialisationSuccessful = serialiseImage(xmlAudioEngine, attachedData);
 
     if (serialisationSuccessful)
     {
-        //serialise LFO data
-        serialisationSuccessful = serialiseLFOs(xmlAudioEngine);
+        //serialise audio engine's region data
+        xmlAudioEngine->setAttribute("regionIdCounter", regionIdCounter);
+        serialisationSuccessful = serialiseRegionColours(xmlAudioEngine);
 
         if (serialisationSuccessful)
         {
-            //serialise voice data
-            serialisationSuccessful = serialiseVoices(xmlAudioEngine);
+            //serialise LFO data
+            serialisationSuccessful = serialiseLFOs(xmlAudioEngine);
+
+            if (serialisationSuccessful)
+            {
+                //serialise voice data
+                serialisationSuccessful = serialiseVoices(xmlAudioEngine);
+            }
         }
     }
 
     DBG(juce::String(serialisationSuccessful ? "AudioEngine has been serialised." : "AudioEngine could not be serialised."));
     return serialisationSuccessful;
+}
+bool AudioEngine::serialiseImage(juce::XmlElement* xmlAudioEngine, juce::Array<juce::MemoryBlock>* attachedData)
+{
+    //return associatedImage.get()->serialise(xmlAudioEngine, attachedData); //stores image and all its regions;
+    return associatedImage->serialise(xmlAudioEngine, attachedData); //stores image and all its regions;
 }
 bool AudioEngine::serialiseRegionColours(juce::XmlElement* xmlAudioEngine)
 {
@@ -115,7 +129,7 @@ bool AudioEngine::serialiseVoices(juce::XmlElement* xmlAudioEngine)
     return serialisationSuccessful;
 }
 
-bool AudioEngine::deserialise(juce::XmlElement* xml)
+bool AudioEngine::deserialise(juce::XmlElement* xml, juce::Array<juce::MemoryBlock>* attachedData)
 {
     DBG("deserialising AudioEngine...");
     bool deserialisationSuccessful = true;
@@ -124,24 +138,30 @@ bool AudioEngine::deserialise(juce::XmlElement* xml)
 
     if (xmlAudioEngine != nullptr)
     {
-        //deserialise audio engine's region data
-        regionIdCounter = xmlAudioEngine->getIntAttribute("regionIdCounter", 0);
-        deserialisationSuccessful = deserialiseRegionColours(xmlAudioEngine);
+        //deserialise image
+        deserialisationSuccessful = deserialiseImage(xmlAudioEngine, attachedData);
 
         if (deserialisationSuccessful)
         {
-            //deserialise LFO data (excluding mods)
-            deserialisationSuccessful = deserialiseLFOs_main(xmlAudioEngine);
+            //deserialise audio engine's region data
+            regionIdCounter = xmlAudioEngine->getIntAttribute("regionIdCounter", 0);
+            deserialisationSuccessful = deserialiseRegionColours(xmlAudioEngine);
 
             if (deserialisationSuccessful)
             {
-                //deserialise voice data
-                deserialisationSuccessful = deserialiseVoices(xmlAudioEngine);
+                //deserialise LFO data (excluding mods)
+                deserialisationSuccessful = deserialiseLFOs_main(xmlAudioEngine);
 
                 if (deserialisationSuccessful)
                 {
-                    //deserialise LFO mods (now that all regions, LFOs and voices have been deserialised)
-                    deserialisationSuccessful = deserialiseLFOs_mods(xmlAudioEngine);
+                    //deserialise voice data
+                    deserialisationSuccessful = deserialiseVoices(xmlAudioEngine);
+
+                    if (deserialisationSuccessful)
+                    {
+                        //deserialise LFO mods (now that all regions, LFOs and voices have been deserialised)
+                        deserialisationSuccessful = deserialiseLFOs_mods(xmlAudioEngine);
+                    }
                 }
             }
         }
@@ -154,6 +174,11 @@ bool AudioEngine::deserialise(juce::XmlElement* xml)
 
     DBG(juce::String(deserialisationSuccessful ? "AudioEngine has been deserialised." : "AudioEngine could not be deserialised."));
     return deserialisationSuccessful;
+}
+bool AudioEngine::deserialiseImage(juce::XmlElement* xmlAudioEngine, juce::Array<juce::MemoryBlock>* attachedData)
+{
+    //return associatedImage.get()->deserialise(xmlAudioEngine, attachedData); //restores image and all its regions;
+    return associatedImage->deserialise(xmlAudioEngine, attachedData); //restores image and all its regions;
 }
 bool AudioEngine::deserialiseRegionColours(juce::XmlElement* xmlAudioEngine)
 {
@@ -357,6 +382,12 @@ bool AudioEngine::deserialiseVoices(juce::XmlElement* xmlAudioEngine)
     deserialisationSuccessful = synth.getNumVoices() == xmlAudioEngine->getIntAttribute("synth_numVoices", 0);
 
     return deserialisationSuccessful;
+}
+
+SegmentableImage* AudioEngine::getImage()
+{
+    //return *(associatedImage.get());
+    return associatedImage;
 }
 
 int AudioEngine::getNextRegionID()

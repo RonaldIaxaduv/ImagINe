@@ -36,6 +36,7 @@ public:
     void resized() override;
 
     void transitionToState(SegmentableImageStateIndex stateToTransitionTo);
+    SegmentableImageStateIndex getCurrentStateIndex();
 
     void setImage(const juce::Image& newImage);
 
@@ -59,8 +60,8 @@ public:
 
     void deleteLastNode();
 
-    bool serialise(juce::XmlElement* xmlEditor, juce::Array<juce::MemoryBlock>* attachedData);
-    bool deserialise(juce::XmlElement* xmlEditor, juce::Array<juce::MemoryBlock>* attachedData);
+    bool serialise(juce::XmlElement* xmlParent, juce::Array<juce::MemoryBlock>* attachedData);
+    bool deserialise(juce::XmlElement* xmlParent, juce::Array<juce::MemoryBlock>* attachedData);
 
     //================================================================
 
@@ -78,6 +79,8 @@ private:
     static const SegmentableImageStateIndex initialStateIndex = SegmentableImageStateIndex::empty;
     SegmentableImageStateIndex currentStateIndex;
     SegmentableImageState* currentState = nullptr;
+
+    SegmentableImageStateIndex getTargetStateIndex(); //gets the SegmentableImageStateIndex that best describes the current content of this image
 
     juce::Path currentPath; //allows to easily reduce the area that has to be redrawn when adding/removing drawing points
     juce::Array<juce::Point<float>> currentPathPoints; //WIP: normalise these to [0...1] so that, when resizing, the path can be redrawn

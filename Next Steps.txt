@@ -304,27 +304,61 @@
 			# Playing
 / oh, there's a method setRepaintsOnMouseActivity -> disable that for SegmentedRegion!
 	-> doesn't do anything with DrawableButtons actually (because they *need* to be able to interact with the cursor to redraw themselves)
-!- check whether the ProcessorEditor keeps its serialised state in the DAW, even after the editor has been closed and then reopened
+! check whether the ProcessorEditor keeps its serialised state in the DAW, even after the editor has been closed and then reopened
 	-> can be checked using the projucer
-	- if not, in the Processor, store the pointer to the editor that is (newly) created when it asks for a ProcessorEditor. so when that stored pointer hasn't been initialised, initialise it, otherwise return that stored pointer. that should hopefully fix it.
-?- it might be necessary to optimise the serialisation process (ugh...)
-	-> context: some DAWs call getStateInformation A LOT (e.g. when only 1 parameter handle is turned), i.e. saving all image/audio files in that method but be hell
-		-> BUT since ImageINe doesn't use any parameters currently, it might be safe
+		-> good thing i checked, because it really does *not*...
+	/ if not, in the Processor, store the pointer to the editor that is (newly) created when it asks for a ProcessorEditor. so when that stored pointer hasn't been initialised, initialise it, otherwise return that stored pointer. that should hopefully fix it.
+		-> the juce documentation highly discourages doing that because the editor object may be *deleted* at any given time, which would make the pointer a dangling pointer!
+	!# better: if not, keep the instance of SegmentableImage in the *AudioEngine* (as a normal or maybe unique pointer). when an editor is loaded, simply pass a reference to that SegmentableImage and add it as a child, and when the editor closes, remove that child again. also include the serialisation of the image in the AudioEngine. -> done.
+		# let AudioEngine know about SegmentableImage
+		# update AudioEngine's (de)serialisation methods
+		# include its current (target) state when serialising SegmentableImage. set it to its target state when deserialising it
+		# register AudioEngine's SegmentableImage when loading PluginEditor (instead of owning its own member of it)
+		# after registration, set editor's state according to the current state of the SegmentableImage
+		# remove (de)serialisation from the PluginEditor
+		# remove PluginEditor from the (de)serialisation in the PluginProcessor
+		-> omfg this was such a pain in the ass to fix... but it finally works now! it even keeps playing while the GUI is closed!
+?# does swapping audio files work without issues yet?
+	-> seems like it, even when the region and/or other regions are playing and modulating each other while the file is swapped
 !- implement play path(s)
 	- new states in the ProcessorEditor: "Draw Playpaths", "Edit Playpaths", "Run Playpaths"
 		-> rename "Drawing" to "Draw Regions", "Editing" to "Edit Regions" and "Playing" to "Play Regions"
-	- simplest implementation:
+	!- simplest implementation:
 		- draw a path (like when drawing a region), except maybe that it doesn't necessarily have to be closed(?)
 		- in the paths editor, set its walk speed (name subject to change)
-		- playing the path: clicking the regions doesn't do anything. instead, every playpath generates a little point that wanders alongside its associdated path. when the point enters a region, it's treated like a click during the "Play Regions" mode
+		- playing the path: clicking the regions doesn't do anything. instead, every playpath (automatically) generates a little point (called a "runner" - name WIP) that wanders alongside its associdated path. when the point enters a region, it's treated like a click during the "Play Regions" mode
 	- additional features:
+		- custom path colour
+		!- allow for branching, i.e. points where the path splits in two
+			!- option 1: when the runner gets there, it splits in two as well
+			- option 2: when the runner gets there, it randomly(?) picks one of the two paths
+		!- allow for runner lifetime
+			- twist: remaining lifetime of a runner determines its remaining size
+				-> the longer a runner travels, the smaller it becomes
+				- option A: the decay time should be path-/runner-independent, make it a constant
+					-> starting size: depends on path length + runner speed! the longer the path and the slower the runner, the bigger is its starting size
+					-> feels very individual, but could grow out of control or feel disappointing(?)
+				- option B: the starting size of a runner should be constant for a path
+					-> decay time: depends on path length + runner speed
+					-> probably more controllable, but less impressive(?)
+			- when beginning to play, a runner appears on every path with its starting life.
 		- things that a playpath could do when it interacts with a region:
-			- randomise some of its parameters (maybe even ones like the position of the focus point etc.)
+			(-) randomise some of its parameters (maybe even ones like the position of the focus point etc.)
+			(-) set its focus point to its current position
+				-> problems: very costly + doesn't work when more than one runner is inside a region
+			-> it would be best if it was something that
+				1. depends on the runner's position inside a region
+				2. works for cases where there is more than one runner inside a region
+				3. depends on the coverage of the region by the runner(s)
+			?-> maybe just overwrite the region's volume? (more coverage = louder)
 		- things that a playpath could do when it interacts with another playpath:
-			- set that playpath's runner to the location where the interaction was
+			(-) set that playpath's runner to the location where the interaction was
 			- start playing the other path, starting from the point of the interaction
 			- reverse that path's direction
-			- randomise some of the other path's parameters
+			(-) randomise some of the other path's parameters
+			!- increase the other path's lifetime
+				-> that way, the paths can extend their own playtime
+				- do not increase the lifetime beyond the runner's starting lifetime, otherwise a feedback loop might occur
 		- complete only a given number of laps along the path before stopping
 !- check docs.juce.com/master/tutorial_app_plugin_packaging.html
 
@@ -369,6 +403,9 @@
 	- no initial LFO phase / phase multiplier, playback pos / pos multiplier settings (in case i'm adding these options at some point)
 - minor bug: window is still resizable even when in editing/playing mode
 	- dunno why this happens... the handle doesn't show anymore, so the command seems to go through, so why does it still allow dragging?
+?- it might be necessary to optimise the serialisation process at some point (ugh...)
+	-> context: some DAWs call getStateInformation A LOT (e.g. when only 1 parameter handle is turned), i.e. saving all image/audio files in that method but be hell
+		-> BUT since ImageINe doesn't use any parameters currently, it might be safe
 
 
 

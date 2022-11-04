@@ -16,6 +16,8 @@
 #include "Voice.h"
 #include "RegionLfo.h"
 
+class SegmentableImage; //don't include the header here yet (crossreferences), it'll be in the cpp
+
 struct TempSound : public juce::SynthesiserSound
 {
     TempSound() {}
@@ -31,8 +33,10 @@ public:
     AudioEngine(juce::MidiKeyboardState& keyState, juce::AudioProcessor& associatedProcessor);
     ~AudioEngine() override;
 
-    bool serialise(juce::XmlElement* xml);
-    bool deserialise(juce::XmlElement* xml);
+    bool serialise(juce::XmlElement* xml, juce::Array<juce::MemoryBlock>* attachedData);
+    bool deserialise(juce::XmlElement* xml, juce::Array<juce::MemoryBlock>* attachedData);
+
+    SegmentableImage* getImage();
 
     int getNextRegionID();
     int getLastRegionID();
@@ -76,16 +80,20 @@ private:
     juce::Synthesiser synth;
     juce::dsp::ProcessSpec specs;
 
+    SegmentableImage* associatedImage = nullptr; //image that the editor will display. it's important to save it here, in the AudioEngine, and not in the editor, because otherwise, it would be deleted (and couldn't be restored) whenever the editor closes
+
     int regionIdCounter = -1;
     juce::Array<juce::Colour> regionColours;
     juce::OwnedArray<RegionLfo> lfos; //one LFO per segmented region which represents that region's outline in relation to its focus point
 
     static const int defaultPolyphony;
 
+    bool serialiseImage(juce::XmlElement* xmlAudioEngine, juce::Array<juce::MemoryBlock>* attachedData);
     bool serialiseRegionColours(juce::XmlElement* xmlAudioEngine);
     bool serialiseLFOs(juce::XmlElement* xmlAudioEngine);
     bool serialiseVoices(juce::XmlElement* xmlAudioEngine);
 
+    bool deserialiseImage(juce::XmlElement* xmlAudioEngine, juce::Array<juce::MemoryBlock>* attachedData);
     bool deserialiseRegionColours(juce::XmlElement* xmlAudioEngine);
     bool deserialiseLFOs_main(juce::XmlElement* xmlAudioEngine);
     bool deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine);

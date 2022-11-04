@@ -9,6 +9,14 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+#include <regex>
+
+//constants
+const juce::String ImageINeDemoAudioProcessor::serialisation_version = "0.1.0"; //rules: different major versions are incompatible with one another. different minor versions are backwards- and forwards-compatible, so are different patch versions.
+
+
+
+
 //==============================================================================
 ImageINeDemoAudioProcessor::ImageINeDemoAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -192,13 +200,6 @@ void ImageINeDemoAudioProcessor::getStateInformation (juce::MemoryBlock& destDat
     bool previouslySuspended = isSuspended();
     suspendProcessing(true);
 
-    if (getActiveEditor() == nullptr)
-    {
-        DBG("no active editor - serialisation aborted.");
-        suspendProcessing(previouslySuspended);
-        return;
-    }
-
     std::unique_ptr<juce::XmlElement> xml(new juce::XmlElement("ImageINe_Data")); //XML file containing most of the program's information
     
     //some header attributes to enable dealing with backwards compatibility
@@ -208,44 +209,39 @@ void ImageINeDemoAudioProcessor::getStateInformation (juce::MemoryBlock& destDat
     //serialise all data. data that cannot be converted to XML objects will be stored in additional attached memory blocks, instead.
     //these blocks will be appended after the XML's data block.
     juce::Array<juce::MemoryBlock> attachedData;
-    serialisationSuccessful = static_cast<ImageINeDemoAudioProcessorEditor*>(getActiveEditor())->serialise(xml.get(), &attachedData);
+    serialisationSuccessful = audioEngine.serialise(xml.get(), &attachedData);
 
     if (serialisationSuccessful)
     {
-        serialisationSuccessful = audioEngine.serialise(xml.get());
+        //convert XML file into a memory block
+        juce::MemoryBlock xmlData = juce::MemoryBlock(); //the (temporary) memory block
+        juce::MemoryOutputStream xmlOutStream(xmlData, true);
+        xml->writeToStream(xmlOutStream, juce::XmlElement::TextFormat::TextFormat().dtd); //write XML to the temporary memory block
+        xmlOutStream.flush(); //if the block that's written on is user-supplied, it's safer to explicitly flush the stream before any more operations, apparently
 
-        if (serialisationSuccessful)
+
+        //initialise the final output' stream
+        juce::MemoryOutputStream outStream(destData, true); //stream that will write on the final block of memory
+        outStream.writeString("ImageINe_Data_start"); //write an identifier so that the decoder can quickly check whether it's looking at a valid file
+
+
+        //first, write the XML block(including its size) onto the output block
+        juce::MemoryInputStream xmlInStream(xmlData, false);
+        outStream.writeInt64(static_cast<juce::int64>(xmlData.getSize())); //write XML's size (required to restore the block)
+        outStream.writeFromInputStream(xmlInStream, static_cast<juce::int64>(xmlData.getSize())); //write XML's content
+        DBG("XML file has been written. size: " + juce::String(static_cast<juce::int64>(xmlData.getSize())) + " bytes.");
+
+
+        //then, write all of the attached data blocks (including their number and sizes) onto the output block
+        outStream.writeInt(attachedData.size()); //write, how many attached data blocks there are (incl. if there are none)
+        for (auto* itData = attachedData.begin(); itData != attachedData.end(); ++itData)
         {
-            //convert XML file into a memory block
-            juce::MemoryBlock xmlData = juce::MemoryBlock(); //the (temporary) memory block
-            juce::MemoryOutputStream xmlOutStream(xmlData, true);
-            xml->writeToStream(xmlOutStream, juce::XmlElement::TextFormat::TextFormat().dtd); //write XML to the temporary memory block
-            xmlOutStream.flush(); //if the block that's written on is user-supplied, it's safer to explicitly flush the stream before any more operations, apparently
+            auto block = *itData;
+            juce::MemoryInputStream blockStream(block, false);
 
-
-            //initialise the final output' stream
-            juce::MemoryOutputStream outStream(destData, true); //stream that will write on the final block of memory
-            outStream.writeString("ImageINe_Data_start"); //write an identifier so that the decoder can quickly check whether it's looking at a valid file
-
-
-            //first, write the XML block(including its size) onto the output block
-            juce::MemoryInputStream xmlInStream(xmlData, false);
-            outStream.writeInt64(static_cast<juce::int64>(xmlData.getSize())); //write XML's size (required to restore the block)
-            outStream.writeFromInputStream(xmlInStream, static_cast<juce::int64>(xmlData.getSize())); //write XML's content
-            DBG("XML file has been written. size: " + juce::String(static_cast<juce::int64>(xmlData.getSize())) + " bytes.");
-
-
-            //then, write all of the attached data blocks (including their number and sizes) onto the output block
-            outStream.writeInt(attachedData.size()); //write, how many attached data blocks there are (incl. if there are none)
-            for (auto* itData = attachedData.begin(); itData != attachedData.end(); ++itData)
-            {
-                auto block = *itData;
-                juce::MemoryInputStream blockStream(block, false);
-
-                outStream.writeInt64(static_cast<juce::int64>(block.getSize())); //write block's size (required to restore the block)
-                outStream.writeFromInputStream(blockStream, static_cast<juce::int64>(block.getSize())); //write block's content
-                DBG("an attached block has been written. size: " + juce::String(static_cast<juce::int64>(block.getSize())) + " bytes.");
-            }
+            outStream.writeInt64(static_cast<juce::int64>(block.getSize())); //write block's size (required to restore the block)
+            outStream.writeFromInputStream(blockStream, static_cast<juce::int64>(block.getSize())); //write block's content
+            DBG("an attached block has been written. size: " + juce::String(static_cast<juce::int64>(block.getSize())) + " bytes.");
         }
     }
 
@@ -261,13 +257,6 @@ void ImageINeDemoAudioProcessor::setStateInformation (const void* data, int size
     bool deserialisationSuccessful = true;
     bool previouslySuspended = isSuspended();
     suspendProcessing(true);
-
-    if (getActiveEditor() == nullptr)
-    {
-        DBG("no active editor - deserialisation aborted.");
-        suspendProcessing(previouslySuspended);
-        return;
-    }
 
     juce::MemoryInputStream inStream (data, static_cast<size_t>(sizeInBytes), false); //main stream for reading the stored data
 
@@ -288,42 +277,76 @@ void ImageINeDemoAudioProcessor::setStateInformation (const void* data, int size
     juce::MemoryBlock xmlData = juce::MemoryBlock(xmlSize);
     juce::MemoryOutputStream xmlOutStream (xmlData, false);
     xmlOutStream.writeFromInputStream(inStream, xmlSize); //copy data from the input stream to the XML's memory block
-    xmlOutStream.flush();
-    //std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(xmlData.getData(), xmlSize)); //convert memory block back to an XML file
-    
+    xmlOutStream.flush();    
     std::unique_ptr<juce::XmlElement> xmlState = juce::XmlDocument::parse(xmlData.toString()); //convert memory block back to an XML file
-
-    //xml->writeToStream(xmlOutStream, juce::XmlElement::TextFormat::TextFormat().dtd); //write XML to the temporary memory block
-    //xmlOutStream.flush(); //if the block that's written on is user-supplied, it's safer to explicitly flush the stream before any more operations, apparently
-
 
     if (xmlState.get() != nullptr && xmlState->hasTagName("ImageINe_Data"))
     {
         //valid XML file -> go on
 
-        //WIP: check whether the XML's serialisation version (see const member variable) is ahead of the current serialisation version.
-        //     if so, don't load it (-> error prompt)!
+        //check whether the XML's serialisation version (see const member variable) is incompatible with the current serialisation version.
+        //serialisation versions are incompatible if the current major version is smaller than that of the file (and perhaps even if it's larger - but in that case, methods for the old serialisation should be provided instead!)
+        std::string extractedSVersion = xmlState->getStringAttribute("Serialisation_Version", "0.0.0").toStdString();
+        DBG("extracted serialisation version: " + extractedSVersion);
 
-        //extract attached data blocks (contain image/audio files)
-        juce::Array<juce::MemoryBlock> attachedData;
-        int attachedDataSize = inStream.readInt(); //check how many attached objects there are in total
-        for (int i = 0; i < attachedDataSize; ++i)
+        std::smatch matchExtracted;
+        std::regex regexSVersion("^([0-9]+)\.([0-9]+)\.([0-9]+)$");
+        bool regexSVersionResult = std::regex_search(extractedSVersion, matchExtracted, regexSVersion);
+        if (regexSVersionResult)
         {
-            size_t blockSize = inStream.readInt64(); //size of the upcoming memory block
-            DBG("size of the next attached block: " + juce::String(blockSize) + " bytes.");
-            juce::MemoryBlock block = juce::MemoryBlock(blockSize);
-            juce::MemoryOutputStream blockStream (block, false); //stream that writes data onto the block
-            blockStream.writeFromInputStream(inStream, blockSize); //copy data from input stream to the block
-            blockStream.flush();
-            attachedData.add(block); //block completed -> append to list
+            //pattern detected -> extract version numbers
+            int extractedMajor = stoi(matchExtracted[1].str());
+            int extractedMinor = stoi(matchExtracted[2].str());
+            int extractedPatch = stoi(matchExtracted[3].str());
+
+            std::string currentSVersion = serialisation_version.toStdString();
+            std::smatch matchCurrent;
+            regexSVersionResult = std::regex_search(currentSVersion, matchCurrent, regexSVersion);
+            if (regexSVersionResult)
+            {
+                int currentMajor = stoi(matchCurrent[1].str());
+                int currentMinor = stoi(matchCurrent[2].str());
+                int currentPatch = stoi(matchCurrent[3].str());
+
+                //-> version numbers have been extracted. now, compare them as needed
+                if (currentMajor < extractedMajor || (currentMajor == 0 && extractedMajor != 0))
+                {
+                    //incompatible!
+                    DBG("the extracted serialisation version is incompatiable with the current one (" + serialisation_version + ")!");
+                    deserialisationSuccessful = false;
+                }
+            }
+            else
+            {
+                DBG("something went wrong! the current value of serialisation_version appears to be invalid!");
+                deserialisationSuccessful = false;
+            }
+        }
+        else
+        {
+            //pattern not detected
+            DBG("invalid serialisation version (" + extractedSVersion + ").");
+            deserialisationSuccessful = false;
         }
 
-        //deserialise all data using the XML file and the attached data blocks
-        deserialisationSuccessful = static_cast<ImageINeDemoAudioProcessorEditor*>(getActiveEditor())->deserialise(xmlState.get(), &attachedData);
-        
         if (deserialisationSuccessful)
         {
-            deserialisationSuccessful = audioEngine.deserialise(xmlState.get());
+            //extract attached data blocks (contain image/audio files)
+            juce::Array<juce::MemoryBlock> attachedData;
+            int attachedDataSize = inStream.readInt(); //check how many attached objects there are in total
+            for (int i = 0; i < attachedDataSize; ++i)
+            {
+                size_t blockSize = inStream.readInt64(); //size of the upcoming memory block
+                DBG("size of the next attached block: " + juce::String(blockSize) + " bytes.");
+                juce::MemoryBlock block = juce::MemoryBlock(blockSize);
+                juce::MemoryOutputStream blockStream(block, false); //stream that writes data onto the block
+                blockStream.writeFromInputStream(inStream, blockSize); //copy data from input stream to the block
+                blockStream.flush();
+                attachedData.add(block); //block completed -> append to list
+            }
+
+            //deserialise all data using the XML file and the attached data blocks
+            deserialisationSuccessful = audioEngine.deserialise(xmlState.get(), &attachedData);
         }
     }
     else
@@ -345,8 +368,11 @@ void ImageINeDemoAudioProcessor::setStateInformation (const void* data, int size
 
     if (!deserialisationSuccessful)
     {
-        //if deserialisation failed, transition back to the Init state of the editor (note: it has already been ensured that the editor exists)
-        static_cast<ImageINeDemoAudioProcessorEditor*>(getActiveEditor())->transitionToState(ImageINeDemoAudioProcessorEditor::PluginEditorStateIndex::Init);
+        //if deserialisation failed, transition back to the Init state of the editor (if there is one)
+        if (getActiveEditor() != nullptr)
+        {
+            static_cast<ImageINeDemoAudioProcessorEditor*>(getActiveEditor())->transitionToState(ImageINeDemoAudioProcessorEditor::PluginEditorStateIndex::Init);
+        }
     }
 }
 

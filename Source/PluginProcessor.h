@@ -14,7 +14,7 @@
 //==============================================================================
 /**
 */
-class ImageINeDemoAudioProcessor  : public juce::AudioProcessor
+class ImageINeDemoAudioProcessor final : public juce::AudioProcessor
 {
 public:
     //==============================================================================
@@ -60,7 +60,7 @@ public:
 private:
     //==============================================================================
 
-    const juce::String serialisation_version = "1.0.0";
+    static const juce::String serialisation_version;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ImageINeDemoAudioProcessor)
 };
