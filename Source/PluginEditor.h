@@ -27,11 +27,14 @@ public:
 
     enum class PluginEditorStateIndex : int
     {
-        Null = 0,
-        Init,
-        Drawing,
-        Editing,
-        Playing
+        null = 0,
+        init,
+        drawingRegion,
+        editingRegions,
+        playingRegions,
+        drawingPlayPath,
+        editingPlayPaths,
+        playingPlayPaths
     };
 
     void transitionToState(PluginEditorStateIndex stateToTransitionTo);
@@ -49,7 +52,7 @@ private:
 
     juce::TextButton loadImageButton;
 
-    PluginEditorStateIndex currentStateIndex = PluginEditorStateIndex::Null;
+    PluginEditorStateIndex currentStateIndex = PluginEditorStateIndex::null;
     void setStateAccordingToImage();
 
     juce::Label modeLabel;

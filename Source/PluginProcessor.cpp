@@ -12,7 +12,7 @@
 #include <regex>
 
 //constants
-const juce::String ImageINeDemoAudioProcessor::serialisation_version = "0.1.0"; //rules: different major versions are incompatible with one another. different minor versions are backwards- and forwards-compatible, so are different patch versions.
+const juce::String ImageINeDemoAudioProcessor::serialisation_version = "0.2.0"; //rules: different major versions are incompatible with one another. different minor versions are backwards- and forwards-compatible, so are different patch versions.
 
 
 
@@ -371,7 +371,7 @@ void ImageINeDemoAudioProcessor::setStateInformation (const void* data, int size
         //if deserialisation failed, transition back to the Init state of the editor (if there is one)
         if (getActiveEditor() != nullptr)
         {
-            static_cast<ImageINeDemoAudioProcessorEditor*>(getActiveEditor())->transitionToState(ImageINeDemoAudioProcessorEditor::PluginEditorStateIndex::Init);
+            static_cast<ImageINeDemoAudioProcessorEditor*>(getActiveEditor())->transitionToState(ImageINeDemoAudioProcessorEditor::PluginEditorStateIndex::init);
         }
     }
 }

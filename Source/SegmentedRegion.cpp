@@ -572,6 +572,31 @@ void SegmentedRegion::stopPlaying()
     }
 }
 
+void SegmentedRegion::signalCourierEntered()
+{
+    if (currentCourierCount++ == 0)
+    {
+        //only play if there weren't any couriers before
+        startPlaying();
+    }
+}
+void SegmentedRegion::signalCourierLeft()
+{
+    if (--currentCourierCount == 0)
+    {
+        //only no playing if there are no couriers left
+        stopPlaying();
+    }
+}
+void SegmentedRegion::resetCouriers()
+{
+    if (currentCourierCount > 0)
+    {
+        stopPlaying();
+    }
+    currentCourierCount = 0;
+}
+
 RegionLfo* SegmentedRegion::getAssociatedLfo()
 {
     return associatedLfo;

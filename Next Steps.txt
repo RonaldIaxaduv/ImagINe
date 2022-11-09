@@ -42,12 +42,12 @@
 		# LFOs' phase (= playback position) (incl. its own?)
 			- adjust code that draws the LFO line on the image
 	/ implement changing the LFO's modulation depth in the settings menu
- !		!- make it depend on the shape's size, actually
+		!# make it depend on the shape's size, actually
 			/ use the shape's area (bounds) in relation to that of the full image -> being >=2/3 of the image's area should result in full modulation depth
-			!- DUDE, it's not even necessary to use its area: just use the *ACTUAL* length of the line, don't normalise it! DONE! positive side effect: that way, the user still has some influence over the form's mod depth!
+			!# DUDE, it's not even necessary to use its area: just use the *ACTUAL* length of the line, don't normalise it! DONE! positive side effect: that way, the user still has some influence over the form's mod depth!
 				- easier to implement for the unipolar wavetable, so calculate that first, and calculate the bipolar wavetable from the unipolar one
 				?- still subtract the minimum line length (in relation to the current focus point) since it only adds a fixed offset?
-				- add a textbox in the region/LFO editor that shows the depth of the LFO with the current focus point
+  !				- add a textbox in the region/LFO editor that shows the depth of the LFO with the current focus point
 (# outline animations for the LFOs)
 !# add a second column of toggle buttons to the LFO voice list that invert the modulation for that region
 	-> this would be quite powerful since it enables call-and-response patterns (e.g. while one voice is loud another is quiet / while one voice is high another is low / ...)
@@ -195,16 +195,16 @@
 	# create states
 	# implement states in SegmentableImage class
 # fix memory leaks that occur when closing the program
-	!- new evidence: the leak also occurs when switching the SegmentableImageStateIndex back to empty!
+	!# new evidence: the leak also occurs when switching the SegmentableImageStateIndex back to empty!
 		/ i'm beginning to think it might be the SegmentedRegion destructor that doesn't correctly destroy everything yet
 		/ idea: LFOs aren't unsubscribed from their modulated parameters when they're deleted, they just clear the lists of the parameters they modulate!
 		!/ it's the ModulatableParameter destructor! the "delete state" statements sometimes throw exceptions - why?
 			/ idea: maybe the states aren't being initialised? that would mean that in some *constructor*, some parameters aren't initialised (or are using the wrong contructor)!
 			-> nope, actually it isn't.
-		-> now that i finally know how to display the callstack, it's simple... calling the Lfo destructor in the RegionLfo destructor was the problem. this could've been fixed a lot faster man... but i'm still glad it's finally done and gone.
-	- theory 1: some classes just don't destroy their contents correctly
-	- theory 2: the leaks happen in certain states of SegmentableImage (maybe editable, definitely in playable)
-	- theory 3: some leaks happen because AudioEngine is still rendering blocks while some (playing) parts are being deleted
+		#> now that i finally know how to display the callstack, it's simple... calling the Lfo destructor in the RegionLfo destructor was the problem. this could've been fixed a lot faster man... but i'm still glad it's finally done and gone.
+	/ theory 1: some classes just don't destroy their contents correctly
+	/ theory 2: the leaks happen in certain states of SegmentableImage (maybe editable, definitely in playable)
+	/ theory 3: some leaks happen because AudioEngine is still rendering blocks while some (playing) parts are being deleted
 		-> fix 1: stop audio engine when pressing the close button, then delete all contents
 		-> fix 2: implement locks (probably good idea in the long run, but perhaps too much work for this one fix...)
 # calculate a region's colour from the pixels behind it
@@ -304,7 +304,7 @@
 			# Playing
 / oh, there's a method setRepaintsOnMouseActivity -> disable that for SegmentedRegion!
 	-> doesn't do anything with DrawableButtons actually (because they *need* to be able to interact with the cursor to redraw themselves)
-! check whether the ProcessorEditor keeps its serialised state in the DAW, even after the editor has been closed and then reopened
+#! check whether the ProcessorEditor keeps its serialised state in the DAW, even after the editor has been closed and then reopened
 	-> can be checked using the projucer
 		-> good thing i checked, because it really does *not*...
 	/ if not, in the Processor, store the pointer to the editor that is (newly) created when it asks for a ProcessorEditor. so when that stored pointer hasn't been initialised, initialise it, otherwise return that stored pointer. that should hopefully fix it.
@@ -320,13 +320,23 @@
 		-> omfg this was such a pain in the ass to fix... but it finally works now! it even keeps playing while the GUI is closed!
 ?# does swapping audio files work without issues yet?
 	-> seems like it, even when the region and/or other regions are playing and modulating each other while the file is swapped
-!- implement play path(s)
-	- new states in the ProcessorEditor: "Draw Playpaths", "Edit Playpaths", "Run Playpaths"
-		-> rename "Drawing" to "Draw Regions", "Editing" to "Edit Regions" and "Playing" to "Play Regions"
+- things that can be made into static consts:
+	- initialStateIndex in every class with states
+	- maybe the implementedState variable in the different state classes?
+>> !- implement play path(s)
+	# new states in the ProcessorEditor: "Draw Playpaths", "Edit Playpaths", "Run Playpaths"
+		#> rename "Drawing" to "Draw Regions", "Editing" to "Edit Regions" and "Playing" to "Play Regions"
 	!- simplest implementation:
-		- draw a path (like when drawing a region), except maybe that it doesn't necessarily have to be closed(?)
-		- in the paths editor, set its walk speed (name subject to change)
-		- playing the path: clicking the regions doesn't do anything. instead, every playpath (automatically) generates a little point (called a "runner" - name WIP) that wanders alongside its associdated path. when the point enters a region, it's treated like a click during the "Play Regions" mode
+		- draw a path (like when drawing a region), except maybe that it doesn't necessarily need to be closed(?)
+			!- for hitTest: consider using 2 paths - one for the actual lines and one that's slightly smaller and inset according to the outlineThickness. then, return true if the outer path contains the given point, but the inner path doesn't
+		- in the path's editor, set its walk speed (name subject to change) and maybe the path's colour
+			- make the editor wider than tall
+		- playing the path: clicking the regions doesn't do anything. instead, every playpath (automatically) generates a little point (called a "courier") that wanders alongside its associdated path. when the courier enters a region, it's treated like a click during the "Play Regions" mode
+			- doesn't toggle yet
+			- doesn't spawn a courier yet
+		- (de)serialisation
+			# remember to increment the serialisation version number!
+			!- deserialisation doesn't work yet (position isn't restored correctly i don't think? are the relative bounds not used perhaps?)
 	- additional features:
 		- custom path colour
 		!- allow for branching, i.e. points where the path splits in two
@@ -341,7 +351,9 @@
 				- option B: the starting size of a runner should be constant for a path
 					-> decay time: depends on path length + runner speed
 					-> probably more controllable, but less impressive(?)
+				- make it so that clicking a path/runner also increases its lifetime
 			- when beginning to play, a runner appears on every path with its starting life.
+			?- in addition to the lifetime: maybe a maximum number of total interactions (messages to be delivered) regardless of lifetime?
 		- things that a playpath could do when it interacts with a region:
 			(-) randomise some of its parameters (maybe even ones like the position of the focus point etc.)
 			(-) set its focus point to its current position
@@ -351,6 +363,7 @@
 				2. works for cases where there is more than one runner inside a region
 				3. depends on the coverage of the region by the runner(s)
 			?-> maybe just overwrite the region's volume? (more coverage = louder)
+			- maybe gradually increase a runner's remaining lifetime
 		- things that a playpath could do when it interacts with another playpath:
 			(-) set that playpath's runner to the location where the interaction was
 			- start playing the other path, starting from the point of the interaction
@@ -359,22 +372,35 @@
 			!- increase the other path's lifetime
 				-> that way, the paths can extend their own playtime
 				- do not increase the lifetime beyond the runner's starting lifetime, otherwise a feedback loop might occur
+		- things that runners could do when they collide with other runners
+			- subtract each other's remaining lifetime so that only one of the two remains
 		- complete only a given number of laps along the path before stopping
+!- remove the fixed directory paths from the code (loading image, loading audio)
 !- check docs.juce.com/master/tutorial_app_plugin_packaging.html
 
+- demo presets
+- testing sessions with ant/leon/sam
+- survey
+- demo videos (one in German, one in English - both quick rundowns, nothing too in-depth)
+- discord server
 
+- add save/load program buttons onto the editor (not sure whether all editors inherently provide a safe system - the fact that many VSTs provide load/save buttons makes me think that they don't... also, it would be difficult to provide sample programs otherwise, so... yea, better put buttons on there)
+- make it so that a region's outline colour is actually coloured (not just black/white) when it's playing -> easier to differentiate from non-playing regions
+	-> use inverted fill colour
 - warning prompt when switching back to init state while an image (and potentially regions) have been loaded already!
 - display LFO depth in the region editor (somewhat close to where the focus point can be shifted)
 - make the width of the LFO line depend on its depth (1.0 = maximum depth, 0.0 = gone, >0.0 = minimum width)
 !- are mp3s supported yet? if not, absolutely do include them! include as many formats as possible in general.
 ?- LFO phase modulation doesn't seem to work quite right just yet
 	- setup: 1 region modding its own pitch (no quant) at 5 Hz, another region modding region 1's phase at 0.03 Hz -> wobble should alternate between being strong and weak, but it actually doesn' atm (it seems to be correctly displayed for the LFO line though)
-!- add note bindings to regions
+!- add note bindings to regions!
+	-> this is a crucial feature because it allows users to let several regions start/stop playing at once!
 !- add some kind of information button that displays key mappings for each mode (e.g. using backspace to delete points while in drawing mode)
 	- can be easily implemented using NativeMessageBox (or whatever it was called)!
+	- should also include a link to the survey, to the demo videos (on YT, presumably) and to the (yet to be created) ImageINe discord server
 !- set help texts for all components
 	- there should already be a method setHelpText for all Component members
-- make unipolar modulation symmetrical like bipolar modulation (see yesterday's note)
+- make unipolar modulation symmetrical like bipolar modulation (see written note)
 	- maybe only for some parameters (perhaps it only sounds good that way for a select few)
 !- implement a simple means of randomisation
 	- add a "randomise" button to the region editor
@@ -384,6 +410,7 @@
 	- important: slightly bias the randomness, so that the values produced are actually useful (e.g. don't naively randomise volume - prefer values closer to 0.0dB!)
 !- add a subtle watermark to the image
 	- maybe one little textbox in a corner + a mostly transparent font across the image?
+- ensure that outlined paths actually constitute a 2D plane
 - use the SynthesiserSound class to store the sampler data for voices (instead of storing the data in each voice separately). that way, the audio data only has to be stored once instead of [polyphony] times, and adding new voices only requires a reference to a region's sound instead of a full update.
 - implement more scales
 - implement more parameters
@@ -395,7 +422,11 @@
 	- stereo width
 	- LFO value multiplication (ringmod)
 	- LFO value addition
+	?- interpret the LFO wavetable as a waveshaping table, where the starting value is at the LFO's current phase
+		- this would (most likely) result in rather distorted sounds that change over time
+		- depth: dry/wet mix
 - add a button next to the LFO phase editor to switch its units to ms instead of Hz
+	-> this would be extremely useful because it makes it possible to sync the LFO's frequency to its update rate without rounding errors
 - add a combobox to the region editor to switch between "simple options" and "advanced options" to make things easier to get into
 	- ADSR instead of DAHDSR, no setting for the peak volume
 	- no update rate slider

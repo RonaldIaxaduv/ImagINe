@@ -21,7 +21,10 @@ SegmentableImage::SegmentableImage(AudioEngine* audioEngine) : juce::ImageCompon
     states[static_cast<int>(SegmentableImageStateIndex::drawingRegion)] = static_cast<SegmentableImageState*>(new SegmentableImageState_DrawingRegion(*this));
     states[static_cast<int>(SegmentableImageStateIndex::editingRegions)] = static_cast<SegmentableImageState*>(new SegmentableImageState_EditingRegions(*this));
     states[static_cast<int>(SegmentableImageStateIndex::playingRegions)] = static_cast<SegmentableImageState*>(new SegmentableImageState_PlayingRegions(*this));
-    int initialisedStates = 5;
+    states[static_cast<int>(SegmentableImageStateIndex::drawingPlayPath)] = static_cast<SegmentableImageState*>(new SegmentableImageState_DrawingPlayPath(*this));
+    states[static_cast<int>(SegmentableImageStateIndex::editingPlayPaths)] = static_cast<SegmentableImageState*>(new SegmentableImageState_EditingPlayPaths(*this));
+    states[static_cast<int>(SegmentableImageStateIndex::playingPlayPaths)] = static_cast<SegmentableImageState*>(new SegmentableImageState_PlayingPlayPaths(*this));
+    int initialisedStates = 8;
     jassert(initialisedStates == static_cast<int>(SegmentableImageStateIndex::StateIndexCount));
     
     currentStateIndex = initialStateIndex;
@@ -44,11 +47,15 @@ SegmentableImage::~SegmentableImage()
     delete states[static_cast<int>(SegmentableImageStateIndex::drawingRegion)];
     delete states[static_cast<int>(SegmentableImageStateIndex::editingRegions)];
     delete states[static_cast<int>(SegmentableImageStateIndex::playingRegions)];
-    int deletedStates = 5;
+    delete states[static_cast<int>(SegmentableImageStateIndex::drawingPlayPath)];
+    delete states[static_cast<int>(SegmentableImageStateIndex::editingPlayPaths)];
+    delete states[static_cast<int>(SegmentableImageStateIndex::playingPlayPaths)];
+    int deletedStates = 8;
     jassert(deletedStates == static_cast<int>(SegmentableImageStateIndex::StateIndexCount));
 
     resetPath();
     clearRegions();
+    clearPlayPaths();
     /*for (int x = 0; x < getImage().getWidth(); ++x)
     {
         segmentedPixels[x] = nullptr;
@@ -147,25 +154,38 @@ void SegmentableImage::transitionToState(SegmentableImageStateIndex stateToTrans
             break;
 
         case SegmentableImageStateIndex::withImage:
-            if (currentStateIndex == SegmentableImageStateIndex::drawingRegion && currentPathPoints.size() > 0)
+            if ((currentStateIndex == SegmentableImageStateIndex::drawingRegion || currentStateIndex == SegmentableImageStateIndex::drawingPlayPath) && currentPathPoints.size() > 0)
             {
                 //currently drawing -> remain in that state
                 return;
             }
 
-            //make regions uninteractable
+            //make regions and play paths uninteractable
             for (auto it = regions.begin(); it != regions.end(); ++it)
             {
                 (*it)->transitionToState(SegmentedRegionStateIndex::notInteractable);
+            }
+            for (auto it = playPaths.begin(); it != playPaths.end(); ++it)
+            {
+                (*it)->transitionToState(PlayPathStateIndex::notInteractable);
             }
             nonInstantStateFound = true;
             DBG("segmentable image with image");
             break;
 
+
+
+
         case SegmentableImageStateIndex::drawingRegion:
-            //make regions uninteractable
+            //make regions and play paths uninteractable, but bring regions to front
+            for (auto it = playPaths.begin(); it != playPaths.end(); ++it)
+            {
+                (*it)->setAlwaysOnTop(false);
+                (*it)->transitionToState(PlayPathStateIndex::notInteractable);
+            }
             for (auto it = regions.begin(); it != regions.end(); ++it)
             {
+                (*it)->setAlwaysOnTop(true);
                 (*it)->transitionToState(SegmentedRegionStateIndex::notInteractable);
             }
             nonInstantStateFound = true;
@@ -176,9 +196,15 @@ void SegmentableImage::transitionToState(SegmentableImageStateIndex stateToTrans
             //clear unfinished paths
             resetPath();
 
-            //set regions to editable
+            //set regions to editable at front, play paths to not interactable at back.
+            for (auto it = playPaths.begin(); it != playPaths.end(); ++it)
+            {
+                (*it)->setAlwaysOnTop(false);
+                (*it)->transitionToState(PlayPathStateIndex::notInteractable);
+            }
             for (auto it = regions.begin(); it != regions.end(); ++it)
             {
+                (*it)->setAlwaysOnTop(true);
                 (*it)->transitionToState(SegmentedRegionStateIndex::editable);
             }
             nonInstantStateFound = true;
@@ -189,14 +215,80 @@ void SegmentableImage::transitionToState(SegmentableImageStateIndex stateToTrans
             //clear unfinished paths
             resetPath();
 
-            //set regions to playable
+            //set regions to playable at front, play paths to not interactable at back
+            for (auto it = playPaths.begin(); it != playPaths.end(); ++it)
+            {
+                (*it)->setAlwaysOnTop(false);
+                (*it)->transitionToState(PlayPathStateIndex::notInteractable);
+            }
             for (auto it = regions.begin(); it != regions.end(); ++it)
             {
+                (*it)->setAlwaysOnTop(true);
                 (*it)->transitionToState(SegmentedRegionStateIndex::playable);
             }
             nonInstantStateFound = true;
             DBG("segmentable image playing regions");
             break;
+
+
+
+
+        case SegmentableImageStateIndex::drawingPlayPath:
+            //make regions and play paths uninteractable, but bring play paths to front
+            for (auto it = regions.begin(); it != regions.end(); ++it)
+            {
+                (*it)->setAlwaysOnTop(false);
+                (*it)->transitionToState(SegmentedRegionStateIndex::notInteractable);
+            }
+            for (auto it = playPaths.begin(); it != playPaths.end(); ++it)
+            {
+                (*it)->setAlwaysOnTop(true);
+                (*it)->transitionToState(PlayPathStateIndex::notInteractable);
+            }
+            nonInstantStateFound = true;
+            DBG("segmentable image drawing play paths");
+            break;
+
+        case SegmentableImageStateIndex::editingPlayPaths:
+            //clear unfinished paths
+            resetPath();
+
+            //set play paths to editable at front, regions to not interactable at back
+            for (auto it = regions.begin(); it != regions.end(); ++it)
+            {
+                (*it)->setAlwaysOnTop(false);
+                (*it)->transitionToState(SegmentedRegionStateIndex::notInteractable);
+            }
+            for (auto it = playPaths.begin(); it != playPaths.end(); ++it)
+            {
+                (*it)->setAlwaysOnTop(true);
+                (*it)->transitionToState(PlayPathStateIndex::editable);
+            }
+            nonInstantStateFound = true;
+            DBG("segmentable image editing play paths");
+            break;
+
+        case SegmentableImageStateIndex::playingPlayPaths:
+            //clear unfinished paths
+            resetPath();
+
+            //set play paths to playable at front, regions to not interactable at back
+            for (auto it = regions.begin(); it != regions.end(); ++it)
+            {
+                (*it)->setAlwaysOnTop(false);
+                (*it)->transitionToState(SegmentedRegionStateIndex::notInteractable);
+            }
+            for (auto it = playPaths.begin(); it != playPaths.end(); ++it)
+            {
+                (*it)->setAlwaysOnTop(true);
+                (*it)->transitionToState(PlayPathStateIndex::playable);
+            }
+            nonInstantStateFound = true;
+            DBG("segmentable image playing play paths");
+            break;
+
+
+
 
         default:
             throw std::exception("unhandled state index");
@@ -254,18 +346,16 @@ bool SegmentableImage::keyPressed(const juce::KeyPress& key, juce::Component* or
     return currentState->keyPressed(key, originatingComponent);
 }
 
-void SegmentableImage::startNewRegion(juce::Point<float> newPt)
+void SegmentableImage::startNewPath(juce::Point<float> newPt)
 {
     if (getLocalBounds().contains(newPt.toInt()))
     {
         juce::Point<float> relativePt(newPt.getX() / static_cast<float>(getWidth()), newPt.getY() / static_cast<float>(getHeight()));
 
-        //currentPath.startNewSubPath(newPt);
         currentPath.startNewSubPath(relativePt);
-        //currentPathPoints.add(newPt);
         currentPathPoints.add(relativePt); //convert absolute coords to relative coords
         repaint(getAbsolutePathBounds().expanded(3.0f, 3.0f).toNearestInt());
-        transitionToState(SegmentableImageStateIndex::drawingRegion);
+        //transitionToState(SegmentableImageStateIndex::drawingRegion);
     }
 }
 void SegmentableImage::addPointToPath(juce::Point<float> newPt)
@@ -282,13 +372,16 @@ void SegmentableImage::addPointToPath(juce::Point<float> newPt)
     }
 }
 
+bool SegmentableImage::hasStartedDrawing()
+{
+    return currentPathPoints.size() > 0;
+}
 void SegmentableImage::resetPath()
 {
     clearPath();
     currentPathPoints.clear();
 }
-
-void SegmentableImage::tryCompletePath()
+void SegmentableImage::tryCompletePath_Region()
 {
     //check whether there are enough points to form a 2D region
     if (currentPathPoints.size() < 3)
@@ -413,12 +506,58 @@ void SegmentableImage::tryCompletePath()
     //newRegion->triggerButtonStateChanged(); //not necessary
     newRegion->triggerDrawableButtonStateChanged();
     resetPath();
-    transitionToState(SegmentableImageStateIndex::withImage);
+    transitionToState(SegmentableImageStateIndex::drawingRegion);
     DBG("new region has been added successfully.");
 
     audioEngine->suspendProcessing(previouslySuspended);
 }
+void SegmentableImage::tryCompletePath_PlayPath()
+{
+    //check whether there are enough points to form a 2D region
+    if (currentPathPoints.size() < 3)
+    {
+        DBG("not enough points to form a play path.");
+        return;
+    }
 
+    //WIP: check whether all points jus form a line, or whether they actually define a 2D region
+    DBG("checking whether points actually form a 2D area...");
+    //...
+    DBG("done.");
+
+    //finish path
+    currentPath.closeSubPath();
+    bool previouslySuspended = audioEngine->isSuspended();
+    audioEngine->suspendProcessing(true);
+
+    //calculate bounds
+    DBG("calculating play path's bounds...");
+    juce::Rectangle<float> origRegionBounds(getAbsolutePathBounds());
+    juce::Rectangle<float> origParentBounds(getBounds().toFloat());
+    juce::Rectangle<float> relativeBounds(origRegionBounds.getX() / origParentBounds.getWidth(),
+                                          origRegionBounds.getY() / origParentBounds.getHeight(),
+                                          origRegionBounds.getWidth() / origParentBounds.getWidth(),
+                                          origRegionBounds.getHeight() / origParentBounds.getHeight());
+    DBG("done.");
+
+    //calculate colour
+    DBG("generating random path colour...");
+    juce::Random rng;
+    juce::Colour fillColour = juce::Colour::fromHSV(rng.nextFloat(), 0.6f + 0.4f * rng.nextFloat(), 0.6f + 0.4f * rng.nextFloat(), 1.0f); //random for now
+    DBG("done. path colour is: " + juce::String(fillColour.getRed()) + ", " + juce::String(fillColour.getGreen()) + ", " + juce::String(fillColour.getBlue()));
+
+    DBG("adding new play path...");
+    PlayPath* newPlayPath = new PlayPath(getNextPlayPathID(), currentPath, relativeBounds, fillColour);
+    newPlayPath->setBounds(getAbsolutePathBounds().toNearestInt());
+    addPlayPath(newPlayPath);
+    //newPlayPath->triggerButtonStateChanged(); //not necessary
+    newPlayPath->triggerDrawableButtonStateChanged();
+    resetPath();
+    transitionToState(SegmentableImageStateIndex::drawingPlayPath);
+    DBG("new play path has been added successfully.");
+
+    audioEngine->suspendProcessing(previouslySuspended);
+}
 void SegmentableImage::deleteLastNode()
 {
     clearPath(); //erases the whole Path object (will be reconstructed later)
@@ -448,20 +587,28 @@ void SegmentableImage::deleteLastNode()
     }
     else //currentPathPoints.isEmpty()
     {
-        transitionToState(SegmentableImageStateIndex::withImage);
+        //transitionToState(SegmentableImageStateIndex::withImage);
+        //^- better stay in drawing mode
     }
 }
 
 void SegmentableImage::clearRegions()
 {
+    bool previouslySuspended = audioEngine->isSuspended();
+    audioEngine->suspendProcessing(true);
+
     for (auto it = regions.begin(); it != regions.end(); ++it)
     {
         removeChildComponent(*it);
+        for (auto itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
+        {
+            (*itPath)->removeIntersectingRegion((*it)->getID()); //play paths must forget about this region as well, otherwise there will be dangling pointers!
+        }
     }
-    bool previouslySuspended = audioEngine->isSuspended();
-    audioEngine->suspendProcessing(true);
     regions.clear(true);
+    
     audioEngine->resetRegionIDs();
+    
     audioEngine->suspendProcessing(previouslySuspended);
 }
 void SegmentableImage::removeRegion(int regionID)
@@ -473,9 +620,14 @@ void SegmentableImage::removeRegion(int regionID)
         if ((*it)->getID() == regionID)
         {
             //found the region -> remove
-            removeChildComponent(*it);
             bool previouslySuspended = audioEngine->isSuspended();
             audioEngine->suspendProcessing(true);
+
+            removeChildComponent(*it);
+            for (auto itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
+            {
+                (*itPath)->removeIntersectingRegion((*it)->getID()); //play paths must forget about this region as well, otherwise there will be dangling pointers!
+            }
             regions.remove(i, true); //automatically removes voices, LFOs etc.
             audioEngine->suspendProcessing(previouslySuspended);
 
@@ -502,6 +654,36 @@ void SegmentableImage::removeRegion(int regionID)
     }
 }
 
+void SegmentableImage::clearPlayPaths()
+{
+    for (auto itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
+    {
+        removeChildComponent(*itPath);
+    }
+    playPaths.clear(true);
+    playPathIdCounter = 0;
+
+    //remove any lingering play path couriers
+    for (auto itRegion = regions.begin(); itRegion != regions.end(); ++itRegion)
+    {
+        (*itRegion)->resetCouriers();
+    }
+}
+void SegmentableImage::removePlayPath(int pathID)
+{
+    int i = 0;
+    for (auto itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath, ++i)
+    {
+        if ((*itPath)->getID() == pathID)
+        {
+            //path found -> remove
+            removeChildComponent(*itPath);
+            playPaths.remove(i);
+            break; //IDs are unique
+        }
+    }
+}
+
 bool SegmentableImage::serialise(juce::XmlElement* xmlParent, juce::Array<juce::MemoryBlock>* attachedData)
 {
     DBG("serialising SegmentableImage...");
@@ -511,6 +693,7 @@ bool SegmentableImage::serialise(juce::XmlElement* xmlParent, juce::Array<juce::
 
     //define state that the image should start up with (that state will also determine the state that the editor will start up in)
     xmlSegmentableImage->setAttribute("targetStateIndex", static_cast<int>(getTargetStateIndex()));
+    xmlSegmentableImage->setAttribute("playPathIdCounter", playPathIdCounter);
 
     if (getImage().isValid())
     {
@@ -545,14 +728,27 @@ bool SegmentableImage::serialise(juce::XmlElement* xmlParent, juce::Array<juce::
             juce::XmlElement* xmlRegion = xmlSegmentableImage->createNewChildElement("SegmentedRegion_" + juce::String(i));
             serialisationSuccessful = (*itRegion)->serialise(xmlRegion, attachedData);
         }
+
+        if (serialisationSuccessful)
+        {
+            //serialise play paths
+            xmlSegmentableImage->setAttribute("playPaths_size", playPaths.size());
+            i = 0;
+            for (auto* itPath = playPaths.begin(); serialisationSuccessful && itPath != playPaths.end(); ++itPath, ++i)
+            {
+                juce::XmlElement* xmlPlayPath = xmlSegmentableImage->createNewChildElement("PlayPath_" + juce::String(i));
+                serialisationSuccessful = (*itPath)->serialise(xmlPlayPath);
+            }
+        }
     }
     else
     {
         //image is empty
         xmlSegmentableImage->setAttribute("imageMemory_index", -1); //nothing attached
 
-        //no regions to serialise on an empty image
+        //no regions/playpaths to serialise on an empty image
         xmlSegmentableImage->setAttribute("regions_size", 0);
+        xmlSegmentableImage->setAttribute("playPaths_size", 0);
     }
 
     DBG(juce::String(serialisationSuccessful ? "SegmentableImage has been serialised." : "SegmentableImage could not be serialised."));
@@ -567,6 +763,8 @@ bool SegmentableImage::deserialise(juce::XmlElement* xmlParent, juce::Array<juce
 
     if (xmlSegmentableImage != nullptr)
     {
+        playPathIdCounter = xmlSegmentableImage->getIntAttribute("playPathIdCounter", -1);
+
         int imageMemoryIndex = xmlSegmentableImage->getIntAttribute("imageMemory_index", -1);
         if (imageMemoryIndex >= 0 && imageMemoryIndex < attachedData->size())
         {
@@ -614,9 +812,46 @@ bool SegmentableImage::deserialise(juce::XmlElement* xmlParent, juce::Array<juce
                     //deserialisationSuccessful = false; //not problematic
                 }
             }
+
+            if (deserialisationSuccessful)
+            {
+                //deserialise play paths
+                clearPlayPaths();
+                size = xmlSegmentableImage->getIntAttribute("playPaths_size", 0);
+                for (int i = 0; deserialisationSuccessful && i < size; ++i)
+                {
+                    //generate new play path
+                    PlayPath* newPlayPath = new PlayPath(-1, juce::Path(), juce::Rectangle<float>(), juce::Colours::black);
+                    addPlayPath(newPlayPath);
+                    newPlayPath->triggerDrawableButtonStateChanged();
+
+                    juce::XmlElement* xmlPlayPath = xmlSegmentableImage->getChildByName("PlayPath_" + juce::String(i));
+                    if (xmlPlayPath != nullptr)
+                    {
+                        //load data to that play path
+                        deserialisationSuccessful = newPlayPath->deserialise(xmlPlayPath);
+                    }
+                    else
+                    {
+                        DBG("data of the play path at the array index " + juce::String(i) + " could not be found.");
+                        //deserialisationSuccessful = false; //not problematic
+                    }
+                }
+                if (playPathIdCounter < 0 && playPaths.size() > 0)
+                {
+                    //error in stored playPathIdCounter -> set to highest current path ID
+                    int maxID = -1;
+                    for (auto itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
+                    {
+                        maxID = juce::jmax((*itPath)->getID(), maxID);
+                    }
+                    playPathIdCounter = maxID;
+                }
+            }
+
             if (getParentComponent() != nullptr)
             {
-                getParentComponent()->resized(); //adjust this components shape to that of the window (depends on the image's aspect ratio, which most likely changed). also updates all regions' sizes to fit this component
+                getParentComponent()->resized(); //adjust this components shape to that of the window (depends on the image's aspect ratio, which most likely changed). also updates all regions' and play paths' sizes to fit this component
             }
             juce::Timer::callAfterDelay(100, [this] { repaintAllRegions(); }); //WIP: this is kinda messy, but at least it works. if called without a delay, the regions won't correctly repaint themselves, causing their lfoLines to be in the wrong position until one hovers over them or clicks them
         }
@@ -689,6 +924,19 @@ bool SegmentableImage::hasAtLeastOneRegionWithAudio()
     return regionWithAudioFound;
 }
 
+int SegmentableImage::getNextPlayPathID()
+{
+    return ++playPathIdCounter;
+}
+int SegmentableImage::getLastPlayPathID()
+{
+    return playPathIdCounter;
+}
+bool SegmentableImage::hasAtLeastOnePlayPath()
+{
+    return playPaths.size() > 0;
+}
+
 
 
 
@@ -704,7 +952,7 @@ SegmentableImageStateIndex SegmentableImage::getTargetStateIndex()
         //valid image has been set
         if (!hasAtLeastOneRegion())
         {
-            targetStateIndex = SegmentableImageStateIndex::withImage; //will set the editor to its Drawing state
+            targetStateIndex = SegmentableImageStateIndex::drawingRegion; //will set the editor to its Drawing state
         }
         else
         {
@@ -716,7 +964,15 @@ SegmentableImageStateIndex SegmentableImage::getTargetStateIndex()
             else
             {
                 //at least one region has audio
-                targetStateIndex = SegmentableImageStateIndex::playingRegions;
+                if (!hasAtLeastOnePlayPath())
+                {
+                    targetStateIndex = SegmentableImageStateIndex::playingRegions;
+                }
+                else
+                {
+                    //at least one play path has been defined
+                    targetStateIndex = SegmentableImageStateIndex::playingPlayPaths;
+                }
             }
         }
     }
@@ -764,6 +1020,29 @@ void SegmentableImage::repaintAllRegions()
         (*itRegion)->triggerDrawableButtonStateChanged(); //this makes the button redraw its background
         (*itRegion)->repaint();
     }
+}
+
+void SegmentableImage::addPlayPath(PlayPath* newPlayPath)
+{
+    playPaths.add(newPlayPath);
+
+    newPlayPath->setAlwaysOnTop(true);
+    switch (currentStateIndex)
+    {
+    case SegmentableImageStateIndex::editingPlayPaths:
+        newPlayPath->transitionToState(PlayPathStateIndex::editable);
+        break;
+
+    case SegmentableImageStateIndex::playingRegions:
+        newPlayPath->transitionToState(PlayPathStateIndex::playable);
+        break;
+
+    default:
+        newPlayPath->transitionToState(PlayPathStateIndex::notInteractable);
+        break;
+    }
+
+    addAndMakeVisible(newPlayPath);
 }
 
 void SegmentableImage::clearPath()

@@ -18,10 +18,13 @@ ImageINeDemoAudioProcessorEditor::ImageINeDemoAudioProcessorEditor (ImageINeDemo
     loadImageButton.onClick = [this] { showLoadImageDialogue(); };
 
     addAndMakeVisible(modeBox);
-    modeBox.addItem("Init", static_cast<int>(PluginEditorStateIndex::Init));
-    modeBox.addItem("Drawing", static_cast<int>(PluginEditorStateIndex::Drawing));
-    modeBox.addItem("Editing", static_cast<int>(PluginEditorStateIndex::Editing));
-    modeBox.addItem("Playing", static_cast<int>(PluginEditorStateIndex::Playing));
+    modeBox.addItem("Init", static_cast<int>(PluginEditorStateIndex::init));
+    modeBox.addItem("Drawing Regions", static_cast<int>(PluginEditorStateIndex::drawingRegion));
+    modeBox.addItem("Editing Regions", static_cast<int>(PluginEditorStateIndex::editingRegions));
+    modeBox.addItem("Playing Regions", static_cast<int>(PluginEditorStateIndex::playingRegions));
+    modeBox.addItem("Drawing Play Paths", static_cast<int>(PluginEditorStateIndex::drawingPlayPath));
+    modeBox.addItem("Editing Play Paths", static_cast<int>(PluginEditorStateIndex::editingPlayPaths));
+    modeBox.addItem("Playing Play Paths", static_cast<int>(PluginEditorStateIndex::playingPlayPaths));
     modeBox.onChange = [this] { updateState(); };
     addAndMakeVisible(modeLabel);
     modeLabel.setText("Mode: ", juce::NotificationType::dontSendNotification);
@@ -66,7 +69,7 @@ void ImageINeDemoAudioProcessorEditor::resized()
 
     switch (currentStateIndex)
     {
-    case PluginEditorStateIndex::Init:
+    case PluginEditorStateIndex::init:
         loadImageButton.setBounds(area.removeFromTop(20).reduced(2, 2));
 
         modeArea = area.removeFromTop(20);
@@ -74,23 +77,50 @@ void ImageINeDemoAudioProcessorEditor::resized()
         modeBox.setBounds(modeArea.reduced(2, 2));
         break;
 
-    case PluginEditorStateIndex::Drawing:
+
+
+
+    case PluginEditorStateIndex::drawingRegion:
         modeArea = area.removeFromTop(20);
         modeLabel.setBounds(modeArea.removeFromLeft(50).reduced(2, 2));
         modeBox.setBounds(modeArea.reduced(2, 2));
         break;
 
-    case PluginEditorStateIndex::Editing:
+    case PluginEditorStateIndex::editingRegions:
         modeArea = area.removeFromTop(20);
         modeLabel.setBounds(modeArea.removeFromLeft(50).reduced(2, 2));
         modeBox.setBounds(modeArea.reduced(2, 2));
         break;
 
-    case PluginEditorStateIndex::Playing:
+    case PluginEditorStateIndex::playingRegions:
         modeArea = area.removeFromTop(20);
         modeLabel.setBounds(modeArea.removeFromLeft(50).reduced(2, 2));
         modeBox.setBounds(modeArea.reduced(2, 2));
         break;
+
+
+
+
+    case PluginEditorStateIndex::drawingPlayPath:
+        modeArea = area.removeFromTop(20);
+        modeLabel.setBounds(modeArea.removeFromLeft(50).reduced(2, 2));
+        modeBox.setBounds(modeArea.reduced(2, 2));
+        break;
+
+    case PluginEditorStateIndex::editingPlayPaths:
+        modeArea = area.removeFromTop(20);
+        modeLabel.setBounds(modeArea.removeFromLeft(50).reduced(2, 2));
+        modeBox.setBounds(modeArea.reduced(2, 2));
+        break;
+
+    case PluginEditorStateIndex::playingPlayPaths:
+        modeArea = area.removeFromTop(20);
+        modeLabel.setBounds(modeArea.removeFromLeft(50).reduced(2, 2));
+        modeBox.setBounds(modeArea.reduced(2, 2));
+        break;
+
+
+
 
     default:
         break;
@@ -136,11 +166,14 @@ void ImageINeDemoAudioProcessorEditor::transitionToState(PluginEditorStateIndex 
 
     switch (currentStateIndex)
     {
-    case PluginEditorStateIndex::Init:
-        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Init), true);
-        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Drawing), false);
-        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Editing), false);
-        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Playing), false);
+    case PluginEditorStateIndex::init:
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::init), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingRegion), false);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingRegions), false);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingRegions), false);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingPlayPath), false);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingPlayPaths), false);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingPlayPaths), false);
 
         loadImageButton.setVisible(true);
         image.setVisible(false);
@@ -150,25 +183,34 @@ void ImageINeDemoAudioProcessorEditor::transitionToState(PluginEditorStateIndex 
 
         break;
 
-    case PluginEditorStateIndex::Drawing:
-        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Init), true);
-        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Drawing), true);
-        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Editing), true);
-        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Playing), true);
+
+
+
+    case PluginEditorStateIndex::drawingRegion:
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::init), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingRegion), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingRegions), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingRegions), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingPlayPath), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingPlayPaths), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingPlayPaths), true);
 
         loadImageButton.setVisible(false);
         image.setVisible(true);
-        image.transitionToState(SegmentableImageStateIndex::withImage); //if its current state was drawingRegion, it will remain at that state
+        image.transitionToState(SegmentableImageStateIndex::drawingRegion);
 
         setResizable(true, true);
 
         break;
 
-    case PluginEditorStateIndex::Editing:
-        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Init), true);
-        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Drawing), true);
-        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Editing), true);
-        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Playing), true);
+    case PluginEditorStateIndex::editingRegions:
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::init), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingRegion), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingRegions), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingRegions), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingPlayPath), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingPlayPaths), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingPlayPaths), true);
 
         loadImageButton.setVisible(false);
         image.setVisible(true);
@@ -178,11 +220,14 @@ void ImageINeDemoAudioProcessorEditor::transitionToState(PluginEditorStateIndex 
 
         break;
 
-    case PluginEditorStateIndex::Playing:
-        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Init), true);
-        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Drawing), true);
-        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Editing), true);
-        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Playing), true);
+    case PluginEditorStateIndex::playingRegions:
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::init), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingRegion), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingRegions), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingRegions), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingPlayPath), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingPlayPaths), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingPlayPaths), true);
 
         loadImageButton.setVisible(false);
         image.setVisible(true);
@@ -191,6 +236,63 @@ void ImageINeDemoAudioProcessorEditor::transitionToState(PluginEditorStateIndex 
         setResizable(false, false);
 
         break;
+
+
+
+
+    case PluginEditorStateIndex::drawingPlayPath:
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::init), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingRegion), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingRegions), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingRegions), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingPlayPath), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingPlayPaths), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingPlayPaths), true);
+
+        loadImageButton.setVisible(false);
+        image.setVisible(true);
+        image.transitionToState(SegmentableImageStateIndex::drawingPlayPath);
+
+        setResizable(true, true);
+
+        break;
+
+    case PluginEditorStateIndex::editingPlayPaths:
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::init), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingRegion), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingRegions), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingRegions), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingPlayPath), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingPlayPaths), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingPlayPaths), true);
+
+        loadImageButton.setVisible(false);
+        image.setVisible(true);
+        image.transitionToState(SegmentableImageStateIndex::editingPlayPaths);
+
+        setResizable(false, false);
+
+        break;
+
+    case PluginEditorStateIndex::playingPlayPaths:
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::init), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingRegion), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingRegions), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingRegions), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingPlayPath), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingPlayPaths), true);
+        modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingPlayPaths), true);
+
+        loadImageButton.setVisible(false);
+        image.setVisible(true);
+        image.transitionToState(SegmentableImageStateIndex::playingPlayPaths);
+
+        setResizable(false, false);
+
+        break;
+
+
+
 
     default:
         throw new std::exception("Invalid state.");
@@ -224,8 +326,8 @@ void ImageINeDemoAudioProcessorEditor::showLoadImageDialogue()
                 chosen = result.getLocalFile().getFullPathName();
                 juce::Image img = juce::ImageFileFormat::loadFrom(result.getLocalFile());
                 image.setImage(img);
-                modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::Drawing), true);
-                modeBox.setSelectedId(static_cast<int>(PluginEditorStateIndex::Drawing));
+                modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingRegion), true);
+                modeBox.setSelectedId(static_cast<int>(PluginEditorStateIndex::drawingRegion));
                 toFront(true);
             }
         },
@@ -245,21 +347,42 @@ void ImageINeDemoAudioProcessorEditor::setStateAccordingToImage()
     switch (image.getCurrentStateIndex())
     {
     case SegmentableImageStateIndex::empty:
-        transitionToState(PluginEditorStateIndex::Init);
+        transitionToState(PluginEditorStateIndex::init);
         break;
+
+
+
 
     case SegmentableImageStateIndex::withImage:
     case SegmentableImageStateIndex::drawingRegion:
-        transitionToState(PluginEditorStateIndex::Drawing);
+        transitionToState(PluginEditorStateIndex::drawingRegion);
         break;
 
     case SegmentableImageStateIndex::editingRegions:
-        transitionToState(PluginEditorStateIndex::Editing);
+        transitionToState(PluginEditorStateIndex::editingRegions);
         break;
 
     case SegmentableImageStateIndex::playingRegions:
-        transitionToState(PluginEditorStateIndex::Playing);
+        transitionToState(PluginEditorStateIndex::playingRegions);
         break;
+
+
+
+
+    case SegmentableImageStateIndex::drawingPlayPath:
+        transitionToState(PluginEditorStateIndex::drawingPlayPath);
+        break;
+
+    case SegmentableImageStateIndex::editingPlayPaths:
+        transitionToState(PluginEditorStateIndex::editingPlayPaths);
+        break;
+
+    case SegmentableImageStateIndex::playingPlayPaths:
+        transitionToState(PluginEditorStateIndex::playingPlayPaths);
+        break;
+
+
+
 
     default:
         throw std::exception("unhandled SegmentableImageStateIndex.");

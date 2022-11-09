@@ -17,5 +17,8 @@ enum struct SegmentableImageStateIndex : int
     drawingRegion, //currently drawing a region
     editingRegions, //currently editing regions
     playingRegions, //currently playing regions
+    drawingPlayPath, //currently drawing a play path
+    editingPlayPaths, //currently editing play paths
+    playingPlayPaths, //currently playing play paths
     StateIndexCount
 };

@@ -5,6 +5,28 @@
               pluginFormats="buildStandalone,buildVST3" pluginCharacteristicsValue="pluginIsSynth">
   <MAINGROUP id="ERSV9V" name="ImageINe Demo">
     <GROUP id="{8D26A2AA-44ED-091F-1BA7-BD7625DE9D6A}" name="Source">
+      <GROUP id="{BD4EFDA1-1593-3EA9-9AF3-1D7AC5564478}" name="Play Path">
+        <FILE id="Oz6Kga" name="PlayPathCourier.cpp" compile="1" resource="0"
+              file="Source/PlayPathCourier.cpp"/>
+        <FILE id="TKoIY3" name="PlayPathCourier.h" compile="0" resource="0"
+              file="Source/PlayPathCourier.h"/>
+        <FILE id="gFRi1W" name="PlayPath.cpp" compile="1" resource="0" file="Source/PlayPath.cpp"/>
+        <FILE id="upwFKD" name="PlayPath.h" compile="0" resource="0" file="Source/PlayPath.h"/>
+        <FILE id="HlC1zS" name="PlayPathEditor.cpp" compile="1" resource="0"
+              file="Source/PlayPathEditor.cpp"/>
+        <FILE id="APWzWE" name="PlayPathEditor.h" compile="0" resource="0"
+              file="Source/PlayPathEditor.h"/>
+        <FILE id="Um8ga8" name="PlayPathEditorWindow.cpp" compile="1" resource="0"
+              file="Source/PlayPathEditorWindow.cpp"/>
+        <FILE id="U8ChEk" name="PlayPathEditorWindow.h" compile="0" resource="0"
+              file="Source/PlayPathEditorWindow.h"/>
+        <FILE id="Ku0A4P" name="PlayPathStateIndex.h" compile="0" resource="0"
+              file="Source/PlayPathStateIndex.h"/>
+        <FILE id="KfQmSX" name="PlayPathStates.cpp" compile="1" resource="0"
+              file="Source/PlayPathStates.cpp"/>
+        <FILE id="guoCSm" name="PlayPathStates.h" compile="0" resource="0"
+              file="Source/PlayPathStates.h"/>
+      </GROUP>
       <GROUP id="{3117E0B0-7D62-52D3-A375-791A77CB25B2}" name="Segmentable Image">
         <FILE id="jYUrtT" name="SegmentableImageStates.cpp" compile="1" resource="0"
               file="Source/SegmentableImageStates.cpp"/>

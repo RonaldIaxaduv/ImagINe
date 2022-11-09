@@ -21,6 +21,7 @@ class SegmentableImageState_EditingRegions;
 class SegmentableImageState_PlayingRegions;
 
 #include "SegmentedRegion.h"
+#include "PlayPath.h"
 
 
 //==============================================================================
@@ -49,15 +50,19 @@ public:
 
     //================================================================
     
-    void startNewRegion(juce::Point<float> newPt);
+    void startNewPath(juce::Point<float> newPt);
     void addPointToPath(juce::Point<float> newPt);
 
-    void resetPath();
     void clearRegions();
     void removeRegion(int regionID);
 
-    void tryCompletePath();
+    void clearPlayPaths();
+    void removePlayPath(int pathID);
 
+    bool hasStartedDrawing();
+    void resetPath();
+    void tryCompletePath_Region();
+    void tryCompletePath_PlayPath();
     void deleteLastNode();
 
     bool serialise(juce::XmlElement* xmlParent, juce::Array<juce::MemoryBlock>* attachedData);
@@ -74,6 +79,11 @@ public:
     bool hasAtLeastOneRegion();
     bool hasAtLeastOneRegionWithAudio();
 
+    juce::OwnedArray<PlayPath> playPaths;
+    int getNextPlayPathID();
+    int getLastPlayPathID();
+    bool hasAtLeastOnePlayPath();
+
 private:
     SegmentableImageState* states[static_cast<int>(SegmentableImageStateIndex::StateIndexCount)];
     static const SegmentableImageStateIndex initialStateIndex = SegmentableImageStateIndex::empty;
@@ -86,10 +96,14 @@ private:
     juce::Array<juce::Point<float>> currentPathPoints; //WIP: normalise these to [0...1] so that, when resizing, the path can be redrawn
     juce::Rectangle<float> getAbsolutePathBounds();
 
+    int playPathIdCounter = -1;
+
     AudioEngine* audioEngine;
 
     void addRegion(SegmentedRegion* newRegion);
     void repaintAllRegions();
+
+    void addPlayPath(PlayPath* newPlayPath);
 
     void clearPath();
 

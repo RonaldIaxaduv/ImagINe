@@ -89,3 +89,39 @@ public:
     void mouseDown(const juce::MouseEvent& event) override;
     bool keyPressed(const juce::KeyPress& key, juce::Component* originatingComponent) override;
 };
+
+
+class SegmentableImageState_DrawingPlayPath final : public SegmentableImageState
+{
+public:
+    SegmentableImageState_DrawingPlayPath(SegmentableImage& image);
+
+    void imageChanged(const juce::Image& newImage) override;
+
+    void mouseDown(const juce::MouseEvent& event) override;
+    bool keyPressed(const juce::KeyPress& key, juce::Component* originatingComponent) override;
+};
+
+
+class SegmentableImageState_EditingPlayPaths final : public SegmentableImageState
+{
+public:
+    SegmentableImageState_EditingPlayPaths(SegmentableImage& image);
+
+    void imageChanged(const juce::Image& newImage) override;
+
+    void mouseDown(const juce::MouseEvent& event) override;
+    bool keyPressed(const juce::KeyPress& key, juce::Component* originatingComponent) override;
+};
+
+
+class SegmentableImageState_PlayingPlayPaths final : public SegmentableImageState
+{
+public:
+    SegmentableImageState_PlayingPlayPaths(SegmentableImage& image);
+
+    void imageChanged(const juce::Image& newImage) override;
+
+    void mouseDown(const juce::MouseEvent& event) override;
+    bool keyPressed(const juce::KeyPress& key, juce::Component* originatingComponent) override;
+};

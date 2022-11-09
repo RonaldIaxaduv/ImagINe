@@ -20,7 +20,7 @@
 class SegmentedRegion;
 
 
-class RegionEditor : public juce::Component
+class RegionEditor final : public juce::Component
 {
 public:
     RegionEditor(SegmentedRegion* region);

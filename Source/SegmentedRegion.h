@@ -55,7 +55,6 @@ public:
 
     void forceRepaint();
 
-    //void setState(SegmentedRegionState newState);
     void transitionToState(SegmentedRegionStateIndex stateToTransitionTo);
 
     void setShouldBeToggleable(bool newShouldBeToggleable);
@@ -83,15 +82,19 @@ public:
     void startPlaying();
     void stopPlaying();
 
+    void signalCourierEntered();
+    void signalCourierLeft();
+    void resetCouriers();
+
     RegionLfo* getAssociatedLfo();
     AudioEngine* getAudioEngine();
     juce::Array<Voice*> getAssociatedVoices();
     juce::String getFileName();
 
-    juce::Rectangle<float> relativeBounds;
-
     bool serialise(juce::XmlElement* xmlRegion, juce::Array<juce::MemoryBlock>* attachedData);
     bool deserialise(juce::XmlElement* xmlRegion, juce::Array<juce::MemoryBlock>* attachedData);
+
+    juce::Rectangle<float> relativeBounds;
 
 protected:
     void buttonStateChanged() override;
@@ -110,6 +113,8 @@ private:
 
     bool isPlaying = false;
     int currentVoiceIndex = 0;
+    int currentCourierCount = 0; //used to determine whether a region should start/stop playing when a courier enters/exits it (depending on whether there are already couriers contained at that time)
+
     int timerIntervalMs = 50; //-> 20.0f Hz
     juce::Line<float> currentLfoLine;
     static const float lfoLineThickness;

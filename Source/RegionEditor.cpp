@@ -161,39 +161,36 @@ void RegionEditor::paint(juce::Graphics& g)
 
 void RegionEditor::resized()
 {
-    if (associatedRegion != nullptr)
-    {
-        auto area = getLocalBounds();
+    auto area = getLocalBounds();
 
-        selectedFileLabel.setBounds(area.removeFromTop(20));
-        selectFileButton.setBounds(area.removeFromTop(20));
+    selectedFileLabel.setBounds(area.removeFromTop(20));
+    selectFileButton.setBounds(area.removeFromTop(20));
 
-        colourPickerWIP.setBounds(area.removeFromTop(20));
+    colourPickerWIP.setBounds(area.removeFromTop(20));
 
-        auto focusArea = area.removeFromTop(20);
-        focusArea.removeFromLeft(focusArea.getWidth() / 3);
-        focusPositionX.setBounds(focusArea.removeFromLeft(focusArea.getWidth() / 2));
-        focusPositionY.setBounds(focusArea);
+    auto focusArea = area.removeFromTop(20);
+    focusArea.removeFromLeft(focusArea.getWidth() / 3);
+    focusPositionX.setBounds(focusArea.removeFromLeft(focusArea.getWidth() / 2));
+    focusPositionY.setBounds(focusArea);
 
-        toggleModeButton.setBounds(area.removeFromTop(20));
-        toggleModeButton.onClick = [this] { updateToggleable(); };
+    toggleModeButton.setBounds(area.removeFromTop(20));
+    toggleModeButton.onClick = [this] { updateToggleable(); };
 
-        dahdsrEditor.setBounds(area.removeFromTop(80));
+    dahdsrEditor.setBounds(area.removeFromTop(80));
 
-        auto volumeArea = area.removeFromTop(20);
-        volumeLabel.setBounds(volumeArea.removeFromLeft(volumeArea.getWidth() / 3));
-        volumeSlider.setBounds(volumeArea);
+    auto volumeArea = area.removeFromTop(20);
+    volumeLabel.setBounds(volumeArea.removeFromLeft(volumeArea.getWidth() / 3));
+    volumeSlider.setBounds(volumeArea);
 
-        auto pitchArea = area.removeFromTop(20);
-        pitchLabel.setBounds(pitchArea.removeFromLeft(pitchArea.getWidth() / 3));
-        pitchSlider.setBounds(pitchArea);
+    auto pitchArea = area.removeFromTop(20);
+    pitchLabel.setBounds(pitchArea.removeFromLeft(pitchArea.getWidth() / 3));
+    pitchSlider.setBounds(pitchArea);
 
-        auto pitchQuantisationArea = area.removeFromTop(20);
-        pitchQuantisationLabel.setBounds(pitchQuantisationArea.removeFromLeft(pitchQuantisationArea.getWidth() / 3));
-        pitchQuantisationChoice.setBounds(pitchQuantisationArea);
+    auto pitchQuantisationArea = area.removeFromTop(20);
+    pitchQuantisationLabel.setBounds(pitchQuantisationArea.removeFromLeft(pitchQuantisationArea.getWidth() / 3));
+    pitchQuantisationChoice.setBounds(pitchQuantisationArea);
 
-        lfoEditor.setBounds(area); //fill rest with lfoEditor
-    }
+    lfoEditor.setBounds(area); //fill rest with lfoEditor
 }
 
 SegmentedRegion* RegionEditor::getAssociatedRegion()
@@ -239,8 +236,7 @@ void RegionEditor::setChildVisibility(bool shouldBeVisible)
 
 void RegionEditor::copyRegionParameters()
 {
-    //ä //WIP
-    DBG("[copy region parameters WIP]");
+    DBG("copying region parameters...");
 
     if (associatedRegion->getFileName() == "")
         selectedFileLabel.setText("Please select a file", juce::NotificationType::dontSendNotification);
@@ -270,6 +266,8 @@ void RegionEditor::copyRegionParameters()
 
     lfoEditor.updateAvailableVoices();
     lfoEditor.copyParameters();
+
+    DBG("region parameters have been copied.");
 }
 
 void RegionEditor::selectFile()
