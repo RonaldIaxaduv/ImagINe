@@ -28,7 +28,8 @@ SegmentedRegionState_NotInteractable::SegmentedRegionState_NotInteractable(Segme
 
 bool SegmentedRegionState_NotInteractable::hitTest(int x, int y)
 {
-    return false; //no interaction
+    //return false; //no interaction
+    return region.hitTest_Interactable(x, y); //this is fine (and beneficial to redrawing) as long as clicked and buttonStateChanged remain empty
 }
 
 void SegmentedRegionState_NotInteractable::clicked(const juce::ModifierKeys& modifiers)

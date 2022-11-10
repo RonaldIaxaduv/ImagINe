@@ -26,6 +26,8 @@ PlayPathEditor::PlayPathEditor(PlayPath* path)
     courierIntervalLabel.attachToComponent(&courierIntervalSlider, true);
     addAndMakeVisible(courierIntervalLabel);
 
+    copyPathParameters();
+
     setSize(350, 700);
 }
 PlayPathEditor::~PlayPathEditor()

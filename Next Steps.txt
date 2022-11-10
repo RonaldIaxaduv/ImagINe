@@ -330,15 +330,47 @@
 		- draw a path (like when drawing a region), except maybe that it doesn't necessarily need to be closed(?)
 			!- for hitTest: consider using 2 paths - one for the actual lines and one that's slightly smaller and inset according to the outlineThickness. then, return true if the outer path contains the given point, but the inner path doesn't
 		- in the path's editor, set its walk speed (name subject to change) and maybe the path's colour
-			- make the editor wider than tall
+			# make the editor wider than tall
 		- playing the path: clicking the regions doesn't do anything. instead, every playpath (automatically) generates a little point (called a "courier") that wanders alongside its associdated path. when the courier enters a region, it's treated like a click during the "Play Regions" mode
-			- doesn't toggle yet
+			# doesn't toggle yet
+				-> forgot to implement buttonStateChanged(), duh...
 			- doesn't spawn a courier yet
+				- courier seems to exist, it just isn't displayed. maybe the position is not scaled?
+					-> i actually don't know why this happens (it might have smth to do with the courier being partly outside its parent's bounds at the beginning, not sure though) and i can't easily fix it o.ô just drawing the couriers in the playpath now as a bandaid fix...
+			# doesn't play regions yet
+				# check whether the ranges are deserialised correctly
+				-> the regions are simply not registered yet!
+					# the problem was that the path's bounds have not been set yet when the ranges were already being recalculated
+				# should probably make ranges relative!
+				# ranges aren't calculated correctly...
+					-> here's the problem: getPointAlongPath returns a point relative to the *path's* bounds. but when doing a hitTest, it checks for collisions relative to the *region's* bounds.
+					#> fix: shift origin
+ >>			!- regions don't play anymore arghhhh
+				?- possible cause 1: maybe a deserialisation error (check buffer length in seconds)?
+				?/ possible cause 2: maybe smth with the play/stop methods?
+				?- possible cause 3: maybe smth with the states of the plugin editor?
+					- maybe just make regions playable, might be better anyway
+				!-> apparently, the voices are still unprepared o.ô
+					- check whether the audio engine is also still unprepared. if so, prepare it upon deserialisation
+						-> it does get prepared. gotta check though with which specs.
+					- does it also happen after adding new regions or changing audio files?
+						-> yes.
+					- it gets fixed when changing the sample rate / block size manually in the options! so i'm guessing the audio engine isn't getting the right specs?
+			!- the path isn't quite played accurately yet, seems like the hitbox of the courier is always a centimeter ahead of the drawn point (it is at least consistent though)
+				- check if this also happens with newly drawn paths just to make sure
 		- (de)serialisation
 			# remember to increment the serialisation version number!
-			!- deserialisation doesn't work yet (position isn't restored correctly i don't think? are the relative bounds not used perhaps?)
+			!/ deserialisation doesn't work yet (position isn't restored correctly i don't think? are the relative bounds not used perhaps?)
+				#> ah, no, just forgot to implement the resizing, whoops
+			# same problem as with the regions: the outline isn't drawn until the path is hovered over
+			/ the couriers' speed isn't deserialised correctly, it always goes back to 10.0 even after saving it with a different value
+				# also check the editor for possible mistakes!
+					#> aha, yeah seems like the editor was the problem, it didn't copy the parameters upon its initialisation
 	- additional features:
 		- custom path colour
+		!- make the region playing timing more accurate
+			- instead of just calculating during which checks the courier is within a region and when it isn't, check in advance whether it's going to enter/exit regions during its next tick and if so, calculate the time until that entering/exiting would happen from the courier's delta distance. then, call juce::Timer::callAfterDelay() with the corresponding time and event.
+			-> allows to play regions for less time than the update rate (so ultra short blips are possible) and makes the entering/exiting timing more accurate (it will feel quantised to the regions' borders instead of being quantised to the courier's update rate)
 		!- allow for branching, i.e. points where the path splits in two
 			!- option 1: when the runner gets there, it splits in two as well
 			- option 2: when the runner gets there, it randomly(?) picks one of the two paths

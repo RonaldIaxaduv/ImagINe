@@ -12,7 +12,7 @@
 #include "PlayPath.h"
 
 //constants
-const float PlayPathCourier::radius = 3.0f;
+const float PlayPathCourier::radius = 5.0f;
 
 
 
@@ -20,11 +20,16 @@ const float PlayPathCourier::radius = 3.0f;
 PlayPathCourier::PlayPathCourier(PlayPath* associatedPlayPath, float intervalInSeconds)
 {
     this->associatedPlayPath = associatedPlayPath;
-    pathLength = associatedPlayPath->getPathLength();
 
     setInterval_seconds(intervalInSeconds);
+    parentPathLengthChanged();
 
-    updateBounds();
+    //update bounds (without repainting the parent)
+    juce::Point<float> currentPoint = associatedPlayPath->getPointAlongPath(currentNormedDistanceFromStart);
+    setBounds(static_cast<int>(currentPoint.getX() - radius),
+              static_cast<int>(currentPoint.getY() - radius),
+              static_cast<int>(radius * 2.0f),
+              static_cast<int>(radius * 2.0f));
 }
 PlayPathCourier::~PlayPathCourier()
 {
@@ -34,41 +39,44 @@ PlayPathCourier::~PlayPathCourier()
 
 void PlayPathCourier::paint(juce::Graphics& g)
 {
+    g.setColour(associatedPlayPath->getFillColour().contrasting());
+    g.fillEllipse(getBounds().toFloat()); //note: the size of the courier is already set to a 2*radius by 2*radius square shape
     g.setColour(associatedPlayPath->getFillColour());
-    g.fillEllipse(getBounds().toFloat()); //note: the size of the courier is already set to 2*radius by 2*radius
+    g.fillEllipse(getBounds().reduced(1).toFloat());
 }
 void PlayPathCourier::resized()
 { }
 
 void PlayPathCourier::timerCallback()
 {
-    float previousDistanceFromStart = currentDistanceFromStart;
-    currentDistanceFromStart = std::fmod(currentDistanceFromStart + distancePerTick, pathLength);
+    float previousNormedDistanceFromStart = currentNormedDistanceFromStart;
+    currentNormedDistanceFromStart = std::fmod(currentNormedDistanceFromStart + normedDistancePerTick, 1.0);
 
     //check for collisions with any regions
     //note: since the radius of the courier is quite small, we can assume the path to be approximately linear within the courier's bounds.
     //      hence, it's alright to assume that the courier always covers an interval [pt - radius, pt + radius]. to account for looping over, modulo is used.
-    juce::Range<float> startingPosition (previousDistanceFromStart - radius, previousDistanceFromStart + radius);
-    juce::Range<float> currentPosition (currentDistanceFromStart - radius, currentDistanceFromStart + radius);
+    juce::Range<float> startingPosition (previousNormedDistanceFromStart - normedRadius, previousNormedDistanceFromStart + normedRadius);
+    juce::Range<float> currentPosition (currentNormedDistanceFromStart - normedRadius, currentNormedDistanceFromStart + normedRadius);
 
     //wrap values where necessary
     if (startingPosition.getStart() < 0.0f)
     {
-        startingPosition.setStart(startingPosition.getStart() + pathLength);
+        startingPosition.setStart(startingPosition.getStart() + 1.0);
     }
-    if (startingPosition.getEnd() >= pathLength)
+    if (startingPosition.getEnd() >= 1.0)
     {
-        startingPosition.setEnd(startingPosition.getEnd() - pathLength);
+        startingPosition.setEnd(startingPosition.getEnd() - 1.0);
     }
     if (currentPosition.getStart() < 0.0f)
     {
-        currentPosition.setStart(currentPosition.getStart() + pathLength);
+        currentPosition.setStart(currentPosition.getStart() + 1.0);
     }
-    if (currentPosition.getEnd() >= pathLength)
+    if (currentPosition.getEnd() >= 1.0)
     {
-        currentPosition.setEnd(currentPosition.getEnd() - pathLength);
+        currentPosition.setEnd(currentPosition.getEnd() - 1.0);
     }
 
+    //DBG("[" + juce::String(currentPosition.getStart()) + ", " + juce::String(currentPosition.getEnd()) + "]");
     associatedPlayPath->evaluateCourierPosition(startingPosition, currentPosition); //automatically handles signaling the regions
 
     //update position on screen
@@ -76,8 +84,16 @@ void PlayPathCourier::timerCallback()
 }
 void PlayPathCourier::updateBounds()
 {
-    juce::Point<float> currentPoint = associatedPlayPath->getPointAlongPath(currentDistanceFromStart);
-    setBounds(currentPoint.getX() - radius, currentPoint.getY() - radius, radius * 2, radius * 2); //also repaints
+    juce::Rectangle<int> previousBounds = getBounds();
+
+    juce::Point<float> currentPoint = associatedPlayPath->getPointAlongPath(currentNormedDistanceFromStart);
+    setBounds(static_cast<int>(currentPoint.getX() - radius),
+              static_cast<int>(currentPoint.getY() - radius),
+              static_cast<int>(radius * 2.0f),
+              static_cast<int>(radius * 2.0f));
+
+    getParentComponent()->repaint(getBounds().getUnion(previousBounds));
+    //DBG("courier bounds: " + getBounds().toString());
 }
 
 float PlayPathCourier::getInterval_seconds()
@@ -87,7 +103,21 @@ float PlayPathCourier::getInterval_seconds()
 void PlayPathCourier::setInterval_seconds(float newIntervalInSeconds)
 {
     intervalInSeconds = newIntervalInSeconds;
-    distancePerTick = pathLength / (intervalInSeconds * tickRateInHz); //= (pathLength / intervalInSeconds) / tickRateInHz
+    normedDistancePerTick = 1.0 / static_cast<double>(intervalInSeconds * tickRateInHz); //= (1.0 / intervalInSeconds) / tickRateInHz
+    DBG("new normedDistancePerTick: " + juce::String(normedDistancePerTick));
+}
+
+void PlayPathCourier::parentPathLengthChanged()
+{
+    if (associatedPlayPath->getPathLength() > 0)
+    {
+        normedRadius = radius / associatedPlayPath->getPathLength();
+    }
+    else
+    {
+        normedRadius = 0.0;
+    }
+    DBG("new normedRadius: " + juce::String(normedRadius));
 }
 
 void PlayPathCourier::startRunning()

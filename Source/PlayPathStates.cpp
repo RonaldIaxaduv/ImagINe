@@ -28,7 +28,8 @@ PlayPathState_NotInteractable::PlayPathState_NotInteractable(PlayPath& path) :
 
 bool PlayPathState_NotInteractable::hitTest(int x, int y)
 {
-    return false; //no interaction
+    //return false; //no interaction
+    return path.hitTest_Interactable(x, y); //this is fine (and beneficial to redrawing) as long as clicked and buttonStateChanged remain empty
 }
 
 void PlayPathState_NotInteractable::clicked(const juce::ModifierKeys& modifiers)
@@ -113,7 +114,7 @@ void PlayPathState_Playable::buttonStateChanged()
         break;
 
     default:
-        path.stopPlaying();
+        break;
     }
 }
 

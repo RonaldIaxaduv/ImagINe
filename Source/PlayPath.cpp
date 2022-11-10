@@ -40,6 +40,9 @@ PlayPath::PlayPath(int ID, const juce::Path& path, const juce::Rectangle<float>&
     //initialise images
     initialiseImages();
 
+    //initialise the first courier(s)
+    stopPlaying(); //this also prepares the couriers that will be played next in advance
+
     //rest
     setToggleable(true);
 }
@@ -170,9 +173,8 @@ void PlayPath::transitionToState(PlayPathStateIndex stateToTransitionTo)
         case PlayPathStateIndex::editable:
             nonInstantStateFound = true;
 
+            setClickingTogglesState(true); //also automatically sets isToggleable
             setToggleState(false, juce::NotificationType::dontSendNotification);
-            setToggleable(false);
-            setClickingTogglesState(false);
 
             DBG("PlayPath editable");
             break;
@@ -196,6 +198,16 @@ void PlayPath::transitionToState(PlayPathStateIndex stateToTransitionTo)
     currentState = states[static_cast<int>(currentStateIndex)];
 }
 
+void PlayPath::paintOverChildren(juce::Graphics& g)
+{
+    for (auto* itCourier = couriers.begin(); itCourier != couriers.end(); ++itCourier)
+    {
+        g.setColour(fillColour.contrasting());
+        g.fillEllipse((*itCourier)->getBounds().toFloat());
+        g.setColour(fillColour);
+        g.fillEllipse((*itCourier)->getBounds().reduced(1).toFloat());
+    }
+}
 void PlayPath::resized()
 {
     //recalculate hitbox
@@ -204,13 +216,14 @@ void PlayPath::resized()
     //adjust any courier(s)
     for (auto* itCourier = couriers.begin(); itCourier != couriers.end(); ++itCourier)
     {
+        //(*itCourier)->pathLengthUpdated(); //needed to adjust the couriers' traveling speed
+        (*itCourier)->parentPathLengthChanged(); //needed to adjust the ratio of the courier's radius to the window size
         (*itCourier)->updateBounds();
-
-        //WIP: pass the new path length to all couriers? (only necessary if the path length is updated by the transform)
     }
 
     juce::DrawableButton::resized();
 }
+
 bool PlayPath::hitTest(int x, int y)
 {
     return currentState->hitTest(x, y);
@@ -220,9 +233,9 @@ bool PlayPath::hitTest_Interactable(int x, int y)
     return underlyingPath.contains((float)x, (float)y);
 }
 
-juce::Point<float> PlayPath::getPointAlongPath(float distanceFromStart)
+juce::Point<float> PlayPath::getPointAlongPath(double normedDistanceFromStart)
 {
-    return underlyingPath.getPointAlongPath(distanceFromStart);
+    return underlyingPath.getPointAlongPath(normedDistanceFromStart * underlyingPath.getLength());
 }
 float PlayPath::getPathLength()
 {
@@ -261,6 +274,7 @@ void PlayPath::startPlaying()
     if (!isPlaying)
     {
         //play couriers (have been prepared in advance)
+        DBG("playing path " + juce::String(ID));
         for (auto* itCourier = couriers.begin(); itCourier != couriers.end(); ++itCourier)
         {
             (*itCourier)->startRunning();
@@ -271,6 +285,7 @@ void PlayPath::startPlaying()
 void PlayPath::stopPlaying()
 {
     //stop and delete all current couriers
+    DBG("stopping path " + juce::String(ID));
     for (auto* itCourier = couriers.begin(); itCourier != couriers.end(); ++itCourier)
     {
         (*itCourier)->stopRunning();
@@ -280,8 +295,9 @@ void PlayPath::stopPlaying()
 
     //prepare one new courier for the next time that this path is played
     PlayPathCourier* newCourier = new PlayPathCourier(this, courierIntervalSeconds);
-    addAndMakeVisible(newCourier);
+    addChildComponent(newCourier);
     couriers.add(newCourier);
+    //DBG("added a courier. bounds: " + newCourier->getBounds().toString() + " (within " + getLocalBounds().toString() + ")");
 
     isPlaying = false;
 }
@@ -318,22 +334,29 @@ void PlayPath::setCourierInterval_seconds(float newCourierIntervalSeconds)
 void PlayPath::addIntersectingRegion(SegmentedRegion* region)
 {
     juce::Range<float> distances(-1.0f, -1.0f);
+    float stepSize = juce::jmax(0.0001, juce::jmin(0.005, 0.5 * (PlayPathCourier::radius / underlyingPath.getLength())));
+    float pathLengthDenom = 1.0f / underlyingPath.getLength();
+    
+    //getPointAlongPath returns a point relative to this *PlayPath's* own bounds, but hitTest checks for collision relative to the *SegmentedRegion's* own bounds. so to apply a hitTest to the point, it needs to be shifted according to the difference of the PlayPath's and SegmentedRegion's position in their shared parent component.
+    int xDifference = region->getBoundsInParent().getX() - this->getBoundsInParent().getX(); //difference from the region's x position in its parent compared to this play path's x position in that parent
+    int yDifference = region->getBoundsInParent().getY() - this->getBoundsInParent().getY(); //^- same but for y position
 
     //check whether the starting point is already contained within the region. if so, begin from the first point not contained within the region. otherwise, begin from the starting point.
     juce::Point<int> startingPt = underlyingPath.getPointAlongPath(0.0f).toInt();
     float initialDistance = 0.0f;
-    if (region->hitTest(startingPt.getX(), startingPt.getY()))
+    if (region->hitTest_Interactable(startingPt.getX() - xDifference, startingPt.getY() - yDifference))
     {
         //starting point is already contained within the region
         //-> the end distance of that section will be found first -> remember for later and add that section last
         initialDistance = -1.0f;
 
-        for (float distanceFromStart = 0.0f; distanceFromStart < underlyingPath.getLength(); distanceFromStart += 0.25f)
+        for (float distanceFromStart = 0.0f; distanceFromStart < underlyingPath.getLength(); distanceFromStart += stepSize)
         {
             juce::Point<int> pt = underlyingPath.getPointAlongPath(distanceFromStart).toInt();
-            if (!region->hitTest_Interactable(pt.getX(), pt.getY())) //note the negation!
+            if (!region->hitTest_Interactable(pt.getX() - xDifference, pt.getY() - yDifference)) //note the negation!
             {
                 //end point found
+                DBG("initial end point: " + pt.toString() + " (" + juce::String(distanceFromStart) + " / " + juce::String(underlyingPath.getLength()) + ")");
                 initialDistance = distanceFromStart;
                 break;
             }
@@ -341,7 +364,8 @@ void PlayPath::addIntersectingRegion(SegmentedRegion* region)
         if (initialDistance < 0.0f)
         {
             //region encompasses the entire path
-            regionsByRange_range.add(juce::Range<float>(0.0f, underlyingPath.getLength()));
+            //regionsByRange_range.add(juce::Range<float>(0.0f, underlyingPath.getLength()));
+            regionsByRange_range.add(juce::Range<float>(0.0f, 1.0f));
             regionsByRange_region.add(region);
             return;
         }
@@ -349,28 +373,32 @@ void PlayPath::addIntersectingRegion(SegmentedRegion* region)
     }
     //else: initialDistance is 0.0f
 
-    for (float startDistance = initialDistance; startDistance < underlyingPath.getLength(); startDistance += 0.25f)
+    for (float startDistance = initialDistance; startDistance < underlyingPath.getLength(); startDistance += stepSize)
     {
         //check current position for collision
         juce::Point<int> pt = underlyingPath.getPointAlongPath(startDistance).toInt();
 
-        if (region->hitTest_Interactable(pt.getX(), pt.getY()))
+        if (region->hitTest_Interactable(pt.getX() - xDifference, pt.getY() - yDifference))
         {
             //collision! -> starting point found
-            distances.setStart(startDistance);
-            
+            //distances.setStart(startDistance);
+            distances.setStart(startDistance * pathLengthDenom);
+            DBG("start point: " + pt.toString() + " (" + juce::String(startDistance) + " / " + juce::String(underlyingPath.getLength()) + ")");
+
             //look for end point
             bool endPointFound = false;
-            for (float endDistance = startDistance + 0.25f; endDistance < underlyingPath.getLength(); endDistance += 0.25f)
+            for (float endDistance = startDistance + stepSize; endDistance < underlyingPath.getLength(); endDistance += stepSize)
             {
                 //check current position for collision
                 pt = underlyingPath.getPointAlongPath(endDistance).toInt();
 
-                if (region->hitTest_Interactable(pt.getX(), pt.getY()))
+                if (!region->hitTest_Interactable(pt.getX() - xDifference, pt.getY() - yDifference)) //note the negation!
                 {
-                    //collision! -> end point found
+                    //no more collision! -> end point found
                     endPointFound = true;
-                    distances.setEnd(startDistance);
+                    //distances.setEnd(endDistance);
+                    distances.setEnd(endDistance * pathLengthDenom);
+                    DBG("end point: " + pt.toString() + " (" + juce::String(endDistance) + " / " + juce::String(underlyingPath.getLength()) + ")");
 
                     //add to list
                     insertIntoRegionsLists(juce::Range<float>(distances), region);
@@ -384,7 +412,8 @@ void PlayPath::addIntersectingRegion(SegmentedRegion* region)
             if (!endPointFound)
             {
                 //found a starting point but no end point -> arrived at the last intersection -> loops around
-                distances.setEnd(initialDistance); //remembered from the beginning of this method
+                //distances.setEnd(initialDistance); //remembered from the beginning of this method
+                distances.setEnd(initialDistance * pathLengthDenom); //remembered from the beginning of this method
 
                 //add to list
                 insertIntoRegionsLists(juce::Range<float>(distances), region);
@@ -412,11 +441,16 @@ void PlayPath::recalculateAllIntersectingRegions()
         }
     }
 
-    DBG("range lists have been calculated.");
+    DBG(juce::String(regionsByRange_range.size() > 0 ? "range lists have been calculated:" : "range lists have been calculated: no collisions."));
+    for (int i = 0; i < regionsByRange_range.size(); ++i)
+    {
+        DBG(juce::String(regionsByRange_region[i]->getID()) + ": [" + juce::String(regionsByRange_range[i].getStart()) + ", " + juce::String(regionsByRange_range[i].getEnd()) + "]");
+    }
 }
 void PlayPath::insertIntoRegionsLists(juce::Range<float> regionRange, SegmentedRegion* region)
 {
-    if (regionRange.getStart() < 0.0f || regionRange.getEnd() < 0.0f || regionRange.getStart() > underlyingPath.getLength() || regionRange.getEnd() > underlyingPath.getLength())
+    //if (regionRange.getStart() < 0.0f || regionRange.getEnd() < 0.0f || regionRange.getStart() > underlyingPath.getLength() || regionRange.getEnd() > underlyingPath.getLength())
+    if (regionRange.getStart() < 0.0f || regionRange.getEnd() < 0.0f || regionRange.getStart() > 1.0f || regionRange.getEnd() > 1.0f)
     {
         //invalid range
         return;
@@ -485,6 +519,7 @@ void PlayPath::evaluateCourierPosition(juce::Range<float> previousPosition, juce
                     {
                         //-> no longer within the region -> request to stop playing
                         (*itRegion)->signalCourierLeft();
+                        DBG("courier left region " + juce::String((*itRegion)->getID()) + ".");
                     }
                     //else: courier is still within the region -> no change
                 }
@@ -495,6 +530,7 @@ void PlayPath::evaluateCourierPosition(juce::Range<float> previousPosition, juce
                     {
                         //-> courier has now entered the region -> request to start playing
                         (*itRegion)->signalCourierEntered();
+                        DBG("courier entered region " + juce::String((*itRegion)->getID()) + ".");
                     }
                     //else: courier is currently not within the region -> either skipped a really small strip or the range was outside the given distances -> no change
                 }
@@ -516,6 +552,7 @@ void PlayPath::evaluateCourierPosition(juce::Range<float> previousPosition, juce
                     {
                         //-> courier is no longer within the region now -> request to stop playing
                         (*itRegion)->signalCourierLeft();
+                        DBG("courier left region " + juce::String((*itRegion)->getID()) + ".");
                     }
                     //else: courier is still within the region -> no change
                 }
@@ -527,6 +564,7 @@ void PlayPath::evaluateCourierPosition(juce::Range<float> previousPosition, juce
                     {
                         //-> courier has now entered the region -> request to start playing
                         (*itRegion)->signalCourierEntered();
+                        DBG("courier entered region " + juce::String((*itRegion)->getID()) + ".");
                     }
                     //else: courier is currently not within the region -> either skipped a really small strip or the range was outside the given distances -> no change
                 }
@@ -579,6 +617,7 @@ void PlayPath::evaluateCourierPosition(juce::Range<float> previousPosition, juce
                     {
                         //-> no longer within the region -> request to stop playing
                         (*itRegion)->signalCourierLeft();
+                        DBG("courier left region " + juce::String((*itRegion)->getID()) + ".");
                     }
                     //else: courier is still within the region -> no change
                 }
@@ -589,6 +628,7 @@ void PlayPath::evaluateCourierPosition(juce::Range<float> previousPosition, juce
                     {
                         //-> courier has now entered the region -> request to start playing
                         (*itRegion)->signalCourierEntered();
+                        DBG("courier entered region " + juce::String((*itRegion)->getID()) + ".");
                     }
                     //else: courier is currently not within the region -> either skipped a really small strip or the range was outside the given distances -> no change
                 }
@@ -610,6 +650,7 @@ void PlayPath::evaluateCourierPosition(juce::Range<float> previousPosition, juce
                     {
                         //-> courier is no longer within the range -> request to stop playing
                         (*itRegion)->signalCourierLeft();
+                        DBG("courier left region " + juce::String((*itRegion)->getID()) + ".");
                     }
                     //else: courier is still within the range -> no change
                 }
@@ -621,6 +662,7 @@ void PlayPath::evaluateCourierPosition(juce::Range<float> previousPosition, juce
                     {
                         //-> courier has now entered the region -> request to start playing
                         (*itRegion)->signalCourierEntered();
+                        DBG("courier entered region " + juce::String((*itRegion)->getID()) + ".");
                     }
                     //else: courier is currently not within the region -> either skipped a really small strip or the range was outside the given distances -> no change
                 }
@@ -671,7 +713,7 @@ bool PlayPath::deserialise(juce::XmlElement* xmlPlayPath)
     underlyingPath.clear();
     underlyingPath.restoreFromString(xmlPlayPath->getStringAttribute("underlyingPath", ""));
     fillColour = juce::Colour::fromString(xmlPlayPath->getStringAttribute("fillColour", juce::Colours::black.toString()));
-    courierIntervalSeconds = xmlPlayPath->getDoubleAttribute("courierIntervalSeconds");
+    setCourierInterval_seconds(xmlPlayPath->getDoubleAttribute("courierIntervalSeconds", 10.0f));
 
     juce::XmlElement* xmlRelativeBounds = xmlPlayPath->getChildByName("relativeBounds");
     if (xmlRelativeBounds != nullptr)
@@ -681,6 +723,13 @@ bool PlayPath::deserialise(juce::XmlElement* xmlPlayPath)
             xmlRelativeBounds->getDoubleAttribute("width", 0.0),
             xmlRelativeBounds->getDoubleAttribute("height", 0.0)
         );
+
+        juce::Rectangle<float> parentBounds = getParentComponent()->getBounds().toFloat();
+        juce::Rectangle<float> newBounds(relativeBounds.getX() * parentBounds.getWidth(),
+                                         relativeBounds.getY() * parentBounds.getHeight(),
+                                         relativeBounds.getWidth() * parentBounds.getWidth(),
+                                         relativeBounds.getHeight() * parentBounds.getHeight());
+        setBounds(newBounds.toNearestInt());
     }
     else
     {
@@ -698,6 +747,8 @@ bool PlayPath::deserialise(juce::XmlElement* xmlPlayPath)
     {
         int size = xmlRangeLists->getIntAttribute("size");
 
+        DBG(juce::String(size > 0 ? "deserialising ranges:" : "no ranges contained."));
+
         for (int i = 0; i < size; ++i)
         {
             juce::XmlElement* xmlItem = xmlRangeLists->getChildByName("item_" + juce::String(i));
@@ -705,8 +756,9 @@ bool PlayPath::deserialise(juce::XmlElement* xmlPlayPath)
             {
                 int regionID = xmlItem->getIntAttribute("regionID", -1);
                 juce::Range<float> range(xmlItem->getDoubleAttribute("startValue", -1.0), xmlItem->getDoubleAttribute("endValue", -1.0));
-                
-                if (regionID >= 0 && range.getStart() >= 0.0 && range.getEnd() >= 0.0)
+                DBG(juce::String(regionID) + ": [" + juce::String(range.getStart()) + ", " + juce::String(range.getEnd()) + "]");
+
+                if (regionID >= 0 && range.getStart() >= 0.0f && range.getEnd() >= 0.0f)
                 {
                     //valid item. -> get the pointer to the region from the region list in SegmentableImage
                     for (auto itRegion = availableRegions->begin(); itRegion != availableRegions->end(); ++itRegion)
@@ -714,6 +766,7 @@ bool PlayPath::deserialise(juce::XmlElement* xmlPlayPath)
                         if ((*itRegion)->getID() == regionID)
                         {
                             //corresponding region found -> add
+                            DBG("confirmed.");
                             regionsByRange_region.add(*itRegion);
                             regionsByRange_range.add(range);
                             break;
@@ -733,6 +786,13 @@ bool PlayPath::deserialise(juce::XmlElement* xmlPlayPath)
                 deserialisationSuccessful = false;
                 break;
             }
+        }
+        DBG(juce::String(size > 0 ? "ranges deserialised." : ""));
+
+        if (size == 0 && availableRegions->size() > 0)
+        {
+            //ranges might be missing -> double check
+            recalculateAllIntersectingRegions();
         }
 
         if (!deserialisationSuccessful) //note the negation!
@@ -755,4 +815,12 @@ bool PlayPath::deserialise(juce::XmlElement* xmlPlayPath)
 
     DBG(juce::String(deserialisationSuccessful ? "PlayPath has been deserialised." : "PlayPath could not be deserialised."));
     return deserialisationSuccessful;
+}
+
+
+
+
+void PlayPath::buttonStateChanged()
+{
+    currentState->buttonStateChanged();
 }

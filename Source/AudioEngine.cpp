@@ -576,6 +576,8 @@ void AudioEngine::prepareToPlay(int /*samplesPerBlockExpected*/, double sampleRa
     {
         (*it)->prepare(specs);
     }
+
+    DBG("AudioEngine prepared to play. sample rate: " + juce::String(sampleRate));
 }
 void AudioEngine::suspendProcessing(bool shouldBeSuspended)
 {

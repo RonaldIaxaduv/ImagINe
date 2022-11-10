@@ -104,6 +104,7 @@ private:
     void repaintAllRegions();
 
     void addPlayPath(PlayPath* newPlayPath);
+    void repaintAllPlayPaths();
 
     void clearPath();
 

@@ -28,11 +28,13 @@ public:
 
     void transitionToState(PlayPathStateIndex stateToTransitionTo);
 
+    void paintOverChildren(juce::Graphics& g) override;
     void resized() override;
+
     bool hitTest(int x, int y) override;
     bool hitTest_Interactable(int x, int y);
 
-    juce::Point<float> getPointAlongPath(float distanceFromStart);
+    juce::Point<float> getPointAlongPath(double normedDistanceFromStart);
     float getPathLength();
 
     void clicked(const juce::ModifierKeys& modifiers) override;
@@ -64,6 +66,9 @@ public:
     bool deserialise(juce::XmlElement* xmlPlayPath);
 
     juce::Rectangle<float> relativeBounds;
+
+protected:
+    void buttonStateChanged() override;
 
 private:
     PlayPathState* states[static_cast<int>(PlayPathStateIndex::StateIndexCount)];

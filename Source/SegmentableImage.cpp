@@ -132,6 +132,17 @@ void SegmentableImage::resized()
         r->setBounds(newBounds.toNearestInt());
     }
 
+    //resize play paths
+    for (PlayPath* p : playPaths)
+    {
+        auto relativeBounds = p->relativeBounds;
+        juce::Rectangle<float> newBounds(relativeBounds.getX() * curBounds.getWidth(),
+            relativeBounds.getY() * curBounds.getHeight(),
+            relativeBounds.getWidth() * curBounds.getWidth(),
+            relativeBounds.getHeight() * curBounds.getHeight());
+        p->setBounds(newBounds.toNearestInt());
+    }
+
     //if (static_cast<int>(currentStateIndex) < static_cast<int>(SegmentableImageStateIndex::editingRegions))
     //{
     //    //repaintAllRegions();
@@ -502,9 +513,20 @@ void SegmentableImage::tryCompletePath_Region()
     DBG("adding new region...");
     SegmentedRegion* newRegion = new SegmentedRegion(currentPath, relativeBounds, fillColour, audioEngine);
     newRegion->setBounds(getAbsolutePathBounds().toNearestInt());
+
+    //calculate intersections with play paths
+    for (auto itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
+    {
+        if (newRegion->getBounds().intersects((*itPath)->getBounds()))
+        {
+            (*itPath)->addIntersectingRegion(newRegion);
+        }
+    }
+
     addRegion(newRegion);
     //newRegion->triggerButtonStateChanged(); //not necessary
     newRegion->triggerDrawableButtonStateChanged();
+
     resetPath();
     transitionToState(SegmentableImageStateIndex::drawingRegion);
     DBG("new region has been added successfully.");
@@ -549,9 +571,20 @@ void SegmentableImage::tryCompletePath_PlayPath()
     DBG("adding new play path...");
     PlayPath* newPlayPath = new PlayPath(getNextPlayPathID(), currentPath, relativeBounds, fillColour);
     newPlayPath->setBounds(getAbsolutePathBounds().toNearestInt());
+    
+    //calculate intersections with regions
+    for (auto itRegion = regions.begin(); itRegion != regions.end(); ++itRegion)
+    {
+        if ((*itRegion)->getBounds().intersects(newPlayPath->getBounds()))
+        {
+            newPlayPath->addIntersectingRegion(*itRegion);
+        }
+    }
+
     addPlayPath(newPlayPath);
     //newPlayPath->triggerButtonStateChanged(); //not necessary
     newPlayPath->triggerDrawableButtonStateChanged();
+
     resetPath();
     transitionToState(SegmentableImageStateIndex::drawingPlayPath);
     DBG("new play path has been added successfully.");
@@ -790,6 +823,11 @@ bool SegmentableImage::deserialise(juce::XmlElement* xmlParent, juce::Array<juce
             //delete imageData; //apparently it's necessary to delete a BitmapData object before it updates the pixel data in the image
             setImage(reconstructedImage);
 
+            if (getParentComponent() != nullptr)
+            {
+                getParentComponent()->resized(); //adjust this components shape to that of the window (depends on the image's aspect ratio, which most likely changed). also updates all regions' and play paths' sizes to fit this component
+            }
+
             //deserialise regions
             clearRegions();
             int size = xmlSegmentableImage->getIntAttribute("regions_size", 0);
@@ -815,6 +853,8 @@ bool SegmentableImage::deserialise(juce::XmlElement* xmlParent, juce::Array<juce
 
             if (deserialisationSuccessful)
             {
+                resized(); //adapt regions to the segmentable image's bounds
+
                 //deserialise play paths
                 clearPlayPaths();
                 size = xmlSegmentableImage->getIntAttribute("playPaths_size", 0);
@@ -849,11 +889,8 @@ bool SegmentableImage::deserialise(juce::XmlElement* xmlParent, juce::Array<juce
                 }
             }
 
-            if (getParentComponent() != nullptr)
-            {
-                getParentComponent()->resized(); //adjust this components shape to that of the window (depends on the image's aspect ratio, which most likely changed). also updates all regions' and play paths' sizes to fit this component
-            }
-            juce::Timer::callAfterDelay(100, [this] { repaintAllRegions(); }); //WIP: this is kinda messy, but at least it works. if called without a delay, the regions won't correctly repaint themselves, causing their lfoLines to be in the wrong position until one hovers over them or clicks them
+            resized(); //adjust play paths' bounds to the segmentable image's bounds
+            juce::Timer::callAfterDelay(100, [this] { repaintAllRegions(); repaintAllPlayPaths(); }); //WIP: this is kinda messy, but at least it works. if called without a delay, the regions won't correctly repaint themselves, causing their lfoLines to be in the wrong position until one hovers over them or clicks them
         }
         else
         {
@@ -1043,6 +1080,14 @@ void SegmentableImage::addPlayPath(PlayPath* newPlayPath)
     }
 
     addAndMakeVisible(newPlayPath);
+}
+void SegmentableImage::repaintAllPlayPaths()
+{
+    for (auto* itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
+    {
+        (*itPath)->triggerDrawableButtonStateChanged(); //this makes the button redraw its background
+        (*itPath)->repaint();
+    }
 }
 
 void SegmentableImage::clearPath()

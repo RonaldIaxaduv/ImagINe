@@ -447,6 +447,8 @@ void SegmentedRegion::setBuffer(juce::AudioSampleBuffer newBuffer, juce::String 
             (*itVoice)->setOsc(emptyBuffer, 0);
         }
     }
+
+    DBG("new buffer has been set. length: " + juce::String(origSampleRate > 0.0 ? static_cast<double>(buffer.getNumSamples()) / origSampleRate : 0.0) + " seconds.");
 }
 
 void SegmentedRegion::renderLfoWaveform()
@@ -549,6 +551,8 @@ void SegmentedRegion::startPlaying()
     {
         DBG("*plays music*");
         isPlaying = true;
+        
+        DBG("voice: " + juce::String(currentVoiceIndex + 1) + " / " + juce::String(associatedVoices.size()));
 
         associatedVoices[currentVoiceIndex]->startNote(0, 1.0f, audioEngine->getSynth()->getSound(0).get(), 64); //cycle through all voices (incremented after this voice stops)
         //audioEngine->getSynth()->noteOn(1, 64, 1.0f); //might be worth a thought for later because of polyphony, but since voices will then be chosen automatically, adjustments to the voices class would have to be made

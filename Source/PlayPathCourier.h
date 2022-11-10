@@ -29,19 +29,22 @@ public:
     float getInterval_seconds();
     void setInterval_seconds(float newIntervalInSeconds);
 
+    void parentPathLengthChanged();
+
     void startRunning();
     void stopRunning();
 
+    static const float radius;
+
 private:
     PlayPath* associatedPlayPath = nullptr;
-    float currentDistanceFromStart = 0.0f;
-    float pathLength = 0.0f;
+    double currentNormedDistanceFromStart = 0.0;
 
     float intervalInSeconds = 0.0f;
     float tickRateInHz = 20.0f;
-    float distancePerTick = 0.0f;
+    double normedDistancePerTick = 0.0;
 
-    static const float radius;
+    double normedRadius = 0.0;
 
     bool isRunning = false;
 
