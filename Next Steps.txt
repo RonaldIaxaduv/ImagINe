@@ -334,8 +334,8 @@
 		- playing the path: clicking the regions doesn't do anything. instead, every playpath (automatically) generates a little point (called a "courier") that wanders alongside its associdated path. when the courier enters a region, it's treated like a click during the "Play Regions" mode
 			# doesn't toggle yet
 				-> forgot to implement buttonStateChanged(), duh...
-			- doesn't spawn a courier yet
-				- courier seems to exist, it just isn't displayed. maybe the position is not scaled?
+			- doesn't display couriers yet
+				- courier seems to spawn and gets added as a child, it just isn't displayed. maybe the position is not scaled?
 					-> i actually don't know why this happens (it might have smth to do with the courier being partly outside its parent's bounds at the beginning, not sure though) and i can't easily fix it o.ô just drawing the couriers in the playpath now as a bandaid fix...
 			# doesn't play regions yet
 				# check whether the ranges are deserialised correctly
@@ -345,19 +345,30 @@
 				# ranges aren't calculated correctly...
 					-> here's the problem: getPointAlongPath returns a point relative to the *path's* bounds. but when doing a hitTest, it checks for collisions relative to the *region's* bounds.
 					#> fix: shift origin
- >>			!- regions don't play anymore arghhhh
-				?- possible cause 1: maybe a deserialisation error (check buffer length in seconds)?
+			!# regions don't play anymore arghhhh
+				?/ possible cause 1: maybe a deserialisation error (check buffer length in seconds)?
 				?/ possible cause 2: maybe smth with the play/stop methods?
-				?- possible cause 3: maybe smth with the states of the plugin editor?
+				?/ possible cause 3: maybe smth with the states of the plugin editor?
 					- maybe just make regions playable, might be better anyway
-				!-> apparently, the voices are still unprepared o.ô
+				!#> apparently, the voices are still unprepared o.ô
 					- check whether the audio engine is also still unprepared. if so, prepare it upon deserialisation
-						-> it does get prepared. gotta check though with which specs.
+						-> it does get prepared. with the correct specs, too.
+							-> it does get fixed when changing the sample rate / block size manually in the options though o.ô
+								#> aha! apparently existing voices didn't get automatically prepared by the synth when the sample rate changed. fixed now!
+						?/> maybe the prep fails because the deserialisation takes so long?
 					- does it also happen after adding new regions or changing audio files?
 						-> yes.
-					- it gets fixed when changing the sample rate / block size manually in the options! so i'm guessing the audio engine isn't getting the right specs?
 			!- the path isn't quite played accurately yet, seems like the hitbox of the courier is always a centimeter ahead of the drawn point (it is at least consistent though)
 				- check if this also happens with newly drawn paths just to make sure
+				?- maybe there are rounding errors when calculating the ranges of the regions, bc the denominator is float instead of double?
+				#> apparently the courier's location starts off at ~0.9 o.ô
+					!#> argh shit... juce::Range objects enforce that their start is smaller than their end, so setting start>end will break things =_=
+						# adjust PlayPathCourier::timerCallback
+						# adjust PlayPath::addIntersectingRegion
+						# adjust PlayPath::evaluateCourierPosition
+						-> okay that still didn't fix the offset though, damn... but it had to be fixed anyway, so w/e
+			- if the path starts within a region, all such regions must be played rightaway upon playing the playpath
+			- regions don't stop playing if the play path is stopped while the courier is in a region
 		- (de)serialisation
 			# remember to increment the serialisation version number!
 			!/ deserialisation doesn't work yet (position isn't restored correctly i don't think? are the relative bounds not used perhaps?)
@@ -416,6 +427,7 @@
 - demo videos (one in German, one in English - both quick rundowns, nothing too in-depth)
 - discord server
 
+- maybe make regions playable in play path playing mode
 - add save/load program buttons onto the editor (not sure whether all editors inherently provide a safe system - the fact that many VSTs provide load/save buttons makes me think that they don't... also, it would be difficult to provide sample programs otherwise, so... yea, better put buttons on there)
 - make it so that a region's outline colour is actually coloured (not just black/white) when it's playing -> easier to differentiate from non-playing regions
 	-> use inverted fill colour

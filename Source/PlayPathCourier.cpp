@@ -49,7 +49,7 @@ void PlayPathCourier::resized()
 
 void PlayPathCourier::timerCallback()
 {
-    float previousNormedDistanceFromStart = currentNormedDistanceFromStart;
+    double previousNormedDistanceFromStart = currentNormedDistanceFromStart;
     currentNormedDistanceFromStart = std::fmod(currentNormedDistanceFromStart + normedDistancePerTick, 1.0);
 
     //check for collisions with any regions
@@ -59,24 +59,33 @@ void PlayPathCourier::timerCallback()
     juce::Range<float> currentPosition (currentNormedDistanceFromStart - normedRadius, currentNormedDistanceFromStart + normedRadius);
 
     //wrap values where necessary
+    //(IMPORTANT NOTE: juce::Range enforces that start < end! if values are set so that start>end, the other value will be *moved* to the other value (-> new range length = 0), causing things to break in the context of this use case here!)
     if (startingPosition.getStart() < 0.0f)
     {
+        //shift end first, otherwise start would be larger than end, causing juce::Range to break stuff
+        startingPosition.setEnd(startingPosition.getEnd() + 1.0);
+
+        //shift start
         startingPosition.setStart(startingPosition.getStart() + 1.0);
     }
-    if (startingPosition.getEnd() >= 1.0)
-    {
-        startingPosition.setEnd(startingPosition.getEnd() - 1.0);
-    }
+    //if (startingPosition.getEnd() >= 1.0)
+    //{
+    //    startingPosition.setEnd(startingPosition.getEnd() - 1.0);
+    //}
     if (currentPosition.getStart() < 0.0f)
     {
+        //shift end first, otherwise start would be larger than end, causing juce::Range to break stuff
+        currentPosition.setEnd(currentPosition.getEnd() + 1.0);
+
+        //shift start
         currentPosition.setStart(currentPosition.getStart() + 1.0);
     }
-    if (currentPosition.getEnd() >= 1.0)
-    {
-        currentPosition.setEnd(currentPosition.getEnd() - 1.0);
-    }
+    //if (currentPosition.getEnd() >= 1.0)
+    //{
+    //    currentPosition.setEnd(currentPosition.getEnd() - 1.0);
+    //}
 
-    //DBG("[" + juce::String(currentPosition.getStart()) + ", " + juce::String(currentPosition.getEnd()) + "]");
+    DBG("[" + juce::String(currentPosition.getStart()) + ", " + juce::String(currentPosition.getEnd()) + "]");
     associatedPlayPath->evaluateCourierPosition(startingPosition, currentPosition); //automatically handles signaling the regions
 
     //update position on screen
@@ -104,7 +113,7 @@ void PlayPathCourier::setInterval_seconds(float newIntervalInSeconds)
 {
     intervalInSeconds = newIntervalInSeconds;
     normedDistancePerTick = 1.0 / static_cast<double>(intervalInSeconds * tickRateInHz); //= (1.0 / intervalInSeconds) / tickRateInHz
-    DBG("new normedDistancePerTick: " + juce::String(normedDistancePerTick));
+    //DBG("new normedDistancePerTick: " + juce::String(normedDistancePerTick));
 }
 
 void PlayPathCourier::parentPathLengthChanged()
@@ -117,7 +126,7 @@ void PlayPathCourier::parentPathLengthChanged()
     {
         normedRadius = 0.0;
     }
-    DBG("new normedRadius: " + juce::String(normedRadius));
+    //DBG("new normedRadius: " + juce::String(normedRadius));
 }
 
 void PlayPathCourier::startRunning()
@@ -127,4 +136,5 @@ void PlayPathCourier::startRunning()
 void PlayPathCourier::stopRunning()
 {
     stopTimer();
+    currentNormedDistanceFromStart = 0.0;
 }

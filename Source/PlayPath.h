@@ -100,6 +100,16 @@ private:
     juce::Array<juce::Range<float>> regionsByRange_range;
     juce::Array<SegmentedRegion*> regionsByRange_region;
     void insertIntoRegionsLists(juce::Range<float> regionRange, SegmentedRegion* region);
+    
+    enum class CollisionType : int
+    {
+        noCollision = 0,
+        entered,
+        within,
+        exited
+    };
+    CollisionType getCollisionWithRegion(const juce::Range<float>& regionBounds, const juce::Range<float>& courierPreviousBounds, const juce::Range<float>& courierCurrentBounds);
+    bool intersectsWithWraparound(const juce::Range<float>& r1, const juce::Range<float>& r2);
 
     juce::Component::SafePointer<PlayPathEditorWindow> pathEditorWindow;
 

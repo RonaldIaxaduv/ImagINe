@@ -694,7 +694,7 @@ void SegmentableImage::clearPlayPaths()
         removeChildComponent(*itPath);
     }
     playPaths.clear(true);
-    playPathIdCounter = 0;
+    playPathIdCounter = -1;
 
     //remove any lingering play path couriers
     for (auto itRegion = regions.begin(); itRegion != regions.end(); ++itRegion)

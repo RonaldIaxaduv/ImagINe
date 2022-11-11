@@ -568,9 +568,13 @@ juce::Array<ModulatableParameter<double>*> AudioEngine::getParameterOfRegion_Lfo
 
 void AudioEngine::prepareToPlay(int /*samplesPerBlockExpected*/, double sampleRate)
 {
-    synth.setCurrentPlaybackSampleRate(sampleRate); // [3]
-
     specs.sampleRate = sampleRate;
+
+    synth.setCurrentPlaybackSampleRate(sampleRate); // [3]
+    for (int i = 0; i < synth.getNumVoices(); ++i)
+    {
+        static_cast<Voice*>(synth.getVoice(i))->prepare(specs);
+    }
 
     for (auto it = lfos.begin(); it != lfos.end(); ++it)
     {
