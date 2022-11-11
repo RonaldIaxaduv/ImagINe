@@ -85,8 +85,8 @@ void PlayPathCourier::timerCallback()
     //    currentPosition.setEnd(currentPosition.getEnd() - 1.0);
     //}
 
-    DBG("[" + juce::String(currentPosition.getStart()) + ", " + juce::String(currentPosition.getEnd()) + "]");
-    associatedPlayPath->evaluateCourierPosition(startingPosition, currentPosition); //automatically handles signaling the regions
+    //DBG("[" + juce::String(currentPosition.getStart()) + ", " + juce::String(currentPosition.getEnd()) + "]");
+    associatedPlayPath->evaluateCourierPosition(this, startingPosition, currentPosition); //automatically handles signaling the regions
 
     //update position on screen
     updateBounds();
@@ -116,6 +116,11 @@ void PlayPathCourier::setInterval_seconds(float newIntervalInSeconds)
     //DBG("new normedDistancePerTick: " + juce::String(normedDistancePerTick));
 }
 
+juce::Range<float> PlayPathCourier::getCurrentRange()
+{
+    return juce::Range<float>(currentNormedDistanceFromStart - normedRadius, currentNormedDistanceFromStart + normedRadius);
+}
+
 void PlayPathCourier::parentPathLengthChanged()
 {
     if (associatedPlayPath->getPathLength() > 0)
@@ -137,4 +142,33 @@ void PlayPathCourier::stopRunning()
 {
     stopTimer();
     currentNormedDistanceFromStart = 0.0;
+}
+
+void PlayPathCourier::signalRegionEntered(int regionID)
+{
+    currentlyIntersectedRegions.add(regionID);
+}
+void PlayPathCourier::signalRegionExited(int regionID)
+{
+    int i = 0;
+    for (auto itID = currentlyIntersectedRegions.begin(); itID != currentlyIntersectedRegions.end(); ++itID)
+    {
+        if (*itID == regionID)
+        {
+            //found the region to remove
+            currentlyIntersectedRegions.remove(i);
+            break; //should only be contained once
+        }
+    }
+}
+juce::Array<int> PlayPathCourier::getCurrentlyIntersectedRegions()
+{
+    juce::Array<int> output;
+    output.addArray(currentlyIntersectedRegions);
+
+    return output;
+}
+void PlayPathCourier::resetCurrentlyIntersectedRegions()
+{
+    currentlyIntersectedRegions.clear();
 }

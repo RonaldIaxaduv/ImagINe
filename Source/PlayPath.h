@@ -23,10 +23,10 @@ class PlayPathEditorWindow;
 class PlayPath final : public juce::DrawableButton
 {
 public:
-    PlayPath(int ID, const juce::Path& path, const juce::Rectangle<float>& relativeBounds, juce::Colour fillColour);
+    PlayPath(int ID, const juce::Path& path, const juce::Rectangle<float>& relativeBounds, const juce::Rectangle<int>& parentBounds, juce::Colour fillColour);
     ~PlayPath();
 
-    void transitionToState(PlayPathStateIndex stateToTransitionTo);
+    void transitionToState(PlayPathStateIndex stateToTransitionTo, bool keepPlayingAndEditing = false);
 
     void paintOverChildren(juce::Graphics& g) override;
     void resized() override;
@@ -60,7 +60,7 @@ public:
     void addIntersectingRegion(SegmentedRegion* region);
     void recalculateAllIntersectingRegions();
     void removeIntersectingRegion(int regionID);
-    void evaluateCourierPosition(juce::Range<float> previousPosition, juce::Range<float> newPosition);
+    void evaluateCourierPosition(PlayPathCourier* courier, juce::Range<float> previousPosition, juce::Range<float> newPosition);
 
     bool serialise(juce::XmlElement* xmlPlayPath);
     bool deserialise(juce::XmlElement* xmlPlayPath);

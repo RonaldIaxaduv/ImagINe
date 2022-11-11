@@ -320,18 +320,19 @@
 		-> omfg this was such a pain in the ass to fix... but it finally works now! it even keeps playing while the GUI is closed!
 ?# does swapping audio files work without issues yet?
 	-> seems like it, even when the region and/or other regions are playing and modulating each other while the file is swapped
-- things that can be made into static consts:
-	- initialStateIndex in every class with states
-	- maybe the implementedState variable in the different state classes?
->> !- implement play path(s)
+!# implement play path(s)
 	# new states in the ProcessorEditor: "Draw Playpaths", "Edit Playpaths", "Run Playpaths"
 		#> rename "Drawing" to "Draw Regions", "Editing" to "Edit Regions" and "Playing" to "Play Regions"
-	!- simplest implementation:
-		- draw a path (like when drawing a region), except maybe that it doesn't necessarily need to be closed(?)
-			!- for hitTest: consider using 2 paths - one for the actual lines and one that's slightly smaller and inset according to the outlineThickness. then, return true if the outer path contains the given point, but the inner path doesn't
-		- in the path's editor, set its walk speed (name subject to change) and maybe the path's colour
+		# cover more interactions between states, e.g. not closing region editors when switching to playing paths
+	!# simplest implementation:
+		# draw a path (like when drawing a region), except maybe that it doesn't necessarily need to be closed(?)
+			/ for hitTest: consider using 2 paths - one for the actual lines and one that's slightly smaller and inset according to the outlineThickness. then, return true if the outer path contains the given point, but the inner path doesn't
+				-> hmm this has some wonky behaviour actually... and it doesn't seem to work with paths that cross their own outlines, so that's a no-go
+			# hitTest idea 2: try using the method that calculates the current distance to a path
+				-> works like a charm! yay!
+		# in the path's editor, set its walk speed (name subject to change) and maybe the path's colour
 			# make the editor wider than tall
-		- playing the path: clicking the regions doesn't do anything. instead, every playpath (automatically) generates a little point (called a "courier") that wanders alongside its associdated path. when the courier enters a region, it's treated like a click during the "Play Regions" mode
+		(#) playing the path: clicking the regions doesn't do anything. instead, every playpath (automatically) generates a little point (called a "courier") that wanders alongside its associdated path. when the courier enters a region, it's treated like a click during the "Play Regions" mode
 			# doesn't toggle yet
 				-> forgot to implement buttonStateChanged(), duh...
 			- doesn't display couriers yet
@@ -358,18 +359,24 @@
 						?/> maybe the prep fails because the deserialisation takes so long?
 					- does it also happen after adding new regions or changing audio files?
 						-> yes.
-			!- the path isn't quite played accurately yet, seems like the hitbox of the courier is always a centimeter ahead of the drawn point (it is at least consistent though)
-				- check if this also happens with newly drawn paths just to make sure
-				?- maybe there are rounding errors when calculating the ranges of the regions, bc the denominator is float instead of double?
+			!# the path isn't quite played accurately yet, seems like the hitbox of the courier is always a centimeter ahead of the drawn point (it is at least consistent though)
+				# check if this also happens with newly drawn paths just to make sure
+					#> it does *not*!
+						/ try adjusting the path's size right after creating it
+							-> didn't change anything
+						#> setting the SegmentableImage to its image's aspect ratio before deserialising the play paths fixed it
+				?/ maybe there are rounding errors when calculating the ranges of the regions, bc the denominator is float instead of double?
+					# draw the region edges in the paint method to check this!
+						-> they are drawn correctly for new paths, but incorrectly for restored ones.
 				#> apparently the courier's location starts off at ~0.9 o.ô
 					!#> argh shit... juce::Range objects enforce that their start is smaller than their end, so setting start>end will break things =_=
 						# adjust PlayPathCourier::timerCallback
 						# adjust PlayPath::addIntersectingRegion
 						# adjust PlayPath::evaluateCourierPosition
 						-> okay that still didn't fix the offset though, damn... but it had to be fixed anyway, so w/e
-			- if the path starts within a region, all such regions must be played rightaway upon playing the playpath
-			- regions don't stop playing if the play path is stopped while the courier is in a region
-		- (de)serialisation
+			# if the path starts within a region, all such regions must be played rightaway upon playing the playpath
+			# regions don't stop playing if the play path is stopped while the courier is in a region
+		# (de)serialisation
 			# remember to increment the serialisation version number!
 			!/ deserialisation doesn't work yet (position isn't restored correctly i don't think? are the relative bounds not used perhaps?)
 				#> ah, no, just forgot to implement the resizing, whoops
@@ -377,61 +384,23 @@
 			/ the couriers' speed isn't deserialised correctly, it always goes back to 10.0 even after saving it with a different value
 				# also check the editor for possible mistakes!
 					#> aha, yeah seems like the editor was the problem, it didn't copy the parameters upon its initialisation
-	- additional features:
-		- custom path colour
-		!- make the region playing timing more accurate
-			- instead of just calculating during which checks the courier is within a region and when it isn't, check in advance whether it's going to enter/exit regions during its next tick and if so, calculate the time until that entering/exiting would happen from the courier's delta distance. then, call juce::Timer::callAfterDelay() with the corresponding time and event.
-			-> allows to play regions for less time than the update rate (so ultra short blips are possible) and makes the entering/exiting timing more accurate (it will feel quantised to the regions' borders instead of being quantised to the courier's update rate)
-		!- allow for branching, i.e. points where the path splits in two
-			!- option 1: when the runner gets there, it splits in two as well
-			- option 2: when the runner gets there, it randomly(?) picks one of the two paths
-		!- allow for runner lifetime
-			- twist: remaining lifetime of a runner determines its remaining size
-				-> the longer a runner travels, the smaller it becomes
-				- option A: the decay time should be path-/runner-independent, make it a constant
-					-> starting size: depends on path length + runner speed! the longer the path and the slower the runner, the bigger is its starting size
-					-> feels very individual, but could grow out of control or feel disappointing(?)
-				- option B: the starting size of a runner should be constant for a path
-					-> decay time: depends on path length + runner speed
-					-> probably more controllable, but less impressive(?)
-				- make it so that clicking a path/runner also increases its lifetime
-			- when beginning to play, a runner appears on every path with its starting life.
-			?- in addition to the lifetime: maybe a maximum number of total interactions (messages to be delivered) regardless of lifetime?
-		- things that a playpath could do when it interacts with a region:
-			(-) randomise some of its parameters (maybe even ones like the position of the focus point etc.)
-			(-) set its focus point to its current position
-				-> problems: very costly + doesn't work when more than one runner is inside a region
-			-> it would be best if it was something that
-				1. depends on the runner's position inside a region
-				2. works for cases where there is more than one runner inside a region
-				3. depends on the coverage of the region by the runner(s)
-			?-> maybe just overwrite the region's volume? (more coverage = louder)
-			- maybe gradually increase a runner's remaining lifetime
-		- things that a playpath could do when it interacts with another playpath:
-			(-) set that playpath's runner to the location where the interaction was
-			- start playing the other path, starting from the point of the interaction
-			- reverse that path's direction
-			(-) randomise some of the other path's parameters
-			!- increase the other path's lifetime
-				-> that way, the paths can extend their own playtime
-				- do not increase the lifetime beyond the runner's starting lifetime, otherwise a feedback loop might occur
-		- things that runners could do when they collide with other runners
-			- subtract each other's remaining lifetime so that only one of the two remains
-		- complete only a given number of laps along the path before stopping
-!- remove the fixed directory paths from the code (loading image, loading audio)
+>> - things that can be made into static consts:
+	- initialStateIndex in every class with states
+	- maybe the implementedState variable in the different state classes?
 !- check docs.juce.com/master/tutorial_app_plugin_packaging.html
 
 - demo presets
 - testing sessions with ant/leon/sam
-- survey
+- survey (incl. privacy policy)
 - demo videos (one in German, one in English - both quick rundowns, nothing too in-depth)
 - discord server
 
-- maybe make regions playable in play path playing mode
+!- remove the fixed directory paths from the code (loading image, loading audio)
+?- maybe make regions playable in play path playing mode
 - add save/load program buttons onto the editor (not sure whether all editors inherently provide a safe system - the fact that many VSTs provide load/save buttons makes me think that they don't... also, it would be difficult to provide sample programs otherwise, so... yea, better put buttons on there)
 - make it so that a region's outline colour is actually coloured (not just black/white) when it's playing -> easier to differentiate from non-playing regions
 	-> use inverted fill colour
-- warning prompt when switching back to init state while an image (and potentially regions) have been loaded already!
+- warning prompt when switching back to init state while an image (and potentially regions and play paths) have been loaded already!
 - display LFO depth in the region editor (somewhat close to where the focus point can be shifted)
 - make the width of the LFO line depend on its depth (1.0 = maximum depth, 0.0 = gone, >0.0 = minimum width)
 !- are mp3s supported yet? if not, absolutely do include them! include as many formats as possible in general.
@@ -439,9 +408,10 @@
 	- setup: 1 region modding its own pitch (no quant) at 5 Hz, another region modding region 1's phase at 0.03 Hz -> wobble should alternate between being strong and weak, but it actually doesn' atm (it seems to be correctly displayed for the LFO line though)
 !- add note bindings to regions!
 	-> this is a crucial feature because it allows users to let several regions start/stop playing at once!
+?- add note bindings to play paths?
 !- add some kind of information button that displays key mappings for each mode (e.g. using backspace to delete points while in drawing mode)
 	- can be easily implemented using NativeMessageBox (or whatever it was called)!
-	- should also include a link to the survey, to the demo videos (on YT, presumably) and to the (yet to be created) ImageINe discord server
+	- should also include my name, a link to the survey, to the demo videos (on YT, presumably) and to the (yet to be created) ImageINe discord server
 !- set help texts for all components
 	- there should already be a method setHelpText for all Component members
 - make unipolar modulation symmetrical like bipolar modulation (see written note)
@@ -451,12 +421,13 @@
 		-> nice way to quickly randomise everything at once
 	- also in the region editor, make it possible to hover over a component and press ctrl+r to randomise the value of that component
 		-> nice way to randomise only a selected number of components
-	- important: slightly bias the randomness, so that the values produced are actually useful (e.g. don't naively randomise volume - prefer values closer to 0.0dB!)
+	- important: slightly weight the randomness, so that the values produced are actually useful (e.g. don't naively randomise volume - prefer values closer to 0.0dB!)
 !- add a subtle watermark to the image
 	- maybe one little textbox in a corner + a mostly transparent font across the image?
 - ensure that outlined paths actually constitute a 2D plane
+	- calculate determinant -> if it's close to 0, it's not 2D
 - use the SynthesiserSound class to store the sampler data for voices (instead of storing the data in each voice separately). that way, the audio data only has to be stored once instead of [polyphony] times, and adding new voices only requires a reference to a region's sound instead of a full update.
-- implement more scales
+- implement more scales (esp. pentatonic scales and various modes)
 - implement more parameters
 	- current LFO phase (rename current implementation "LFO phase multiplier")
 		- is there a way to calculate this modded value efficiently without if cases?
@@ -478,6 +449,7 @@
 	- no initial LFO phase / phase multiplier, playback pos / pos multiplier settings (in case i'm adding these options at some point)
 - minor bug: window is still resizable even when in editing/playing mode
 	- dunno why this happens... the handle doesn't show anymore, so the command seems to go through, so why does it still allow dragging?
+	- weirdly enough, this doesn't happen for the play path editing/playing mode o.ô
 ?- it might be necessary to optimise the serialisation process at some point (ugh...)
 	-> context: some DAWs call getStateInformation A LOT (e.g. when only 1 parameter handle is turned), i.e. saving all image/audio files in that method but be hell
 		-> BUT since ImageINe doesn't use any parameters currently, it might be safe
@@ -503,6 +475,47 @@
 	# for SegmentedRegion
 	# for Lfo (updating the parameter while wavetable isn't set currently takes up ressources every sample)
 	# for Voice/Sound probably (again, ressources are taken up while the audio data hasn't been loaded yet)
+- additional play path features:
+	- custom path colour
+	!- make the region playing timing more accurate
+		- instead of just calculating during which checks the courier is within a region and when it isn't, check in advance whether it's going to enter/exit regions during its next tick and if so, calculate the time until that entering/exiting would happen from the courier's delta distance. then, call juce::Timer::callAfterDelay() with the corresponding time and event.
+		-> allows to play regions for less time than the update rate (so ultra short blips are possible) and makes the entering/exiting timing more accurate (it will feel quantised to the regions' borders instead of being quantised to the courier's update rate)
+	!- allow for branching, i.e. points where the path splits in two
+		!- option 1: when the runner gets there, it splits in two as well
+		- option 2: when the runner gets there, it randomly(?) picks one of the two paths
+	!- allow for runner lifetime
+		- twist: remaining lifetime of a runner determines its remaining size
+			-> the longer a runner travels, the smaller it becomes
+			- option A: the decay time should be path-/runner-independent, make it a constant
+				-> starting size: depends on path length + runner speed! the longer the path and the slower the runner, the bigger is its starting size
+				-> feels very individual, but could grow out of control or feel disappointing(?)
+			- option B: the starting size of a runner should be constant for a path
+				-> decay time: depends on path length + runner speed
+				-> probably more controllable, but less impressive(?)
+			- make it so that clicking a path/runner also increases its lifetime
+		- when beginning to play, a runner appears on every path with its starting life.
+		?- in addition to the lifetime: maybe a maximum number of total interactions (messages to be delivered) regardless of lifetime?
+	- things that a playpath could do when it interacts with a region:
+		(-) randomise some of its parameters (maybe even ones like the position of the focus point etc.)
+		(-) set its focus point to its current position
+			-> problems: very costly + doesn't work when more than one runner is inside a region
+		-> it would be best if it was something that
+			1. depends on the runner's position inside a region
+			2. works for cases where there is more than one runner inside a region
+			3. depends on the coverage of the region by the runner(s)
+		?-> maybe just overwrite the region's volume? (more coverage = louder)
+		- maybe gradually increase a runner's remaining lifetime
+	- things that a playpath could do when it interacts with another playpath:
+		(-) set that playpath's runner to the location where the interaction was
+		- start playing the other path, starting from the point of the interaction
+		- reverse that path's direction
+		(-) randomise some of the other path's parameters
+		!- increase the other path's lifetime
+			-> that way, the paths can extend their own playtime
+			- do not increase the lifetime beyond the runner's starting lifetime, otherwise a feedback loop might occur
+	- things that runners could do when they collide with other runners
+		- subtract each other's remaining lifetime so that only one of the two remains
+	- complete only a given number of laps along the path before stopping
 !- allow for 2-voice-polyphony
 	- add *2* voices *and 1 sound* per region
 	- add a variable to the voice and oscillator class that represents the region, and tell it that it can only play sounds if its variable corresponds to that of the oscillator

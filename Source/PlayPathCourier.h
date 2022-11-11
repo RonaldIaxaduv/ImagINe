@@ -29,10 +29,17 @@ public:
     float getInterval_seconds();
     void setInterval_seconds(float newIntervalInSeconds);
 
+    juce::Range<float> getCurrentRange();
+
     void parentPathLengthChanged();
 
     void startRunning();
     void stopRunning();
+
+    void signalRegionEntered(int regionID);
+    void signalRegionExited(int regionID);
+    juce::Array<int> getCurrentlyIntersectedRegions();
+    void resetCurrentlyIntersectedRegions();
 
     static const float radius;
 
@@ -47,6 +54,8 @@ private:
     double normedRadius = 0.0;
 
     bool isRunning = false;
+
+    juce::Array<int> currentlyIntersectedRegions;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayPathCourier)
 };

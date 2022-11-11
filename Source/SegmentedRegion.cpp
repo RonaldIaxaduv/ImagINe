@@ -20,7 +20,7 @@ const float SegmentedRegion::disabledTransparency = 0.20f;
 
 //public
 
-SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangle<float>& relativeBounds, juce::Colour fillColour, AudioEngine* audioEngine) :
+SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangle<float>& relativeBounds, const juce::Rectangle<int>& parentBounds, juce::Colour fillColour, AudioEngine* audioEngine) :
     juce::DrawableButton("", ButtonStyle::ImageStretched),
     p(outline),
     relativeBounds(relativeBounds),
@@ -59,6 +59,7 @@ SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangl
     //setRepaintsOnMouseActivity(false); //doesn't work for DrawableButton sadly (but makes kind of sense since it needs to change its background image while interacting with it)
     //currentLfoLine = juce::Line<float>(juce::Point<float>(0.0f, 0.0f), juce::Point<float>(static_cast<float>(getWidth()), static_cast<float>(getHeight()))); //diagonal -> entire region will be redrawn (a little hacky, but ensures that the LFO line is drawn before the region is first played)
     //repaint(); //paints the LFO line
+    setSize(parentBounds.getWidth(), parentBounds.getHeight());
 }
 
 SegmentedRegion::~SegmentedRegion()
@@ -328,7 +329,7 @@ void SegmentedRegion::forceRepaint()
 //        //resized();
 //    }
 //}
-void SegmentedRegion::transitionToState(SegmentedRegionStateIndex stateToTransitionTo)
+void SegmentedRegion::transitionToState(SegmentedRegionStateIndex stateToTransitionTo, bool keepPlayingAndEditing)
 {
     bool nonInstantStateFound = false;
 
@@ -343,14 +344,17 @@ void SegmentedRegion::transitionToState(SegmentedRegionStateIndex stateToTransit
             setToggleable(false);
             setClickingTogglesState(false);
 
-            if (isPlaying)
+            if (!keepPlayingAndEditing)
             {
-                stopPlaying();
-            }
+                if (isPlaying)
+                {
+                    stopPlaying();
+                }
 
-            if (regionEditorWindow != nullptr)
-            {
-                regionEditorWindow.deleteAndZero(); //close editor window
+                if (regionEditorWindow != nullptr)
+                {
+                    regionEditorWindow.deleteAndZero(); //close editor window
+                }
             }
 
             DBG("SegmentedRegion not interactable");
@@ -552,7 +556,7 @@ void SegmentedRegion::startPlaying()
         DBG("*plays music*");
         isPlaying = true;
         
-        DBG("voice: " + juce::String(currentVoiceIndex + 1) + " / " + juce::String(associatedVoices.size()));
+        //DBG("voice: " + juce::String(currentVoiceIndex + 1) + " / " + juce::String(associatedVoices.size()));
 
         associatedVoices[currentVoiceIndex]->startNote(0, 1.0f, audioEngine->getSynth()->getSound(0).get(), 64); //cycle through all voices (incremented after this voice stops)
         //audioEngine->getSynth()->noteOn(1, 64, 1.0f); //might be worth a thought for later because of polyphony, but since voices will then be chosen automatically, adjustments to the voices class would have to be made

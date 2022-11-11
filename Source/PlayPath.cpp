@@ -19,7 +19,7 @@ const float PlayPath::outlineThickness = 3.5f;
 
 
 
-PlayPath::PlayPath(int ID, const juce::Path& path, const juce::Rectangle<float>& relativeBounds, juce::Colour fillColour) :
+PlayPath::PlayPath(int ID, const juce::Path& path, const juce::Rectangle<float>& relativeBounds, const juce::Rectangle<int>& parentBounds, juce::Colour fillColour) :
     DrawableButton::DrawableButton("", juce::DrawableButton::ButtonStyle::ImageStretched),
     underlyingPath(path),
     relativeBounds(relativeBounds),
@@ -45,6 +45,8 @@ PlayPath::PlayPath(int ID, const juce::Path& path, const juce::Rectangle<float>&
 
     //rest
     setToggleable(true);
+    setBufferedToImage(true);
+    setSize(parentBounds.getWidth(), parentBounds.getHeight());
 }
 PlayPath::~PlayPath()
 {
@@ -52,6 +54,8 @@ PlayPath::~PlayPath()
     {
         pathEditorWindow.deleteAndZero(); //close and release
     }
+
+    stopPlaying();
 
     //release couriers
     for (auto* itCourier = couriers.begin(); itCourier != couriers.end(); ++itCourier)
@@ -116,7 +120,7 @@ void PlayPath::initialiseImages()
     normalImageOn.setFill(juce::FillType(juce::Colours::transparentBlack));
     normalImageOn.setStrokeThickness(outlineThickness);
     //normalImageOn.setStrokeFill(juce::FillType(juce::Colour::fromRGB(255 - fillColour.getRed(), 255 - fillColour.getGreen(), 255 - fillColour.getBlue()))); //use inverted fill colour as outline colour -> pops more than black/white
-    normalImageOn.setStrokeFill(juce::FillType(fillColour.brighter(0.2f))); //use inverted fill colour as outline colour -> pops more than black/white
+    normalImageOn.setStrokeFill(juce::FillType(fillColour.darker(0.2f)));
     normalImageOn.setBounds(getBounds());
 
     overImageOn.setPath(underlyingPath);
@@ -142,7 +146,7 @@ void PlayPath::initialiseImages()
     setColour(ColourIds::backgroundOnColourId, juce::Colours::transparentBlack); //otherwise, the button has a grey background colour while the button is toggled on
 }
 
-void PlayPath::transitionToState(PlayPathStateIndex stateToTransitionTo)
+void PlayPath::transitionToState(PlayPathStateIndex stateToTransitionTo, bool keepPlayingAndEditing)
 {
     bool nonInstantStateFound = false;
 
@@ -157,14 +161,17 @@ void PlayPath::transitionToState(PlayPathStateIndex stateToTransitionTo)
             setToggleable(false);
             setClickingTogglesState(false);
 
-            if (isPlaying)
+            if (!keepPlayingAndEditing)
             {
-                stopPlaying();
-            }
+                if (isPlaying)
+                {
+                    stopPlaying();
+                }
 
-            if (pathEditorWindow != nullptr)
-            {
-                pathEditorWindow.deleteAndZero(); //close editor window
+                if (pathEditorWindow != nullptr)
+                {
+                    pathEditorWindow.deleteAndZero(); //close editor window
+                }
             }
 
             DBG("PlayPath not interactable");
@@ -200,6 +207,22 @@ void PlayPath::transitionToState(PlayPathStateIndex stateToTransitionTo)
 
 void PlayPath::paintOverChildren(juce::Graphics& g)
 {
+    //draw range borders (only required for some debugging)
+    g.setColour(fillColour.contrasting());
+    float r = 1.0f;
+    juce::Point<float> pt;
+    for (auto itRange = regionsByRange_range.begin(); itRange != regionsByRange_range.end(); ++itRange)
+    {
+        //draw start border
+        pt = getPointAlongPath((*itRange).getStart());
+        g.fillEllipse(pt.getX() - r, pt.getY() - r, 2 * r, 2 * r);
+
+        //draw end border
+        pt = getPointAlongPath((*itRange).getEnd());
+        g.fillEllipse(pt.getX() - r, pt.getY() - r, 2 * r, 2 * r);
+    }
+
+    //WIP: draw courier (this is more of a bandaid fix because the couriers wouldn't show up despite being added properly (perhaps because they were out of bounds)
     for (auto* itCourier = couriers.begin(); itCourier != couriers.end(); ++itCourier)
     {
         g.setColour(fillColour.contrasting());
@@ -210,18 +233,17 @@ void PlayPath::paintOverChildren(juce::Graphics& g)
 }
 void PlayPath::resized()
 {
+    juce::DrawableButton::resized();
+
     //recalculate hitbox
     underlyingPath.scaleToFit(0.0f, 0.0f, (float)getWidth(), (float)getHeight(), false);
 
     //adjust any courier(s)
     for (auto* itCourier = couriers.begin(); itCourier != couriers.end(); ++itCourier)
     {
-        //(*itCourier)->pathLengthUpdated(); //needed to adjust the couriers' traveling speed
         (*itCourier)->parentPathLengthChanged(); //needed to adjust the ratio of the courier's radius to the window size
         (*itCourier)->updateBounds();
     }
-
-    juce::DrawableButton::resized();
 }
 
 bool PlayPath::hitTest(int x, int y)
@@ -230,7 +252,16 @@ bool PlayPath::hitTest(int x, int y)
 }
 bool PlayPath::hitTest_Interactable(int x, int y)
 {
-    return underlyingPath.contains((float)x, (float)y);
+    //return underlyingPath.contains(static_cast<float>(x), static_cast<float>(y))
+    //return underlyingPath.contains(static_cast<float>(x), static_cast<float>(y)) && !innerPath.contains(static_cast<float>(x), static_cast<float>(y));
+    
+    juce::Point<float> currentPoint(static_cast<float>(x), static_cast<float>(y));
+    juce::Point<float> pointOnPath;
+    underlyingPath.getNearestPoint(currentPoint, pointOnPath);
+    float distanceSquared = (pointOnPath.getX() - currentPoint.getX()) * (pointOnPath.getX() - currentPoint.getX()) +
+                            (pointOnPath.getY() - currentPoint.getY()) * (pointOnPath.getY() - currentPoint.getY());
+
+    return distanceSquared <= (2.5f * outlineThickness) * (2.5f * outlineThickness); //only register interactions near the outline, not in the inner region
 }
 
 juce::Point<float> PlayPath::getPointAlongPath(double normedDistanceFromStart)
@@ -278,6 +309,19 @@ void PlayPath::startPlaying()
         for (auto* itCourier = couriers.begin(); itCourier != couriers.end(); ++itCourier)
         {
             (*itCourier)->startRunning();
+
+            //check whether the courier is already within a region when it's at its starting point
+            juce::Range<float> currentRange = (*itCourier)->getCurrentRange();
+            auto itRegion = regionsByRange_region.begin();
+            auto itRange = regionsByRange_range.begin();
+            for (; itRange != regionsByRange_range.end(); ++itRegion, ++itRange)
+            {
+                if (getCollisionWithRegion(*itRange, currentRange, currentRange) == CollisionType::within)
+                {
+                    //if any courier starts out within a region, immediately start playing that region
+                    (*itRegion)->signalCourierEntered();
+                }
+            }
         }
         isPlaying = true;
     }
@@ -290,6 +334,24 @@ void PlayPath::stopPlaying()
     {
         (*itCourier)->stopRunning();
         removeChildComponent(*itCourier);
+
+        //for any region that the courier was currently in, signal to that region that the courier has left
+        juce::Array<int> intersectedRegions = (*itCourier)->getCurrentlyIntersectedRegions();
+        for (auto itID = intersectedRegions.begin(); itID != intersectedRegions.end(); ++itID)
+        {
+            for (auto itRegion = regionsByRange_region.begin(); itRegion != regionsByRange_region.end(); ++itRegion)
+            {
+                if ((*itRegion)->getID() == *itID)
+                {
+                    (*itRegion)->signalCourierLeft();
+                    //no need to delete the index from the intersectedRegions array
+                    break;
+                }
+            }
+        }
+
+        //reset courier's currently intersected regions
+        (*itCourier)->resetCurrentlyIntersectedRegions();
     }
     couriers.clear(true);
 
@@ -331,19 +393,113 @@ void PlayPath::setCourierInterval_seconds(float newCourierIntervalSeconds)
     }
 }
 
+//void PlayPath::addIntersectingRegion(SegmentedRegion* region)
+//{
+//    juce::Range<float> distances(-1.0f, -1.0f);
+//    float stepSize = juce::jmax(0.0005, juce::jmin(0.01, 2.0 / 3.0 * (PlayPathCourier::radius / underlyingPath.getLength())));
+//    DBG("stepSize: " + juce::String(stepSize));
+//    float pathLengthDenom = 1.0f / underlyingPath.getLength();
+//    
+//    //getPointAlongPath returns a point relative to this *PlayPath's* own bounds, but hitTest checks for collision relative to the *SegmentedRegion's* own bounds. so to apply a hitTest to the point, it needs to be shifted according to the difference of the PlayPath's and SegmentedRegion's position in their shared parent component.
+//    int xDifference = region->getBoundsInParent().getX() - this->getBoundsInParent().getX(); //difference from the region's x position in its parent compared to this play path's x position in that parent
+//    int yDifference = region->getBoundsInParent().getY() - this->getBoundsInParent().getY(); //^- same but for y position
+//
+//    //check whether the starting point is already contained within the region. if so, begin from the first point not contained within the region. otherwise, begin from the starting point.
+//    juce::Point<int> startingPt = underlyingPath.getPointAlongPath(0.0f).toInt();
+//    float initialDistance = 0.0f;
+//    if (region->hitTest_Interactable(startingPt.getX() - xDifference, startingPt.getY() - yDifference))
+//    {
+//        //starting point is already contained within the region
+//        //-> the end distance of that section will be found first -> remember for later and add that section last
+//        initialDistance = -1.0f;
+//
+//        for (float distanceFromStart = 0.0f; distanceFromStart < underlyingPath.getLength(); distanceFromStart += stepSize)
+//        {
+//            juce::Point<int> pt = underlyingPath.getPointAlongPath(distanceFromStart).toInt();
+//            if (!region->hitTest_Interactable(pt.getX() - xDifference, pt.getY() - yDifference)) //note the negation!
+//            {
+//                //end point found
+//                DBG("initial end point: " + pt.toString() + " (" + juce::String(distanceFromStart) + " / " + juce::String(underlyingPath.getLength()) + ")");
+//                initialDistance = distanceFromStart;
+//                break;
+//            }
+//        }
+//        if (initialDistance < 0.0f)
+//        {
+//            //region encompasses the entire path
+//            //regionsByRange_range.add(juce::Range<float>(0.0f, underlyingPath.getLength()));
+//            regionsByRange_range.add(juce::Range<float>(0.0f, 1.0f));
+//            regionsByRange_region.add(region);
+//            return;
+//        }
+//        //else: initialDistance has been set
+//    }
+//    //else: initialDistance is 0.0f
+//
+//    for (float startDistance = initialDistance; startDistance < underlyingPath.getLength(); startDistance += stepSize)
+//    {
+//        //check current position for collision
+//        juce::Point<int> pt = underlyingPath.getPointAlongPath(startDistance).toInt();
+//
+//        if (region->hitTest_Interactable(pt.getX() - xDifference, pt.getY() - yDifference))
+//        {
+//            //collision! -> starting point found
+//            //distances.setStart(startDistance);
+//            distances.setStart(startDistance * pathLengthDenom);
+//            DBG("start point: " + pt.toString() + " (" + juce::String(startDistance) + " / " + juce::String(underlyingPath.getLength()) + ")");
+//
+//            //look for end point
+//            bool endPointFound = false;
+//            for (float endDistance = startDistance + stepSize; endDistance < underlyingPath.getLength(); endDistance += stepSize)
+//            {
+//                //check current position for collision
+//                pt = underlyingPath.getPointAlongPath(endDistance).toInt();
+//
+//                if (!region->hitTest_Interactable(pt.getX() - xDifference, pt.getY() - yDifference)) //note the negation!
+//                {
+//                    //no more collision! -> end point found
+//                    endPointFound = true;
+//                    //distances.setEnd(endDistance);
+//                    distances.setEnd(endDistance * pathLengthDenom);
+//                    DBG("end point: " + pt.toString() + " (" + juce::String(endDistance) + " / " + juce::String(underlyingPath.getLength()) + ")");
+//
+//                    //add to list
+//                    insertIntoRegionsLists(juce::Range<float>(distances), region);
+//
+//                    //update start distance, reset distance variable and keep looking for more intersections
+//                    startDistance = endDistance;
+//                    distances = juce::Range<float>(-1.0f, -1.0f);
+//                    break;
+//                }
+//            }
+//            if (!endPointFound)
+//            {
+//                //found a starting point but no end point -> arrived at the last intersection -> loops around
+//                //distances.setEnd(initialDistance); //remembered from the beginning of this method
+//                distances.setEnd(initialDistance * pathLengthDenom + 1.0); //remembered from the beginning of this method (note that juce::Range.end may not be smaller than juce::Range.start! hence, 1.0 is added to signal the loop-around)
+//
+//                //add to list
+//                insertIntoRegionsLists(juce::Range<float>(distances), region);
+//
+//                //done searching
+//                break;
+//            }
+//        }
+//    }
+//
+//}
 void PlayPath::addIntersectingRegion(SegmentedRegion* region)
 {
     juce::Range<float> distances(-1.0f, -1.0f);
-    float stepSize = juce::jmax(0.0005, juce::jmin(0.01, 2.0 / 3.0 * (PlayPathCourier::radius / underlyingPath.getLength())));
+    float stepSize = juce::jmax(0.0001, juce::jmin(0.005, 2.0 / 3.0 * (PlayPathCourier::radius / underlyingPath.getLength())));
     DBG("stepSize: " + juce::String(stepSize));
-    float pathLengthDenom = 1.0f / underlyingPath.getLength();
-    
+
     //getPointAlongPath returns a point relative to this *PlayPath's* own bounds, but hitTest checks for collision relative to the *SegmentedRegion's* own bounds. so to apply a hitTest to the point, it needs to be shifted according to the difference of the PlayPath's and SegmentedRegion's position in their shared parent component.
     int xDifference = region->getBoundsInParent().getX() - this->getBoundsInParent().getX(); //difference from the region's x position in its parent compared to this play path's x position in that parent
     int yDifference = region->getBoundsInParent().getY() - this->getBoundsInParent().getY(); //^- same but for y position
 
     //check whether the starting point is already contained within the region. if so, begin from the first point not contained within the region. otherwise, begin from the starting point.
-    juce::Point<int> startingPt = underlyingPath.getPointAlongPath(0.0f).toInt();
+    juce::Point<int> startingPt = getPointAlongPath(0.0f).toInt();
     float initialDistance = 0.0f;
     if (region->hitTest_Interactable(startingPt.getX() - xDifference, startingPt.getY() - yDifference))
     {
@@ -351,13 +507,13 @@ void PlayPath::addIntersectingRegion(SegmentedRegion* region)
         //-> the end distance of that section will be found first -> remember for later and add that section last
         initialDistance = -1.0f;
 
-        for (float distanceFromStart = 0.0f; distanceFromStart < underlyingPath.getLength(); distanceFromStart += stepSize)
+        for (float distanceFromStart = 0.0f; distanceFromStart < 1.0; distanceFromStart += stepSize)
         {
-            juce::Point<int> pt = underlyingPath.getPointAlongPath(distanceFromStart).toInt();
+            juce::Point<int> pt = getPointAlongPath(distanceFromStart).toInt();
             if (!region->hitTest_Interactable(pt.getX() - xDifference, pt.getY() - yDifference)) //note the negation!
             {
                 //end point found
-                DBG("initial end point: " + pt.toString() + " (" + juce::String(distanceFromStart) + " / " + juce::String(underlyingPath.getLength()) + ")");
+                DBG("initial end point: " + pt.toString() + " (" + juce::String(distanceFromStart) + " / " + juce::String(1.0) + ")");
                 initialDistance = distanceFromStart;
                 break;
             }
@@ -374,32 +530,32 @@ void PlayPath::addIntersectingRegion(SegmentedRegion* region)
     }
     //else: initialDistance is 0.0f
 
-    for (float startDistance = initialDistance; startDistance < underlyingPath.getLength(); startDistance += stepSize)
+    for (float startDistance = initialDistance; startDistance < 1.0; startDistance += stepSize)
     {
         //check current position for collision
-        juce::Point<int> pt = underlyingPath.getPointAlongPath(startDistance).toInt();
+        juce::Point<int> pt = getPointAlongPath(startDistance).toInt();
 
         if (region->hitTest_Interactable(pt.getX() - xDifference, pt.getY() - yDifference))
         {
             //collision! -> starting point found
             //distances.setStart(startDistance);
-            distances.setStart(startDistance * pathLengthDenom);
-            DBG("start point: " + pt.toString() + " (" + juce::String(startDistance) + " / " + juce::String(underlyingPath.getLength()) + ")");
+            distances.setStart(startDistance);
+            DBG("start point: " + pt.toString() + " (" + juce::String(startDistance) + " / " + juce::String(1.0) + ")");
 
             //look for end point
             bool endPointFound = false;
-            for (float endDistance = startDistance + stepSize; endDistance < underlyingPath.getLength(); endDistance += stepSize)
+            for (float endDistance = startDistance + stepSize; endDistance < 1.0; endDistance += stepSize)
             {
                 //check current position for collision
-                pt = underlyingPath.getPointAlongPath(endDistance).toInt();
+                pt = getPointAlongPath(endDistance).toInt();
 
                 if (!region->hitTest_Interactable(pt.getX() - xDifference, pt.getY() - yDifference)) //note the negation!
                 {
                     //no more collision! -> end point found
                     endPointFound = true;
                     //distances.setEnd(endDistance);
-                    distances.setEnd(endDistance * pathLengthDenom);
-                    DBG("end point: " + pt.toString() + " (" + juce::String(endDistance) + " / " + juce::String(underlyingPath.getLength()) + ")");
+                    distances.setEnd(endDistance);
+                    DBG("end point: " + pt.toString() + " (" + juce::String(endDistance) + " / " + juce::String(1.0) + ")");
 
                     //add to list
                     insertIntoRegionsLists(juce::Range<float>(distances), region);
@@ -414,7 +570,7 @@ void PlayPath::addIntersectingRegion(SegmentedRegion* region)
             {
                 //found a starting point but no end point -> arrived at the last intersection -> loops around
                 //distances.setEnd(initialDistance); //remembered from the beginning of this method
-                distances.setEnd(initialDistance * pathLengthDenom + 1.0); //remembered from the beginning of this method (note that juce::Range.end may not be smaller than juce::Range.start! hence, 1.0 is added to signal the loop-around)
+                distances.setEnd(initialDistance + 1.0); //remembered from the beginning of this method (note that juce::Range.end may not be smaller than juce::Range.start! hence, 1.0 is added to signal the loop-around)
 
                 //add to list
                 insertIntoRegionsLists(juce::Range<float>(distances), region);
@@ -491,188 +647,7 @@ void PlayPath::removeIntersectingRegion(int regionID)
         }
     }
 }
-//void PlayPath::evaluateCourierPosition(juce::Range<float> previousPosition, juce::Range<float> newPosition)
-//{
-//    //WIP: note that this evaluation method isn't entirely accurate.
-//    //     it interprets the courier as a line along the path, not as a circle,
-//    //     i.e. it will ignore if a courier touches a region if that part of the region *doesn't intersect* with the path.
-//    //     HOWEVER, since the couriers' radius is usually small compared to regions' sizes, this is rather unlikely to occur often.
-//    //     also, this assumption makes the method easier (+ faster) to evaluate and, perhaps even more importantly,
-//    //     independent from the size of the window containing the path (since couriers have a fixed size for visibility reasons).
-//
-//    auto itRange = regionsByRange_range.begin();
-//    auto itRegion = regionsByRange_region.begin();
-//
-//    if (previousPosition.getStart() <= newPosition.getEnd()) //(distances.getStart() <= distances.getEnd())
-//    {
-//        //-> normal case: courier went along the path without looping around
-//
-//        for (; itRange != regionsByRange_range.end(); ++itRange, ++itRegion)
-//        {
-//            if ((*itRange).getStart() <= (*itRange).getEnd())
-//            {
-//                //-> normal range: starts and ends on the path without looping around
-//
-//                if ((*itRange).intersects(previousPosition)) //((*itRange).contains(distances.getStart()))
-//                {
-//                    //-> courier was within the region during its last tick
-//                    if (!(*itRange).intersects(newPosition)) //(!(*itRange).contains(distances.getEnd()))
-//                    {
-//                        //-> no longer within the region -> request to stop playing
-//                        (*itRegion)->signalCourierLeft();
-//                        DBG("courier left region " + juce::String((*itRegion)->getID()) + ".");
-//                    }
-//                    //else: courier is still within the region -> no change
-//                }
-//                else //range doesn't contain start
-//                {
-//                    //-> courier was not within the region during its last tick
-//                    if ((*itRange).intersects(newPosition)) //((*itRange).contains(distances.getEnd()))
-//                    {
-//                        //-> courier has now entered the region -> request to start playing
-//                        (*itRegion)->signalCourierEntered();
-//                        DBG("courier entered region " + juce::String((*itRegion)->getID()) + ".");
-//                    }
-//                    //else: courier is currently not within the region -> either skipped a really small strip or the range was outside the given distances -> no change
-//                }
-//
-//            }
-//            else //range start > range end
-//            {
-//                //-> special range: starts before and ends after the starting point of the path, i.e. it loops around
-//                //-> check for [range.start, range.end + length] and [range.start - length, range.end] instead
-//                juce::Range<float> r1((*itRange).getStart(),
-//                                      (*itRange).getEnd() + underlyingPath.getLength());
-//                juce::Range<float> r2((*itRange).getStart() - underlyingPath.getLength(),
-//                                      (*itRange).getEnd());
-//
-//                if (r1.intersects(previousPosition) || r2.intersects(previousPosition)) //((*itRange).getStart() <= distances.getStart())
-//                {
-//                    //-> courier was within the region during its last tick
-//                    if (!r1.intersects(newPosition) && !r2.intersects(newPosition))
-//                    {
-//                        //-> courier is no longer within the region now -> request to stop playing
-//                        (*itRegion)->signalCourierLeft();
-//                        DBG("courier left region " + juce::String((*itRegion)->getID()) + ".");
-//                    }
-//                    //else: courier is still within the region -> no change
-//                }
-//                else //range doesn't contain start
-//                {
-//                    //-> courier was not within the region during its last tick
-//                    //since distance.start <= distance.end in this case, the courier couldn't have looped around -> no need to check for range.end
-//                    if (r1.intersects(newPosition) || r2.intersects(newPosition)) //((*itRange).getStart() <= distances.getEnd())
-//                    {
-//                        //-> courier has now entered the region -> request to start playing
-//                        (*itRegion)->signalCourierEntered();
-//                        DBG("courier entered region " + juce::String((*itRegion)->getID()) + ".");
-//                    }
-//                    //else: courier is currently not within the region -> either skipped a really small strip or the range was outside the given distances -> no change
-//                }
-//            }
-//        }
-//
-//    }
-//    else //previousPosition.getStart() > newPosition.getEnd() //distances.getStart() > distances.getEnd()
-//    {
-//        //-> special case: courier looped around while walking
-//        //-> always check for [range.start, range.end + length] and [range.start - length, range.end] instead
-//        
-//        //prepare new ranges for evaluation
-//        juce::Range<float> previousPositionLoop1, previousPositionLoop2, newPositionLoop1, newPositionLoop2;
-//        if (previousPosition.getStart() <= previousPosition.getEnd())
-//        {
-//            previousPositionLoop1 = previousPosition;
-//            previousPositionLoop1 = previousPosition;
-//        }
-//        else
-//        {
-//            previousPositionLoop1.setStart(previousPosition.getStart());
-//            previousPositionLoop1.setEnd(previousPosition.getEnd() + underlyingPath.getLength());
-//            previousPositionLoop2.setStart(previousPosition.getStart() - underlyingPath.getLength());
-//            previousPositionLoop2.setEnd(previousPosition.getEnd());
-//        }
-//        if (newPosition.getStart() <= newPosition.getEnd())
-//        {
-//            newPositionLoop1 = newPosition;
-//            newPositionLoop1 = newPosition;
-//        }
-//        else
-//        {
-//            newPositionLoop1.setStart(newPosition.getStart());
-//            newPositionLoop1.setEnd(newPosition.getEnd() + underlyingPath.getLength());
-//            newPositionLoop2.setStart(newPosition.getStart() - underlyingPath.getLength());
-//            newPositionLoop2.setEnd(newPosition.getEnd());
-//        }
-//
-//        for (; itRange != regionsByRange_range.end(); ++itRange, ++itRegion)
-//        {
-//            if ((*itRange).getStart() <= (*itRange).getEnd())
-//            {
-//                //-> normal range: starts and ends on the path without looping around
-//
-//                if ((*itRange).intersects(previousPositionLoop1) || (*itRange).intersects(previousPositionLoop2)) //((*itRange).contains(distances.getStart()))
-//                {
-//                    //-> courier was within the region during its last tick
-//                    if (!(*itRange).intersects(newPositionLoop1) && !(*itRange).intersects(newPositionLoop2)) //(!(*itRange).contains(distances.getEnd()))
-//                    {
-//                        //-> no longer within the region -> request to stop playing
-//                        (*itRegion)->signalCourierLeft();
-//                        DBG("courier left region " + juce::String((*itRegion)->getID()) + ".");
-//                    }
-//                    //else: courier is still within the region -> no change
-//                }
-//                else //range doesn't contain start
-//                {
-//                    //-> courier was not within the region during its last tick
-//                    if ((*itRange).intersects(newPositionLoop1) || (*itRange).intersects(newPositionLoop2)) //((*itRange).contains(distances.getEnd()))
-//                    {
-//                        //-> courier has now entered the region -> request to start playing
-//                        (*itRegion)->signalCourierEntered();
-//                        DBG("courier entered region " + juce::String((*itRegion)->getID()) + ".");
-//                    }
-//                    //else: courier is currently not within the region -> either skipped a really small strip or the range was outside the given distances -> no change
-//                }
-//
-//            }
-//            else //range start > range end
-//            {
-//                //-> special range: starts before and ends after the starting point of the path, i.e. it loops around
-//                //-> check for [range.start, range.end + length] and [range.start - length, range.end] instead
-//                juce::Range<float> r1((*itRange).getStart(),
-//                                      (*itRange).getEnd() + underlyingPath.getLength());
-//                juce::Range<float> r2((*itRange).getStart() - underlyingPath.getLength(),
-//                                      (*itRange).getEnd());
-//
-//                if (r1.intersects(previousPositionLoop1) || r1.intersects(previousPositionLoop2) || r2.intersects(previousPositionLoop1) || r2.intersects(previousPositionLoop2)) //((*itRange).getStart() <= distances.getStart())
-//                {
-//                    //-> courier was within the region during its last tick
-//                    if (!r1.intersects(newPositionLoop1) && !r1.intersects(newPositionLoop2) && !r2.intersects(newPositionLoop1) && !r2.intersects(newPositionLoop2)) //((*itRange).getEnd() < distances.getEnd())
-//                    {
-//                        //-> courier is no longer within the range -> request to stop playing
-//                        (*itRegion)->signalCourierLeft();
-//                        DBG("courier left region " + juce::String((*itRegion)->getID()) + ".");
-//                    }
-//                    //else: courier is still within the range -> no change
-//                }
-//                else //range doesn't contain start
-//                {
-//                    //-> courier was not within the region during its last tick
-//                    //note that the courier also loops around in this case
-//                    if (r1.intersects(newPositionLoop1) || r1.intersects(newPositionLoop2) || r2.intersects(newPositionLoop1) || r2.intersects(newPositionLoop2)) //((*itRange).getEnd() >= distances.getEnd())
-//                    {
-//                        //-> courier has now entered the region -> request to start playing
-//                        (*itRegion)->signalCourierEntered();
-//                        DBG("courier entered region " + juce::String((*itRegion)->getID()) + ".");
-//                    }
-//                    //else: courier is currently not within the region -> either skipped a really small strip or the range was outside the given distances -> no change
-//                }
-//            }
-//        }
-//    }
-//
-//}
-void PlayPath::evaluateCourierPosition(juce::Range<float> previousPosition, juce::Range<float> newPosition)
+void PlayPath::evaluateCourierPosition(PlayPathCourier* courier, juce::Range<float> previousPosition, juce::Range<float> newPosition)
 {
     //WIP: note that this evaluation method isn't entirely accurate.
     //     it interprets the courier as a line along the path, not as a circle,
@@ -689,13 +664,15 @@ void PlayPath::evaluateCourierPosition(juce::Range<float> previousPosition, juce
         switch (getCollisionWithRegion(*itRange, previousPosition, newPosition))
         {
         case CollisionType::entered:
+            //DBG("courier entered region " + juce::String((*itRegion)->getID()) + ".");
             (*itRegion)->signalCourierEntered();
-            DBG("courier entered region " + juce::String((*itRegion)->getID()) + ".");
+            courier->signalRegionEntered((*itRegion)->getID());
             break;
 
         case CollisionType::exited:
+            //DBG("courier left region " + juce::String((*itRegion)->getID()) + ".");
             (*itRegion)->signalCourierLeft();
-            DBG("courier left region " + juce::String((*itRegion)->getID()) + ".");
+            courier->signalRegionExited((*itRegion)->getID());
             break;
 
             //default: either no collision or remaining within a region -> no change
@@ -740,44 +717,59 @@ bool PlayPath::intersectsWithWraparound(const juce::Range<float>& r1, const juce
     //- 0.0 <= range.start < 1.0
     //- 0.0 <= range.end
 
-    if (r1.getStart() < r2.getEnd())
-    {
-        //start1 < end2
-        if (r1.getEnd() >= r2.getStart())
-        {
-            //normal intersection
-            return true;
-        }
-        else
-        {
-            //start1 < end2, end1 < start2
-            //normal case: no intersection
-            //overlap case: intersection if start1 <= end2 % 1
-            if (r2.getEnd() > 1.0f && r1.getStart() <= r2.getEnd() - 1.0f)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-    }
-    else
-    {
-        //start1 >= end2
-        //normal case: no collision
-        //overlap case: collision if end1 % 1 >= start2
-        if (r1.getEnd() > 1.0f && r2.getStart() <= r1.getEnd() - 1.0f)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
 
+    //CLEAN, LONG VERSION (for understanding what this algorithm does):
+    
+    //if (r1.getStart() < r2.getEnd())
+    //{
+    //    //start1 < end2
+    //    if (r1.getEnd() >= r2.getStart())
+    //    {
+    //        //normal intersection
+    //        return true;
+    //    }
+    //    else
+    //    {
+    //        //start1 < end2, end1 < start2
+    //        //normal case: no intersection
+    //        //overlap case: intersection if start1 <= end2 % 1
+    //        if (r2.getEnd() > 1.0f && r1.getStart() <= r2.getEnd() - 1.0f)
+    //        {
+    //            return true;
+    //        }
+    //        else
+    //        {
+    //            return false;
+    //        }
+    //    }
+    //}
+    //else
+    //{
+    //    //start1 >= end2
+    //    //normal case: no collision
+    //    //overlap case: collision if end1 % 1 >= start2
+    //    if (r1.getEnd() > 1.0f && r2.getStart() <= r1.getEnd() - 1.0f)
+    //    {
+    //        return true;
+    //    }
+    //    else
+    //    {
+    //        return false;
+    //    }
+    //}
+
+    //SHORT VERSION:
+    // -> performs the above checks as a one-liner and without short-circuiting (except where it's necessary). the formatting mimics the previous if-cases.
+    //converting the code into this form makes a *big difference* since this method may be called at a very high frequency
+    //and every if-case (incl. short-circuits) will cause a noticable slowdown because of branch prediction failures!
+    return ((r1.getStart() < r2.getEnd()) & (
+                (r1.getEnd() >= r2.getStart())
+                |
+                (r2.getEnd() > 1.0f && r1.getStart() <= r2.getEnd() - 1.0f)
+                )
+           )
+           |
+           (r1.getEnd() > 1.0f && r2.getStart() <= r1.getEnd() - 1.0f);
 }
 
 bool PlayPath::serialise(juce::XmlElement* xmlPlayPath)
@@ -832,6 +824,7 @@ bool PlayPath::deserialise(juce::XmlElement* xmlPlayPath)
             xmlRelativeBounds->getDoubleAttribute("height", 0.0)
         );
 
+        //immediately resize (important in case ranges need to be recalculated later!)
         juce::Rectangle<float> parentBounds = getParentComponent()->getBounds().toFloat();
         juce::Rectangle<float> newBounds(relativeBounds.getX() * parentBounds.getWidth(),
                                          relativeBounds.getY() * parentBounds.getHeight(),
@@ -919,7 +912,7 @@ bool PlayPath::deserialise(juce::XmlElement* xmlPlayPath)
 
     //data has been read. now, re-initialise all remaining components.
     initialiseImages(); //re-initialises all images
-    resized(); //updates focusAbs, calculates the current lfoLine and redraws the component (or rather, it's *supposed* to redraw it...)
+    resized();
 
     DBG(juce::String(deserialisationSuccessful ? "PlayPath has been deserialised." : "PlayPath could not be deserialised."));
     return deserialisationSuccessful;

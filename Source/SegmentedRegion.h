@@ -36,7 +36,7 @@ class RegionEditorWindow;
 class SegmentedRegion final : public juce::DrawableButton, public juce::Timer
 {
 public:
-    SegmentedRegion(const juce::Path& outline, const juce::Rectangle<float>& relativeBounds, juce::Colour fillColour, AudioEngine* audioEngine)/* :
+    SegmentedRegion(const juce::Path& outline, const juce::Rectangle<float>& relativeBounds, const juce::Rectangle<int>& parentBounds, juce::Colour fillColour, AudioEngine* audioEngine)/* :
         juce::DrawableButton("", ButtonStyle::ImageStretched),
         p(outline),
         relativeBounds(relativeBounds)*/;
@@ -55,7 +55,7 @@ public:
 
     void forceRepaint();
 
-    void transitionToState(SegmentedRegionStateIndex stateToTransitionTo);
+    void transitionToState(SegmentedRegionStateIndex stateToTransitionTo, bool keepPlayingAndEditing = false);
 
     void setShouldBeToggleable(bool newShouldBeToggleable);
     bool getShouldBeToggleable();
