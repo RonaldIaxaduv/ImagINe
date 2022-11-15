@@ -13,6 +13,37 @@
 ImageINeDemoAudioProcessorEditor::ImageINeDemoAudioProcessorEditor (ImageINeDemoAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p), image(*p.audioEngine.getImage())
 {
+    //code for the MIDI input box: see https://docs.juce.com/master/tutorial_synth_using_midi_input.html
+    auto midiInputs = juce::MidiInput::getAvailableDevices();
+    midiInputList.setTextWhenNoChoicesAvailable("No MIDI Inputs Enabled");
+    addAndMakeVisible(midiInputList);
+
+    juce::StringArray midiInputNames;
+    for (auto input : midiInputs)
+        midiInputNames.add(input.name);
+
+    midiInputList.addItemList(midiInputNames, 1);
+    midiInputList.onChange = [this] { setMidiInput(midiInputList.getSelectedItemIndex()); };
+
+    for (auto input : midiInputs)
+    {
+        if (audioProcessor.deviceManager.isMidiInputDeviceEnabled(input.identifier))
+        {
+            setMidiInput(midiInputs.indexOf(input));
+            break;
+        }
+    }
+
+    if (midiInputList.getSelectedId() == 0)
+        setMidiInput(0);
+
+    midiInputListLabel.setText("MIDI Input:", juce::NotificationType::dontSendNotification);
+    midiInputListLabel.attachToComponent(&midiInputList, true);
+    addAndMakeVisible(midiInputListLabel);
+
+
+
+
     addAndMakeVisible(loadImageButton);
     loadImageButton.setButtonText("Load Image");
     loadImageButton.onClick = [this] { showLoadImageDialogue(); };
@@ -65,8 +96,11 @@ void ImageINeDemoAudioProcessorEditor::paint (juce::Graphics& g)
 void ImageINeDemoAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds();
-    juce::Rectangle<int> modeArea;
 
+    juce::Rectangle<int> midiArea = area.removeFromTop(20);
+    midiInputList.setBounds(midiArea.removeFromRight(2 * midiArea.getWidth() / 3));
+
+    juce::Rectangle<int> modeArea;
     switch (currentStateIndex)
     {
     case PluginEditorStateIndex::init:
@@ -387,4 +421,21 @@ void ImageINeDemoAudioProcessorEditor::setStateAccordingToImage()
     default:
         throw std::exception("unhandled SegmentableImageStateIndex.");
     }
+}
+
+void ImageINeDemoAudioProcessorEditor::setMidiInput(int index)
+{
+    auto list = juce::MidiInput::getAvailableDevices();
+
+    audioProcessor.deviceManager.removeMidiInputDeviceCallback(list[lastInputIndex].identifier, &audioProcessor.midiCollector);
+
+    auto newInput = list[index];
+
+    if (!audioProcessor.deviceManager.isMidiInputDeviceEnabled(newInput.identifier))
+        audioProcessor.deviceManager.setMidiInputDeviceEnabled(newInput.identifier, true);
+
+    audioProcessor.deviceManager.addMidiInputDeviceCallback(newInput.identifier, &audioProcessor.midiCollector);
+    midiInputList.setSelectedId(index + 1, juce::dontSendNotification);
+
+    lastInputIndex = index;
 }

@@ -18,8 +18,8 @@ const int AudioEngine::defaultPolyphony = 1;
 
 
 
-AudioEngine::AudioEngine(juce::MidiKeyboardState& keyState, juce::AudioProcessor& associatedProcessor) :
-    keyboardState(keyState), associatedProcessor(associatedProcessor),
+AudioEngine::AudioEngine(juce::MidiKeyboardState& keyState, juce::MidiMessageCollector& midiCollector, juce::AudioProcessor& associatedProcessor) :
+    keyboardState(keyState), midiCollector(midiCollector), associatedProcessor(associatedProcessor),
     specs()
 {
     //associatedImage = std::make_unique<SegmentableImage>(new SegmentableImage(this));
@@ -398,7 +398,7 @@ int AudioEngine::getLastRegionID()
 {
     return regionIdCounter;
 }
-int AudioEngine::addNewRegion(const juce::Colour& regionColour)
+int AudioEngine::addNewRegion(const juce::Colour& regionColour, juce::MidiKeyboardState::Listener* listenerRegion)
 {
     regionColours.add(regionColour);
     int newRegionID = getNextRegionID();
@@ -409,12 +409,19 @@ int AudioEngine::addNewRegion(const juce::Colour& regionColour)
     //create voices
     initialiseVoicesForRegion(newRegionID);
 
+    //register MIDI listener
+    keyboardState.addListener(listenerRegion);
+
     return newRegionID;
 }
 void AudioEngine::resetRegionIDs()
 {
     regionIdCounter = -1;
     regionColours.clear();
+}
+void AudioEngine::removeRegion(juce::MidiKeyboardState::Listener* listenerRegion)
+{
+    keyboardState.removeListener(listenerRegion);
 }
 
 juce::Colour AudioEngine::getRegionColour(int regionID)
@@ -605,52 +612,53 @@ void AudioEngine::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferTo
     bufferToFill.clearActiveBufferRegion();
 
     juce::MidiBuffer incomingMidi;
+    midiCollector.removeNextBlockOfMessages(incomingMidi, bufferToFill.numSamples);
     keyboardState.processNextMidiBuffer(incomingMidi, bufferToFill.startSample, bufferToFill.numSamples, true);       // [4]
-    auto itMidi = incomingMidi.begin();
-    int nextMidiSamplePosition = -1;
-    if (itMidi != incomingMidi.end())
-    {
-        nextMidiSamplePosition = static_cast<juce::MidiMessageMetadata>(*itMidi).samplePosition;
-        DBG("first msg: " + juce::String(nextMidiSamplePosition));
-    }
+    //auto itMidi = incomingMidi.begin();
+    //int nextMidiSamplePosition = -1;
+    //if (itMidi != incomingMidi.end())
+    //{
+    //    nextMidiSamplePosition = static_cast<juce::MidiMessageMetadata>(*itMidi).samplePosition;
+    //    DBG("first msg: " + juce::String(nextMidiSamplePosition));
+    //}
 
     //evaluate all voices sample by sample! this is crucial since every voice *must* be rendered in sync with its LFO.
     //but since different voices' LFOs can influence one another, all voices must be rendered perfectly in sync as well!
     //the main disadvantage of this is that some processing (e.g. many types of filters, EQs or convolution-based effects)
     //might not be simple to implement (or even possible) anymore like this since they need to be rendered in block (since they require an FFT).
     //there may be workarounds for this, though.
-    if (nextMidiSamplePosition < 0)
-    {
+    //if (nextMidiSamplePosition < 0)
+    //{
         //no MIDI received
         for (int i = bufferToFill.startSample; i < bufferToFill.startSample + bufferToFill.numSamples; ++i)
         {
             synth.renderNextBlock(*bufferToFill.buffer, incomingMidi, i, 1); //sample by sample
         }
-    }
-    else
-    {
-        //received MIDI
-        for (int i = bufferToFill.startSample; i < bufferToFill.startSample + bufferToFill.numSamples; ++i)
-        {
-            if (nextMidiSamplePosition == i)
-            {
-                //evaluate MIDI message
+    //}
+    //else
+    //{
+    //    //received MIDI
+    //    for (int i = bufferToFill.startSample; i < bufferToFill.startSample + bufferToFill.numSamples; ++i)
+    //    {
+    //        if (nextMidiSamplePosition == i)
+    //        {
+    //            //evaluate MIDI message
 
-                associatedImage->handleMidiMessage(static_cast<juce::MidiMessageMetadata>(*itMidi).getMessage());
-                ++itMidi; //move to next message
-                if (itMidi != incomingMidi.end())
-                {
-                    nextMidiSamplePosition = static_cast<juce::MidiMessageMetadata>(*itMidi).samplePosition; //update sample position
-                }
-                else
-                {
-                    nextMidiSamplePosition = -1;
-                }
-            }
+    //            //associatedImage->handleMidiMessage(static_cast<juce::MidiMessageMetadata>(*itMidi).getMessage());
+    //            ++itMidi; //move to next message
+    //            if (itMidi != incomingMidi.end())
+    //            {
+    //                nextMidiSamplePosition = static_cast<juce::MidiMessageMetadata>(*itMidi).samplePosition; //update sample position
+    //            }
+    //            else
+    //            {
+    //                nextMidiSamplePosition = -1;
+    //            }
+    //        }
 
-            synth.renderNextBlock(*bufferToFill.buffer, incomingMidi, i, 1); //sample by sample
-        }
-    }
+    //        synth.renderNextBlock(*bufferToFill.buffer, incomingMidi, i, 1); //sample by sample
+    //    }
+    //}
 }
 
 juce::Synthesiser* AudioEngine::getSynth()

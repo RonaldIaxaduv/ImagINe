@@ -638,6 +638,7 @@ void SegmentableImage::clearRegions()
         {
             (*itPath)->removeIntersectingRegion((*it)->getID()); //play paths must forget about this region as well, otherwise there will be dangling pointers!
         }
+        audioEngine->removeRegion(*it);
     }
     regions.clear(true);
     
@@ -662,6 +663,7 @@ void SegmentableImage::removeRegion(int regionID)
             {
                 (*itPath)->removeIntersectingRegion((*it)->getID()); //play paths must forget about this region as well, otherwise there will be dangling pointers!
             }
+            audioEngine->removeRegion(*it);
             regions.remove(i, true); //automatically removes voices, LFOs etc.
             audioEngine->suspendProcessing(previouslySuspended);
 
@@ -721,20 +723,6 @@ void SegmentableImage::removePlayPath(int pathID)
     {
         //reset ID counter
         playPathIdCounter = -1;
-    }
-}
-
-void SegmentableImage::handleMidiMessage(const juce::MidiMessage& msg)
-{
-    if (msg.isNoteOnOrOff())
-    {
-        DBG("received note event: " + juce::String(msg.getChannel()) + " " + juce::String(msg.getNoteNumber()));
-
-        //note event -> pass to all regions to evaluate
-        for (auto itRegion = regions.begin(); itRegion != regions.end(); ++itRegion)
-        {
-            (*itRegion)->handleMidiMessage(msg);
-        }
     }
 }
 

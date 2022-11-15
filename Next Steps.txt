@@ -389,6 +389,8 @@
 	/ maybe the implementedState variable in the different state classes?
 !- add note bindings to regions!
 	-> this is a crucial feature because it allows users to let several regions start/stop playing at once!
+	- make SegmentedRegion a juce::MidiKeyboardState::Listener add whenever a region is added, pass it as a juce::MidiKeyboardState::Listener to the addRegion method of the AudioEngine where it'll get added as a listener to the keyboardState. then, overwrite the pure virtual methods of the interface.
+	- might have to add some way to select specific devices? (shouldn't this be included in the PluginProcessor somewhere?)
 !- check docs.juce.com/master/tutorial_app_plugin_packaging.html
 
 - demo presets

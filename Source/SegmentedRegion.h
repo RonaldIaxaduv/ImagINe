@@ -33,7 +33,7 @@ class RegionEditorWindow;
 //==============================================================================
 /*
 */
-class SegmentedRegion final : public juce::DrawableButton, public juce::Timer
+class SegmentedRegion final : public juce::DrawableButton, public juce::Timer, public juce::MidiKeyboardState::Listener
 {
 public:
     SegmentedRegion(const juce::Path& outline, const juce::Rectangle<float>& relativeBounds, const juce::Rectangle<int>& parentBounds, juce::Colour fillColour, AudioEngine* audioEngine)/* :
@@ -86,7 +86,8 @@ public:
     void setMidiChannel(int newMidiChannel);
     int getMidiNote();
     void setMidiNote(int newNoteNumber);
-    void handleMidiMessage(const juce::MidiMessage& msg);
+    void handleNoteOn(juce::MidiKeyboardState* source, int midiChannel, int midiNoteNumber, float velocity) override;
+    void handleNoteOff(juce::MidiKeyboardState* source, int midiChannel, int midiNoteNumber, float velocity) override;
 
     void signalCourierEntered();
     void signalCourierLeft();

@@ -30,8 +30,8 @@ public:
     }
 
 
-    bool appliesToNote(int) override { return true; }
-    bool appliesToChannel(int) override { return true; }
+    bool appliesToNote(int) override { return false; }
+    bool appliesToChannel(int) override { return false; }
 
     juce::AudioBuffer<float> fileBuffer;
     double origSampleRate;

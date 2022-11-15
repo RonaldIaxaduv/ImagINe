@@ -28,7 +28,8 @@ ImageINeDemoAudioProcessor::ImageINeDemoAudioProcessor()
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
                        ),
-    audioEngine(keyboardState, *this)
+    midiCollector(),
+    audioEngine(keyboardState, midiCollector, *this)
 #endif
 {
 }
@@ -102,6 +103,7 @@ void ImageINeDemoAudioProcessor::changeProgramName (int index, const juce::Strin
 //==============================================================================
 void ImageINeDemoAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    midiCollector.reset(sampleRate);
     audioEngine.prepareToPlay(samplesPerBlock, sampleRate);
 }
 

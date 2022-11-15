@@ -106,30 +106,22 @@ void SegmentedRegionState_Playable::buttonStateChanged()
     switch (region.getState())
     {
     case juce::Button::ButtonState::buttonDown:
-        if (region.getNumCouriers() == 0)
+        //if toggleable, toggle music off or on
+        if (region.isToggleable() && region.getToggleState() == true)
         {
-            //if toggleable, toggle music off or on
-            if (region.isToggleable() && region.getToggleState() == true)
-            {
-                region.stopPlaying();
-            }
-            else //not in toggle mode or toggling on
-            {
-                region.startPlaying();
-            }
+            region.stopPlaying();
         }
-        //else: there are couriers in the region -> region won't react to manual interactions until they've left
+        else //not in toggle mode or toggling on
+        {
+            region.startPlaying();
+        }
         break;
 
     default:
-        if (region.getNumCouriers() == 0)
+        if (!region.isToggleable())
         {
-            if (!region.isToggleable())
-            {
-                region.stopPlaying();
-            }
+            region.stopPlaying();
         }
-        //else: there are couriers in the region -> region won't react to manual interactions until they've left
         break;
     }
 }

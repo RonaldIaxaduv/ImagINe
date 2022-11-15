@@ -55,6 +55,8 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     juce::MidiKeyboardState keyboardState;
+    juce::MidiMessageCollector midiCollector;
+    juce::AudioDeviceManager deviceManager;
     AudioEngine audioEngine;
 
 private:

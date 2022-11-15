@@ -45,10 +45,16 @@ private:
 
     void showLoadImageDialogue();
 
+    void setMidiInput(int index);
+
     //==============================================================================
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     ImageINeDemoAudioProcessor& audioProcessor;
+
+    juce::ComboBox midiInputList;
+    juce::Label midiInputListLabel;
+    int lastInputIndex = 0;
 
     juce::TextButton loadImageButton;
 

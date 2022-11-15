@@ -65,8 +65,6 @@ public:
     void tryCompletePath_PlayPath();
     void deleteLastNode();
 
-    void handleMidiMessage(const juce::MidiMessage& msg);
-
     bool serialise(juce::XmlElement* xmlParent, juce::Array<juce::MemoryBlock>* attachedData);
     bool deserialise(juce::XmlElement* xmlParent, juce::Array<juce::MemoryBlock>* attachedData);
 

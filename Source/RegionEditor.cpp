@@ -43,12 +43,14 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     {
         updateFocusPosition();
         if (focusPositionX.getThumbBeingDragged() < 0)
+        {
             renderLfoWaveform();
+        }
     };
     focusPositionX.onDragEnd = [this] { renderLfoWaveform(); };
     addChildComponent(focusPositionX);
     lfoDepth.setText("LFO depth: ", juce::NotificationType::dontSendNotification);
-    lfoDepth.attachToComponent(&focusPositionX, true); //above!
+    lfoDepth.attachToComponent(&focusPositionX, false); //above!
     addChildComponent(lfoDepth);
 
     focusPositionY.setSliderStyle(juce::Slider::SliderStyle::IncDecButtons);
@@ -59,7 +61,9 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     {
         updateFocusPosition();
         if (focusPositionY.getThumbBeingDragged() < 0)
+        {
             renderLfoWaveform();
+        }
     };
     focusPositionY.onDragEnd = [this] { renderLfoWaveform(); };
     addChildComponent(focusPositionY);
@@ -432,6 +436,7 @@ void RegionEditor::updateFocusPosition()
 void RegionEditor::renderLfoWaveform()
 {
     associatedRegion->renderLfoWaveform();
+    lfoDepth.setText("LFO depth: " + juce::String(associatedRegion->getAssociatedLfo()->getDepth()), juce::NotificationType::dontSendNotification);
 }
 
 void RegionEditor::updateToggleable()

@@ -29,7 +29,7 @@ SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangl
     regionEditorWindow = nullptr;
 
     this->audioEngine = audioEngine;
-    ID = audioEngine->addNewRegion(fillColour); //also generates the region's LFO and all its Voice instances
+    ID = audioEngine->addNewRegion(fillColour, this); //also generates the region's LFO and all its Voice instances
     associatedLfo = audioEngine->getLfo(ID);
     associatedVoices = audioEngine->getVoicesWithID(ID);
 
@@ -567,7 +567,7 @@ void SegmentedRegion::startPlaying()
 }
 void SegmentedRegion::stopPlaying()
 {
-    if (audioFileName != "" && isPlaying)
+    if (audioFileName != "" && isPlaying && currentCourierCount == 0)
     {
         DBG("*stops music*");
         associatedVoices[currentVoiceIndex]->stopNote(1.0f, true); //cycles through all voices bit by bit
@@ -596,28 +596,68 @@ void SegmentedRegion::setMidiNote(int newNoteNumber)
 {
     noteNumber = newNoteNumber;
 }
-void SegmentedRegion::handleMidiMessage(const juce::MidiMessage& msg)
+void SegmentedRegion::handleNoteOn(juce::MidiKeyboardState* source, int midiChannel, int midiNoteNumber, float velocity)
 {
-    //NOTE: this method expects msg to be a note message!
+    //DBG("registered ON note: " + juce::String(midiChannel) + " " + juce::String(midiNoteNumber));
 
     //LONG VERSION (easier to understand, but has too many if cases):
-    //if (midiChannel >= 0 && noteNumber >= 0)
+    //if (this->midiChannel >= 0 && noteNumber >= 0)
     //{
     //    //region is setup to receive MIDI (WIP: maybe make this into a state - this isn't too urgent, though, because MIDI messages are rare compared to samples)
 
-    //    if (midiChannel == 0 || (midiChannel == msg.getChannel()))
+    //    if (this->midiChannel == 0 || (this->midiChannel == midiChannel))
     //    {
     //        //region listens to the given MIDI channel -> evaluate note
 
-    //        if (noteNumber == msg.getNoteNumber())
+    //        if (noteNumber == midiNoteNumber)
     //        {
     //            //note number matches with the one that the region responds to
-
-    //            if (msg.isNoteOn())
+    //            if (isToggleable() && getToggleState() == true)
+    //            {
+    //                stopPlaying();
+    //            }
+    //            else
     //            {
     //                startPlaying();
     //            }
-    //            else
+    //        }
+    //    }
+    //}
+
+    //SHORT VERSION (combines several of the above if cases into one case to improve performance):
+    if ((this->midiChannel >= 0 && noteNumber >= 0) && (this->midiChannel == 0 || (this->midiChannel == midiChannel)) && (noteNumber == midiNoteNumber))
+    {
+        //region is set up to receive MIDI, and the incoming MIDI corresponds to that which the region recognises
+        if (shouldBeToggleable && isPlaying)
+        {
+            //setToggleState(!getToggleState(), juce::NotificationType::sendNotificationAsync); //WIP: this would be cleaner, but requires a message manager (throws as assert)
+            stopPlaying();
+        }
+        else
+        {
+            startPlaying();
+        }
+        
+    }
+}
+void SegmentedRegion::handleNoteOff(juce::MidiKeyboardState* source, int midiChannel, int midiNoteNumber, float velocity)
+{
+    //DBG("registered OFF note: " + juce::String(midiChannel) + " " + juce::String(midiNoteNumber));
+
+    //LONG VERSION (easier to understand, but has too many if cases):
+    //if (this->midiChannel >= 0 && noteNumber >= 0)
+    //{
+    //    //region is setup to receive MIDI (WIP: maybe make this into a state - this isn't too urgent, though, because MIDI messages are rare compared to samples)
+
+    //    if (this->midiChannel == 0 || (this->midiChannel == midiChannel))
+    //    {
+    //        //region listens to the given MIDI channel -> evaluate note
+
+    //        if (noteNumber == midiNoteNumber)
+    //        {
+    //            //note number matches with the one that the region responds to
+    //            
+    //            if (!isToggleable())
     //            {
     //                stopPlaying();
     //            }
@@ -626,18 +666,10 @@ void SegmentedRegion::handleMidiMessage(const juce::MidiMessage& msg)
     //}
 
     //SHORT VERSION (combines several of the above if cases into one case to improve performance):
-    if ((midiChannel >= 0 && noteNumber >= 0) && (midiChannel == 0 || (midiChannel == msg.getChannel())) && (noteNumber == msg.getNoteNumber()))
+    if ((this->midiChannel >= 0 && noteNumber >= 0) && (this->midiChannel == 0 || (this->midiChannel == midiChannel)) && (noteNumber == midiNoteNumber) && (!isToggleable()))
     {
-        //region listens to MIDI, and the channel and note number of the message match those that the region responds to -> evaluate
-
-        if (msg.isNoteOn())
-        {
-            startPlaying();
-        }
-        else
-        {
-            stopPlaying();
-        }
+        //region is set up to receive MIDI, and the incoming MIDI corresponds to that which the region recognises
+        stopPlaying();
     }
 }
 

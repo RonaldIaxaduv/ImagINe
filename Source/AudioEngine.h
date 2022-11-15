@@ -22,15 +22,15 @@ struct TempSound : public juce::SynthesiserSound
 {
     TempSound() {}
 
-    bool appliesToNote(int) override { return true; }
-    bool appliesToChannel(int) override { return true; }
+    bool appliesToNote(int) override { return false; }
+    bool appliesToChannel(int) override { return false; }
 };
 
 //==============================================================================
 class AudioEngine  : public juce::AudioSource
 {
 public:
-    AudioEngine(juce::MidiKeyboardState& keyState, juce::AudioProcessor& associatedProcessor);
+    AudioEngine(juce::MidiKeyboardState& keyState, juce::MidiMessageCollector& midiCollector, juce::AudioProcessor& associatedProcessor);
     ~AudioEngine() override;
 
     bool serialise(juce::XmlElement* xml, juce::Array<juce::MemoryBlock>* attachedData);
@@ -40,8 +40,9 @@ public:
 
     int getNextRegionID();
     int getLastRegionID();
-    int addNewRegion(const juce::Colour& regionColour);
+    int addNewRegion(const juce::Colour& regionColour, juce::MidiKeyboardState::Listener* listenerRegion);
     void resetRegionIDs();
+    void removeRegion(juce::MidiKeyboardState::Listener* listenerRegion);
 
     juce::Colour getRegionColour(int regionID);
     void changeRegionColour(int regionID, juce::Colour newColour);
@@ -75,10 +76,12 @@ public:
 
 private:
     juce::AudioProcessor& associatedProcessor;
+    juce::dsp::ProcessSpec specs;
 
     juce::MidiKeyboardState& keyboardState;
+    juce::MidiMessageCollector& midiCollector;
+    //juce::AudioDeviceManager& deviceManager;
     juce::Synthesiser synth;
-    juce::dsp::ProcessSpec specs;
 
     SegmentableImage* associatedImage = nullptr; //image that the editor will display. it's important to save it here, in the AudioEngine, and not in the editor, because otherwise, it would be deleted (and couldn't be restored) whenever the editor closes
 
