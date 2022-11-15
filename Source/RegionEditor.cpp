@@ -34,7 +34,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     //colourPickerWIP.setColour(...); //when a region has actually been selected, the background colour of this component will change
     addChildComponent(colourPickerWIP);
 
-    //focus position
+    //focus position + LFO depth
     focusPositionX.setSliderStyle(juce::Slider::SliderStyle::IncDecButtons);
     focusPositionX.setIncDecButtonsMode(juce::Slider::IncDecButtonMode::incDecButtonsDraggable_Vertical);
     focusPositionX.setNumDecimalPlacesToDisplay(3);
@@ -47,6 +47,9 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     };
     focusPositionX.onDragEnd = [this] { renderLfoWaveform(); };
     addChildComponent(focusPositionX);
+    lfoDepth.setText("LFO depth: ", juce::NotificationType::dontSendNotification);
+    lfoDepth.attachToComponent(&focusPositionX, true); //above!
+    addChildComponent(lfoDepth);
 
     focusPositionY.setSliderStyle(juce::Slider::SliderStyle::IncDecButtons);
     focusPositionY.setIncDecButtonsMode(juce::Slider::IncDecButtonMode::incDecButtonsDraggable_Vertical);
@@ -130,6 +133,74 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     addChildComponent(pitchQuantisationLabel);
     pitchQuantisationLabel.attachToComponent(&pitchQuantisationChoice, true);
 
+    //MIDI listening
+    midiChannelChoice.addItem("None", -1); 
+    midiChannelChoice.addItem("Any", 1); //this and all following IDs will be decreased by 1 when passed to the region
+    midiChannelChoice.addItem("1", 2);
+    midiChannelChoice.addItem("2", 3);
+    midiChannelChoice.addItem("3", 4);
+    midiChannelChoice.addItem("4", 5);
+    midiChannelChoice.addItem("5", 6);
+    midiChannelChoice.addItem("6", 7);
+    midiChannelChoice.addItem("7", 8);
+    midiChannelChoice.addItem("8", 9);
+    midiChannelChoice.addItem("9", 10);
+    midiChannelChoice.addItem("10", 11);
+    midiChannelChoice.addItem("11", 12);
+    midiChannelChoice.addItem("12", 13);
+    midiChannelChoice.addItem("13", 14);
+    midiChannelChoice.addItem("14", 15);
+    midiChannelChoice.addItem("15", 16);
+    midiChannelChoice.addItem("16", 17);
+    midiChannelChoice.onChange = [this]
+    {
+        if (midiChannelChoice.getSelectedId() < 0)
+        {
+            associatedRegion->setMidiChannel(-1);
+        }
+        else if (midiChannelChoice.getSelectedId() > 0)
+        {
+            associatedRegion->setMidiChannel(midiChannelChoice.getSelectedId() - 1);
+        }
+    };
+    addChildComponent(midiChannelChoice);
+
+    midiChannelLabel.setText("MIDI Channel: ", juce::NotificationType::dontSendNotification);
+    midiChannelLabel.attachToComponent(&midiChannelChoice, true);
+    addChildComponent(midiChannelLabel);
+
+    //list MIDI notes from the highest to the lowest. only the 88 keys on a piano are used for simplicity
+    midiNoteChoice.addItem("none", -1);
+    midiNoteChoice.addItem("C8", 108);
+    for (int octave = 7; octave >= 1; --octave)
+    {
+        midiNoteChoice.addItem("B" + juce::String(octave), 23 + 12 * octave);
+        midiNoteChoice.addItem("A#" + juce::String(octave) + " / Bb" + juce::String(octave), 22 + 12 * octave);
+        midiNoteChoice.addItem("A" + juce::String(octave), 21 + 12 * octave);
+        midiNoteChoice.addItem("G#" + juce::String(octave) + " / Ab" + juce::String(octave), 20 + 12 * octave);
+        midiNoteChoice.addItem("G" + juce::String(octave), 19 + 12 * octave);
+        midiNoteChoice.addItem("F#" + juce::String(octave) + " / Gb" + juce::String(octave), 18 + 12 * octave);
+        midiNoteChoice.addItem("F" + juce::String(octave), 17 + 12 * octave);
+        midiNoteChoice.addItem("E" + juce::String(octave), 16 + 12 * octave);
+        midiNoteChoice.addItem("D#" + juce::String(octave) + " / Eb" + juce::String(octave), 15 + 12 * octave);
+        midiNoteChoice.addItem("D" + juce::String(octave), 14 + 12 * octave);
+        midiNoteChoice.addItem("C#" + juce::String(octave) + " / Db" + juce::String(octave), 13 + 12 * octave);
+        midiNoteChoice.addItem("C" + juce::String(octave), 12 + 12 * octave);
+    }
+    midiNoteChoice.addItem("B0", 23);
+    midiNoteChoice.addItem("A#0 / Bb0", 22);
+    midiNoteChoice.addItem("A0", 21);
+    midiNoteChoice.onChange = [this]
+    {
+        associatedRegion->setMidiNote(midiNoteChoice.getSelectedId());
+    };
+    addChildComponent(midiNoteChoice);
+
+    midiNoteLabel.setText("MIDI Note: ", juce::NotificationType::dontSendNotification);
+    midiNoteLabel.attachToComponent(&midiNoteChoice, true);
+    addChildComponent(midiNoteLabel);
+
+
     //LFO editor
     addChildComponent(lfoEditor);
 
@@ -190,6 +261,13 @@ void RegionEditor::resized()
     pitchQuantisationLabel.setBounds(pitchQuantisationArea.removeFromLeft(pitchQuantisationArea.getWidth() / 3));
     pitchQuantisationChoice.setBounds(pitchQuantisationArea);
 
+    auto midiArea = area.removeFromTop(20);
+    midiChannelLabel.setBounds(midiArea.removeFromLeft(midiArea.getWidth() / 3));
+    midiChannelChoice.setBounds(midiArea);
+    midiArea = area.removeFromTop(20);
+    midiNoteLabel.setBounds(midiArea.removeFromLeft(midiArea.getWidth() / 3));
+    midiNoteChoice.setBounds(midiArea);
+
     lfoEditor.setBounds(area); //fill rest with lfoEditor
 }
 
@@ -218,6 +296,7 @@ void RegionEditor::setChildVisibility(bool shouldBeVisible)
     focusPositionLabel.setVisible(shouldBeVisible);
     focusPositionX.setVisible(shouldBeVisible);
     focusPositionY.setVisible(shouldBeVisible);
+    lfoDepth.setVisible(shouldBeVisible);
 
     toggleModeButton.setVisible(shouldBeVisible);
 
@@ -230,6 +309,11 @@ void RegionEditor::setChildVisibility(bool shouldBeVisible)
     pitchSlider.setVisible(shouldBeVisible);
     pitchQuantisationLabel.setVisible(shouldBeVisible);
     pitchQuantisationChoice.setVisible(shouldBeVisible);
+
+    midiChannelChoice.setVisible(shouldBeVisible);
+    midiChannelLabel.setVisible(shouldBeVisible);
+    midiNoteChoice.setVisible(shouldBeVisible);
+    midiNoteLabel.setVisible(shouldBeVisible);
 
     lfoEditor.setVisible(shouldBeVisible);
 }
@@ -264,8 +348,21 @@ void RegionEditor::copyRegionParameters()
         pitchQuantisationChoice.setEnabled(false);
     }
 
+    int midiChannel = associatedRegion->getMidiChannel();
+    if (midiChannel < 0)
+    {
+        midiChannelChoice.setSelectedId(-1);
+    }
+    else
+    {
+        midiChannelChoice.setSelectedId(midiChannel + 1);
+    }
+    midiNoteChoice.setSelectedId(associatedRegion->getMidiNote());
+
     lfoEditor.updateAvailableVoices();
     lfoEditor.copyParameters();
+
+    lfoDepth.setText("LFO depth: " + juce::String(associatedRegion->getAssociatedLfo()->getDepth()), juce::NotificationType::dontSendNotification);
 
     DBG("region parameters have been copied.");
 }

@@ -384,9 +384,11 @@
 			/ the couriers' speed isn't deserialised correctly, it always goes back to 10.0 even after saving it with a different value
 				# also check the editor for possible mistakes!
 					#> aha, yeah seems like the editor was the problem, it didn't copy the parameters upon its initialisation
->> - things that can be made into static consts:
-	- initialStateIndex in every class with states
-	- maybe the implementedState variable in the different state classes?
+# things that can be made into static consts:
+	# initialStateIndex in every class with states
+	/ maybe the implementedState variable in the different state classes?
+!- add note bindings to regions!
+	-> this is a crucial feature because it allows users to let several regions start/stop playing at once!
 !- check docs.juce.com/master/tutorial_app_plugin_packaging.html
 
 - demo presets
@@ -397,17 +399,18 @@
 
 !- remove the fixed directory paths from the code (loading image, loading audio)
 ?- maybe make regions playable in play path playing mode
-- add save/load program buttons onto the editor (not sure whether all editors inherently provide a safe system - the fact that many VSTs provide load/save buttons makes me think that they don't... also, it would be difficult to provide sample programs otherwise, so... yea, better put buttons on there)
+	-> actually, it's possible to do that now since the user can freely switch between "Playing Regions" and "Playing Play Paths" without interruption
+	!- do make sure, though, that the regions don't start/stop playing in "Playing Regions" mode depending on whether or not there are couriers in them! (just needs an additional condition in the startPlaying/stopPlaying methods)
+!- add save/load program buttons onto the editor (not sure whether all editors inherently provide a safe system - the fact that many VSTs provide load/save buttons makes me think that they don't... also, it would be difficult to provide sample programs otherwise, so... yea, better put buttons on there)
 - make it so that a region's outline colour is actually coloured (not just black/white) when it's playing -> easier to differentiate from non-playing regions
 	-> use inverted fill colour
-- warning prompt when switching back to init state while an image (and potentially regions and play paths) have been loaded already!
-- display LFO depth in the region editor (somewhat close to where the focus point can be shifted)
-- make the width of the LFO line depend on its depth (1.0 = maximum depth, 0.0 = gone, >0.0 = minimum width)
+!- warning prompt when switching back to init state while an image (and potentially regions and play paths) have been loaded already!
+!- display LFO depth in the region editor (somewhat close to where the focus point can be shifted)
+!- make the width of the LFO line depend on its depth (1.0 = maximum depth, 0.0 = gone, >0.0 = minimum width)
 !- are mp3s supported yet? if not, absolutely do include them! include as many formats as possible in general.
 ?- LFO phase modulation doesn't seem to work quite right just yet
 	- setup: 1 region modding its own pitch (no quant) at 5 Hz, another region modding region 1's phase at 0.03 Hz -> wobble should alternate between being strong and weak, but it actually doesn' atm (it seems to be correctly displayed for the LFO line though)
-!- add note bindings to regions!
-	-> this is a crucial feature because it allows users to let several regions start/stop playing at once!
+		- is this perhaps dependent on the order in which LFOs are advanced? (because that order is fixed!)
 ?- add note bindings to play paths?
 !- add some kind of information button that displays key mappings for each mode (e.g. using backspace to delete points while in drawing mode)
 	- can be easily implemented using NativeMessageBox (or whatever it was called)!
@@ -427,17 +430,20 @@
 - ensure that outlined paths actually constitute a 2D plane
 	- calculate determinant -> if it's close to 0, it's not 2D
 - use the SynthesiserSound class to store the sampler data for voices (instead of storing the data in each voice separately). that way, the audio data only has to be stored once instead of [polyphony] times, and adding new voices only requires a reference to a region's sound instead of a full update.
+	-> can use the SamplerOscillator class to do this, it's already derived from SynthesiserSound!
+	- actually, also derive it from SamplerSound instead of just SynthesiserSound - that class should fit the purpose of the implementation a lot better obviously
 - implement more scales (esp. pentatonic scales and various modes)
 - implement more parameters
 	- current LFO phase (rename current implementation "LFO phase multiplier")
 		- is there a way to calculate this modded value efficiently without if cases?
 	- current playback position (rename current implementation "current playback position multiplier")
 		- is there a way to calculate this modded value efficiently without if cases?
-	- panning
-	- stereo width
-	- LFO value multiplication (ringmod)
-	- LFO value addition
-	?- interpret the LFO wavetable as a waveshaping table, where the starting value is at the LFO's current phase
+	!- panning
+	!- stereo width
+		- separate the mono signal from the side signals -> multiply the side signals by the current stereo width value (0...1) -> merge the mono and side signals back together
+	?- LFO value multiplication (ringmod)
+	?- LFO value addition
+	!- interpret the LFO wavetable as a waveshaping table, where the starting value is at the LFO's current phase
 		- this would (most likely) result in rather distorted sounds that change over time
 		- depth: dry/wet mix
 - add a button next to the LFO phase editor to switch its units to ms instead of Hz
@@ -447,7 +453,9 @@
 	- no update rate slider
 	- no pitch quantisation settings
 	- no initial LFO phase / phase multiplier, playback pos / pos multiplier settings (in case i'm adding these options at some point)
-- minor bug: window is still resizable even when in editing/playing mode
+- code QoL: clean up obsolete commented-out code sections in the code
+- code QoL: add descriptions to all major methods
+?- minor bug: window is still resizable even when in editing/playing mode
 	- dunno why this happens... the handle doesn't show anymore, so the command seems to go through, so why does it still allow dragging?
 	- weirdly enough, this doesn't happen for the play path editing/playing mode o.ô
 ?- it might be necessary to optimise the serialisation process at some point (ugh...)
@@ -457,6 +465,7 @@
 
 
 
+!- display version number in the buttom left corner of the screen and in the window's title bar
 - fix some bugs/things that would cause problems with unknowing users
 	/ since regions currently only keep their voice's index, errors would occur if regions that were created earlier than that region were deleted
 		-> fix: when implementing polyphony, voices will have a certain variable that refers to their region. simply delete only voices with the corresponding variable value -> two birds with one stone
@@ -539,24 +548,24 @@
 possible features to add later:
 !- improve region drawing algorithm using image information
 	- differentiate between left and right clicks: left clicks use the automated outline finder, right clicks simply draw straight lines like they do now -> more flexible
+!- GPU-accelerated UI drawing (change the editor window to an openGL-animated window)
 !- sync tempo to DAW's BPM
 !- add an option to quantise the start/stop timings of voices to certain note values corresponding to the DAW's BPM
 	- this would be an amazing quality of life change, but idk how easy this would be... i know that the DAW's BPM should be contained in some MIDI signals, but idk where or when or how to evaluate them to achieve synchronisation
 	- did smth similar in Langton's Ant Sequencer, and it's not quiiiite so easy to do, sadly
-- take sidechain input as audio input for regions (writes audio continuously to a small buffer to enable pitch modulation etc.)
 !- make it possible to modulate more than 1 value of every region
+- take sidechain input as audio input for regions (writes audio continuously to a small buffer to enable pitch modulation etc.)
 - add further (optional) effects like filters, distortion or reverb
 	-> this won't be all too straightforward sadly... many of these effects require processing that isn't sample-by-sample, i.e. this kind of processing would either have to be separate from all other processing, or the entire way processing currently works would have to be rewritten
 	- make it possible to modulate these effects' parameters
-- maybe add granular-shift-based pitch shift
+	- maybe add granular-shift-based pitch shift
 (- add parameters for the DAW to modulate)
 	- WARNING: since some DAWs call getStateInformation really, really often when parameters are changed, this might require a large-scale rework of the serialisation process...
 - implement thread-safety-related concepts
-- add playback modes for the voices and LFOs: Normal (Forward), Oneshot (voices only), Forward-Backward, Backward-Forward, Backward
+- add playback modes for the voices and LFOs: Normal (Forward), Oneshot (voices only?), Forward-Backward, Backward-Forward, Backward
 	-> this could be especially interesting in combination with the playback position/length parameters!
 - more interesting play paths
 	- maybe some more objects (other than regions) that the paths can interact with in some way?
-!- GPU-accelerated UI drawing (change the editor window to an openGL-animated window)
 - add visual feedback for playback position/length
 	- probably better to add this only in combination with the GPU-accelerated UI drawing, otherwise it might be too costly
 	- idea 1: use a second (but smaller) pointer line -> regions look a bit like clocks

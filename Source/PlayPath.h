@@ -72,7 +72,7 @@ protected:
 
 private:
     PlayPathState* states[static_cast<int>(PlayPathStateIndex::StateIndexCount)];
-    PlayPathStateIndex initialStateIndex = PlayPathStateIndex::notInteractable;
+    static const PlayPathStateIndex initialStateIndex = PlayPathStateIndex::notInteractable;
     PlayPathStateIndex currentStateIndex;
     PlayPathState* currentState = nullptr;
 

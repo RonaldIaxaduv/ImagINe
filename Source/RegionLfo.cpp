@@ -281,11 +281,6 @@ ModulatableMultiplicativeParameter<double>* RegionLfo::getUpdateIntervalParamete
     return &updateIntervalParameter;
 }
 
-float RegionLfo::getModulationDepth()
-{
-    return depth;
-}
-
 void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParameterID, int newRegionID, const juce::Array<ModulatableParameter<double>*>& newParameters)
 {
     if (newParameters.size() > 0)
@@ -304,39 +299,39 @@ void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParamete
         case LfoModulatableParameter::volume:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
-                return static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getModulationDepth());
+                return static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
             };
             break;
         case LfoModulatableParameter::volume_inverted:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
-                return 1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getModulationDepth());
+                return 1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
             };
             break;
 
         case LfoModulatableParameter::pitch:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
-                return 12.0 * static_cast<double>(lfo->getCurrentValue_Bipolar() * lfo->getModulationDepth());
+                return 12.0 * static_cast<double>(lfo->getCurrentValue_Bipolar() * lfo->getDepth());
             };
             break;
         case LfoModulatableParameter::pitch_inverted:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
-                return 12.0 * static_cast<double>(-lfo->getCurrentValue_Bipolar() * lfo->getModulationDepth());
+                return 12.0 * static_cast<double>(-lfo->getCurrentValue_Bipolar() * lfo->getDepth());
             };
             break;
 
         case LfoModulatableParameter::playbackPosition:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
-                return static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getModulationDepth());
+                return static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
             };
             break;
         case LfoModulatableParameter::playbackPosition_inverted:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
-                return 1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getModulationDepth());
+                return 1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
             };
             break;
 
@@ -346,39 +341,39 @@ void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParamete
         case LfoModulatableParameter::lfoRate:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
-                return 12.0 * static_cast<double>(lfo->getCurrentValue_Bipolar() * lfo->getModulationDepth());
+                return 12.0 * static_cast<double>(lfo->getCurrentValue_Bipolar() * lfo->getDepth());
             };
             break;
         case LfoModulatableParameter::lfoRate_inverted:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
-                return 12.0 * static_cast<double>(-lfo->getCurrentValue_Bipolar() * lfo->getModulationDepth());
+                return 12.0 * static_cast<double>(-lfo->getCurrentValue_Bipolar() * lfo->getDepth());
             };
             break;
 
         case LfoModulatableParameter::lfoPhase:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
-                return static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getModulationDepth());
+                return static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
             };
             break;
         case LfoModulatableParameter::lfoPhase_inverted:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
-                return 1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getModulationDepth());
+                return 1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
             };
             break;
 
         case LfoModulatableParameter::lfoUpdateInterval:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
-                return static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getModulationDepth());
+                return static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
             };
             break;
         case LfoModulatableParameter::lfoUpdateInterval_inverted:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
-                return 1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getModulationDepth());
+                return 1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
             };
             break;
 

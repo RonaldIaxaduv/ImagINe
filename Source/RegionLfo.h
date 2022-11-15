@@ -57,8 +57,6 @@ public:
     ModulatableMultiplicativeParameter<double>* getPhaseModParameter();
     ModulatableMultiplicativeParameter<double>* getUpdateIntervalParameter();
 
-    float getModulationDepth();
-
     void addRegionModulation(LfoModulatableParameter newModulatedParameterID, int newRegionID, const juce::Array<ModulatableParameter<double>*>& newParameters);
     void removeRegionModulation(int regionID);
 

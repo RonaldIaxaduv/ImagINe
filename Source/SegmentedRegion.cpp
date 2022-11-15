@@ -580,6 +580,67 @@ void SegmentedRegion::stopPlaying()
     }
 }
 
+int SegmentedRegion::getMidiChannel()
+{
+    return midiChannel;
+}
+void SegmentedRegion::setMidiChannel(int newMidiChannel)
+{
+    midiChannel = newMidiChannel;
+}
+int SegmentedRegion::getMidiNote()
+{
+    return noteNumber;
+}
+void SegmentedRegion::setMidiNote(int newNoteNumber)
+{
+    noteNumber = newNoteNumber;
+}
+void SegmentedRegion::handleMidiMessage(const juce::MidiMessage& msg)
+{
+    //NOTE: this method expects msg to be a note message!
+
+    //LONG VERSION (easier to understand, but has too many if cases):
+    //if (midiChannel >= 0 && noteNumber >= 0)
+    //{
+    //    //region is setup to receive MIDI (WIP: maybe make this into a state - this isn't too urgent, though, because MIDI messages are rare compared to samples)
+
+    //    if (midiChannel == 0 || (midiChannel == msg.getChannel()))
+    //    {
+    //        //region listens to the given MIDI channel -> evaluate note
+
+    //        if (noteNumber == msg.getNoteNumber())
+    //        {
+    //            //note number matches with the one that the region responds to
+
+    //            if (msg.isNoteOn())
+    //            {
+    //                startPlaying();
+    //            }
+    //            else
+    //            {
+    //                stopPlaying();
+    //            }
+    //        }
+    //    }
+    //}
+
+    //SHORT VERSION (combines several of the above if cases into one case to improve performance):
+    if ((midiChannel >= 0 && noteNumber >= 0) && (midiChannel == 0 || (midiChannel == msg.getChannel())) && (noteNumber == msg.getNoteNumber()))
+    {
+        //region listens to MIDI, and the channel and note number of the message match those that the region responds to -> evaluate
+
+        if (msg.isNoteOn())
+        {
+            startPlaying();
+        }
+        else
+        {
+            stopPlaying();
+        }
+    }
+}
+
 void SegmentedRegion::signalCourierEntered()
 {
     if (currentCourierCount++ == 0)
@@ -603,6 +664,10 @@ void SegmentedRegion::resetCouriers()
         stopPlaying();
     }
     currentCourierCount = 0;
+}
+int SegmentedRegion::getNumCouriers()
+{
+    return currentCourierCount;
 }
 
 RegionLfo* SegmentedRegion::getAssociatedLfo()
@@ -645,6 +710,9 @@ bool SegmentedRegion::serialise(juce::XmlElement* xmlRegion, juce::Array<juce::M
     juce::XmlElement* xmlFocus = xmlRegion->createNewChildElement("focus");
     xmlFocus->setAttribute("x", focus.getX());
     xmlFocus->setAttribute("y", focus.getY());
+
+    xmlRegion->setAttribute("midiChannel", midiChannel);
+    xmlRegion->setAttribute("noteNumber", noteNumber);
 
     xmlRegion->setAttribute("audioFileName", audioFileName);
     xmlRegion->setAttribute("origSampleRate", origSampleRate);
@@ -703,6 +771,9 @@ bool SegmentedRegion::deserialise(juce::XmlElement* xmlRegion, juce::Array<juce:
     p.clear();
     p.restoreFromString(xmlRegion->getStringAttribute("path", ""));
     fillColour = juce::Colour::fromString(xmlRegion->getStringAttribute("fillColour", juce::Colours::black.toString()));
+
+    midiChannel = xmlRegion->getIntAttribute("midiChannel", -1);
+    noteNumber = xmlRegion->getIntAttribute("noteNumber", -1);
 
     juce::XmlElement* xmlRelativeBounds = xmlRegion->getChildByName("relativeBounds");
     if (xmlRelativeBounds != nullptr)

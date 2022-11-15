@@ -63,6 +63,7 @@ private:
     juce::Label focusPositionLabel;
     juce::Slider focusPositionX; //inc/dec slider 
     juce::Slider focusPositionY; //inc/dec slider
+    juce::Label lfoDepth; //adjustable using the focus position. hence, it's listed here
 
     juce::ToggleButton toggleModeButton;
 
@@ -75,6 +76,11 @@ private:
     juce::Slider pitchSlider;
     juce::Label pitchQuantisationLabel;
     juce::ComboBox pitchQuantisationChoice;
+
+    juce::Label midiChannelLabel;
+    juce::ComboBox midiChannelChoice;
+    juce::Label midiNoteLabel;
+    juce::ComboBox midiNoteChoice;
 
     LfoEditor lfoEditor;
 

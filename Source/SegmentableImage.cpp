@@ -724,6 +724,20 @@ void SegmentableImage::removePlayPath(int pathID)
     }
 }
 
+void SegmentableImage::handleMidiMessage(const juce::MidiMessage& msg)
+{
+    if (msg.isNoteOnOrOff())
+    {
+        DBG("received note event: " + juce::String(msg.getChannel()) + " " + juce::String(msg.getNoteNumber()));
+
+        //note event -> pass to all regions to evaluate
+        for (auto itRegion = regions.begin(); itRegion != regions.end(); ++itRegion)
+        {
+            (*itRegion)->handleMidiMessage(msg);
+        }
+    }
+}
+
 bool SegmentableImage::serialise(juce::XmlElement* xmlParent, juce::Array<juce::MemoryBlock>* attachedData)
 {
     DBG("serialising SegmentableImage...");

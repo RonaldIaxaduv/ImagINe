@@ -82,9 +82,16 @@ public:
     void startPlaying();
     void stopPlaying();
 
+    int getMidiChannel();
+    void setMidiChannel(int newMidiChannel);
+    int getMidiNote();
+    void setMidiNote(int newNoteNumber);
+    void handleMidiMessage(const juce::MidiMessage& msg);
+
     void signalCourierEntered();
     void signalCourierLeft();
     void resetCouriers();
+    int getNumCouriers();
 
     RegionLfo* getAssociatedLfo();
     AudioEngine* getAudioEngine();
@@ -102,8 +109,6 @@ protected:
 private:
     int ID;
 
-    //SegmentedRegionState currentState;
-
     SegmentedRegionState* states[static_cast<int>(SegmentedRegionStateIndex::StateIndexCount)];
     static const SegmentedRegionStateIndex initialStateIndex = SegmentedRegionStateIndex::notInteractable;
     SegmentedRegionStateIndex currentStateIndex;
@@ -114,6 +119,9 @@ private:
     bool isPlaying = false;
     int currentVoiceIndex = 0;
     int currentCourierCount = 0; //used to determine whether a region should start/stop playing when a courier enters/exits it (depending on whether there are already couriers contained at that time)
+
+    int midiChannel = -1; //-1 = none, 0 = any, 1...16 = [channel]
+    int noteNumber = -1; //-1 = none, 0...127 = [note]
 
     int timerIntervalMs = 50; //-> 20.0f Hz
     juce::Line<float> currentLfoLine;
