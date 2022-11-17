@@ -12,7 +12,7 @@
 
 
 //constants
-const float SegmentedRegion::lfoLineThickness = 4.0f;
+const float SegmentedRegion::lfoLineThickness = 8.0f; //4.0f;
 const float SegmentedRegion::focusRadius = 2.5f;
 const float SegmentedRegion::outlineThickness = 1.0f;
 const float SegmentedRegion::inherentTransparency = 0.70f;
@@ -240,21 +240,22 @@ void SegmentedRegion::paintOverChildren(juce::Graphics& g)
     }
 
     //draw line from focus point to point on the outline that corresponds to the associated LFO's current phase
+    float effectiveLfoLineThickness = juce::jmax(1.0f, lfoLineThickness * associatedLfo->getDepth()); //LFOs with a higher depth have thicker LFO lines
     if (isPlaying)
     {
         //draw LFO line
         g.setColour(focusPointColour); //for creating an outline
-        g.drawLine(currentLfoLine, lfoLineThickness);
+        g.drawLine(currentLfoLine, effectiveLfoLineThickness);
         g.setColour(lfoLineColour); //main line
-        g.drawLine(currentLfoLine, lfoLineThickness * 0.8f);
+        g.drawLine(currentLfoLine, effectiveLfoLineThickness * 0.8f);
     }
     else
     {
         //draw LFO line, but with reduced alpha
         g.setColour(focusPointColour.withAlpha(0.5f)); //for creating an outline
-        g.drawLine(currentLfoLine, lfoLineThickness);
+        g.drawLine(currentLfoLine, effectiveLfoLineThickness);
         g.setColour(lfoLineColour.withAlpha(0.5f)); //main line
-        g.drawLine(currentLfoLine, lfoLineThickness * 0.8f);
+        g.drawLine(currentLfoLine, effectiveLfoLineThickness * 0.8f);
     }
 
     //draw focus point (looks better when drawn after the line)

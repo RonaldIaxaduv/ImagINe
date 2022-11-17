@@ -108,6 +108,11 @@ void SegmentableImage::paintOverChildren(juce::Graphics& g)
         }
     }
 }
+void SegmentableImage::repaintAllChildren()
+{
+    repaintAllRegions();
+    repaintAllPlayPaths();
+}
 
 void SegmentableImage::resized()
 {
@@ -912,7 +917,7 @@ bool SegmentableImage::deserialise(juce::XmlElement* xmlParent, juce::Array<juce
             }
 
             resized(); //adjust play paths' bounds to the segmentable image's bounds
-            juce::Timer::callAfterDelay(100, [this] { repaintAllRegions(); repaintAllPlayPaths(); }); //WIP: this is kinda messy, but at least it works. if called without a delay, the regions won't correctly repaint themselves, causing their lfoLines to be in the wrong position until one hovers over them or clicks them
+            juce::Timer::callAfterDelay(100, [this] { repaintAllChildren(); }); //WIP: this is kinda messy, but at least it works. if called without a delay, the regions won't correctly repaint themselves, causing their lfoLines to be in the wrong position until one hovers over them or clicks them
         }
         else
         {

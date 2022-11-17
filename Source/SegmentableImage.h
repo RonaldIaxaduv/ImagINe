@@ -35,6 +35,8 @@ public:
 
     void paint(juce::Graphics& g) override;
     void paintOverChildren(juce::Graphics& g) override;
+    void repaintAllChildren();
+
     void resized() override;
 
     void transitionToState(SegmentableImageStateIndex stateToTransitionTo);

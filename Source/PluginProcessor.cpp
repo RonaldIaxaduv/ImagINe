@@ -368,7 +368,15 @@ void ImageINeDemoAudioProcessor::setStateInformation (const void* data, int size
     DBG(juce::String(deserialisationSuccessful ? "all data has been deserialised." : "deserialisation could not be completed."));
     suspendProcessing(previouslySuspended);
 
-    if (!deserialisationSuccessful)
+    if (deserialisationSuccessful)
+    {
+        //if deserialisation was successful, update the editor (if there is one)
+        if (getActiveEditor() != nullptr)
+        {
+            static_cast<ImageINeDemoAudioProcessorEditor*>(getActiveEditor())->setStateAccordingToImage();
+        }
+    }
+    else
     {
         //if deserialisation failed, transition back to the Init state of the editor (if there is one)
         if (getActiveEditor() != nullptr)

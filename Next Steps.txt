@@ -410,12 +410,12 @@
 ?# maybe make regions playable in play path playing mode
 	-> actually, it's possible to do that now since the user can freely switch between "Playing Regions" and "Playing Play Paths" without interruption
 	!# do make sure, though, that the regions don't start/stop playing in "Playing Regions" mode depending on whether or not there are couriers in them! (just needs an additional condition in the startPlaying/stopPlaying methods)
-!- add save/load program buttons onto the editor (not sure whether all editors inherently provide a safe system - the fact that many VSTs provide load/save buttons makes me think that they don't... also, it would be difficult to provide sample programs otherwise, so... yea, better put buttons on there)
+!# add save/load program buttons onto the editor (not sure whether all editors inherently provide a safe system - the fact that many VSTs provide load/save buttons makes me think that they don't... also, it would be difficult to provide sample programs otherwise, so... yea, better put buttons on there)
 # make it so that a region's outline colour is actually coloured (not just black/white) when it's playing -> easier to differentiate from non-playing regions
 	-> use inverted fill colour
-!- warning prompt when switching back to init state while an image (and potentially regions and play paths) have been loaded already!
+!# warning prompt when switching back to init state while an image (and potentially regions and play paths) have been loaded already!
 !# display LFO depth in the region editor (somewhat close to where the focus point can be shifted)
-!- make the width of the LFO line depend on its depth (1.0 = maximum depth, 0.0 = gone, >0.0 = minimum width)
+!# make the width of the LFO line depend on its depth (1.0 = maximum depth, 0.0 = gone, >0.0 = minimum width)
 !- are mp3s supported yet? if not, absolutely do include them! include as many formats as possible in general.
 ?- LFO phase modulation doesn't seem to work quite right just yet
 	- setup for testing: 1 region modding its own pitch (no quant) at 5 Hz, another region modding region 1's phase at 0.03 Hz -> wobble should alternate between being strong and weak, but it actually doesn' atm (it seems to be correctly displayed for the LFO line though)
@@ -470,9 +470,10 @@
 	-> https://docs.juce.com/master/classThreadWithProgressWindow.html
 - code QoL: clean up obsolete commented-out code sections in the code
 - code QoL: add descriptions to all major methods
-?- minor bug: window is still resizable even when in editing/playing mode
+?/ minor bug: window is still resizable even when in editing/playing mode
 	- dunno why this happens... the handle doesn't show anymore, so the command seems to go through, so why does it still allow dragging?
 	- weirdly enough, this doesn't happen for the play path editing/playing mode o.ô
+	#> in fact, it doesn't happen anymore in general o.ô well, that's odd, but alright. 
 ?- it might be necessary to optimise the serialisation process at some point (ugh...)
 	-> context: some DAWs call getStateInformation A LOT (e.g. when only 1 parameter handle is turned), i.e. saving all image/audio files in that method but be hell
 		-> BUT since ImageINe doesn't use any parameters currently, it might be safe

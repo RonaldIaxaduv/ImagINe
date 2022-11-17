@@ -44,10 +44,20 @@ ImageINeDemoAudioProcessorEditor::ImageINeDemoAudioProcessorEditor (ImageINeDemo
 
 
 
-    addAndMakeVisible(loadImageButton);
-    loadImageButton.setButtonText("Load Image");
-    loadImageButton.onClick = [this] { showLoadImageDialogue(); };
+    //preset buttons
+    openPresetButton.setButtonText("Open Preset");
+    openPresetButton.onClick = [this] { showOpenPresetDialogue(); };
+    addAndMakeVisible(openPresetButton);
+    savePresetButton.setButtonText("Save Preset");
+    savePresetButton.onClick = [this] { showSavePresetDialogue(); };
+    addAndMakeVisible(savePresetButton);
+    
+    //load image button
+    addAndMakeVisible(openImageButton);
+    openImageButton.setButtonText("Open Image");
+    openImageButton.onClick = [this] { showOpenImageDialogue(); };
 
+    //mode box
     addAndMakeVisible(modeBox);
     modeBox.addItem("Init", static_cast<int>(PluginEditorStateIndex::init));
     modeBox.addItem("Drawing Regions", static_cast<int>(PluginEditorStateIndex::drawingRegion));
@@ -61,6 +71,7 @@ ImageINeDemoAudioProcessorEditor::ImageINeDemoAudioProcessorEditor (ImageINeDemo
     modeLabel.setText("Mode: ", juce::NotificationType::dontSendNotification);
     modeLabel.attachToComponent(&modeBox, true);
 
+    //segmentable image
     image.setImagePlacement(juce::RectanglePlacement::stretchToFit);
     addAndMakeVisible(image);
     addKeyListener(&image);
@@ -97,67 +108,46 @@ void ImageINeDemoAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds();
 
-    juce::Rectangle<int> midiArea = area.removeFromTop(20);
-    midiInputList.setBounds(midiArea.removeFromRight(2 * midiArea.getWidth() / 3));
+    juce::Rectangle<int> presetArea = area.removeFromTop(20);
+    int widthQuarter = presetArea.getWidth() / 4;
+    openPresetButton.setBounds(presetArea.removeFromLeft(widthQuarter));
+    savePresetButton.setBounds(presetArea.removeFromLeft(widthQuarter));
+
+    //juce::Rectangle<int> midiArea = area.removeFromTop(20);
+    //midiInputList.setBounds(midiArea.removeFromRight(2 * midiArea.getWidth() / 3));
+    juce::Rectangle<int> midiArea = presetArea;
+    midiInputList.setBounds(midiArea);
 
     juce::Rectangle<int> modeArea;
+    juce::Rectangle<int> imageArea;
     switch (currentStateIndex)
     {
     case PluginEditorStateIndex::init:
-        loadImageButton.setBounds(area.removeFromTop(20).reduced(2, 2));
-
         modeArea = area.removeFromTop(20);
         modeLabel.setBounds(modeArea.removeFromLeft(50).reduced(2, 2));
         modeBox.setBounds(modeArea.reduced(2, 2));
+
+        //openImageButton.setBounds(area.removeFromTop(20).reduced(2, 2));
+        imageArea = juce::Rectangle<int>(area.getCentreX() - area.getWidth() / 3,
+                                         area.getCentreY() - 12,
+                                         2 * area.getWidth() / 3,
+                                         24);
+        openImageButton.setBounds(imageArea.reduced(2, 2));
         break;
-
-
-
 
     case PluginEditorStateIndex::drawingRegion:
-        modeArea = area.removeFromTop(20);
-        modeLabel.setBounds(modeArea.removeFromLeft(50).reduced(2, 2));
-        modeBox.setBounds(modeArea.reduced(2, 2));
-        break;
-
     case PluginEditorStateIndex::editingRegions:
-        modeArea = area.removeFromTop(20);
-        modeLabel.setBounds(modeArea.removeFromLeft(50).reduced(2, 2));
-        modeBox.setBounds(modeArea.reduced(2, 2));
-        break;
-
     case PluginEditorStateIndex::playingRegions:
-        modeArea = area.removeFromTop(20);
-        modeLabel.setBounds(modeArea.removeFromLeft(50).reduced(2, 2));
-        modeBox.setBounds(modeArea.reduced(2, 2));
-        break;
-
-
-
-
     case PluginEditorStateIndex::drawingPlayPath:
-        modeArea = area.removeFromTop(20);
-        modeLabel.setBounds(modeArea.removeFromLeft(50).reduced(2, 2));
-        modeBox.setBounds(modeArea.reduced(2, 2));
-        break;
-
     case PluginEditorStateIndex::editingPlayPaths:
-        modeArea = area.removeFromTop(20);
-        modeLabel.setBounds(modeArea.removeFromLeft(50).reduced(2, 2));
-        modeBox.setBounds(modeArea.reduced(2, 2));
-        break;
-
     case PluginEditorStateIndex::playingPlayPaths:
         modeArea = area.removeFromTop(20);
         modeLabel.setBounds(modeArea.removeFromLeft(50).reduced(2, 2));
         modeBox.setBounds(modeArea.reduced(2, 2));
         break;
 
-
-
-
     default:
-        break;
+        break; //don't throw an exception here! the code will sometimes get here when starting up the editor!
     }
 
     area = area.reduced(5, 5); //leave some space towards the sides
@@ -209,7 +199,7 @@ void ImageINeDemoAudioProcessorEditor::transitionToState(PluginEditorStateIndex 
         modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingPlayPaths), false);
         modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingPlayPaths), false);
 
-        loadImageButton.setVisible(true);
+        openImageButton.setVisible(true);
         image.setVisible(false);
         image.transitionToState(SegmentableImageStateIndex::empty);
 
@@ -229,7 +219,7 @@ void ImageINeDemoAudioProcessorEditor::transitionToState(PluginEditorStateIndex 
         modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingPlayPaths), true);
         modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingPlayPaths), true);
 
-        loadImageButton.setVisible(false);
+        openImageButton.setVisible(false);
         image.setVisible(true);
         image.transitionToState(SegmentableImageStateIndex::drawingRegion);
 
@@ -246,7 +236,7 @@ void ImageINeDemoAudioProcessorEditor::transitionToState(PluginEditorStateIndex 
         modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingPlayPaths), true);
         modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingPlayPaths), true);
 
-        loadImageButton.setVisible(false);
+        openImageButton.setVisible(false);
         image.setVisible(true);
         image.transitionToState(SegmentableImageStateIndex::editingRegions);
 
@@ -263,7 +253,7 @@ void ImageINeDemoAudioProcessorEditor::transitionToState(PluginEditorStateIndex 
         modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingPlayPaths), true);
         modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingPlayPaths), true);
 
-        loadImageButton.setVisible(false);
+        openImageButton.setVisible(false);
         image.setVisible(true);
         image.transitionToState(SegmentableImageStateIndex::playingRegions);
 
@@ -283,7 +273,7 @@ void ImageINeDemoAudioProcessorEditor::transitionToState(PluginEditorStateIndex 
         modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingPlayPaths), true);
         modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingPlayPaths), true);
 
-        loadImageButton.setVisible(false);
+        openImageButton.setVisible(false);
         image.setVisible(true);
         image.transitionToState(SegmentableImageStateIndex::drawingPlayPath);
 
@@ -300,7 +290,7 @@ void ImageINeDemoAudioProcessorEditor::transitionToState(PluginEditorStateIndex 
         modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingPlayPaths), true);
         modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingPlayPaths), true);
 
-        loadImageButton.setVisible(false);
+        openImageButton.setVisible(false);
         image.setVisible(true);
         image.transitionToState(SegmentableImageStateIndex::editingPlayPaths);
 
@@ -317,7 +307,7 @@ void ImageINeDemoAudioProcessorEditor::transitionToState(PluginEditorStateIndex 
         modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingPlayPaths), true);
         modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingPlayPaths), true);
 
-        loadImageButton.setVisible(false);
+        openImageButton.setVisible(false);
         image.setVisible(true);
         image.transitionToState(SegmentableImageStateIndex::playingPlayPaths);
 
@@ -338,46 +328,17 @@ void ImageINeDemoAudioProcessorEditor::transitionToState(PluginEditorStateIndex 
     }
     resized();
 }
-
-
-
-
-void ImageINeDemoAudioProcessorEditor::showLoadImageDialogue()
-{
-    //image.setImage(juce::ImageFileFormat::loadFrom(juce::File("C:\\Users\\Aaron\\Desktop\\Programmierung\\GitHub\\ImageSegmentationTester\\Test Images\\Re_Legion_big+.jpg")));
-
-    fc.reset(new juce::FileChooser("Choose an image to open...", juce::File(R"(C:\Users\Aaron\Desktop\Programmierung\GitHub\ImageSegmentationTester\Test Images)") /*juce::File::getCurrentWorkingDirectory()*/,
-        "*.jpg;*.jpeg;*.png;*.gif;*.bmp", true));
-
-    fc->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
-        [this](const juce::FileChooser& chooser)
-        {
-            juce::String chosen;
-
-            auto result = chooser.getURLResult();
-            if (result.isLocalFile())
-            {
-                chosen = result.getLocalFile().getFullPathName();
-                juce::Image img = juce::ImageFileFormat::loadFrom(result.getLocalFile());
-                image.setImage(img);
-                modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingRegion), true);
-                modeBox.setSelectedId(static_cast<int>(PluginEditorStateIndex::drawingRegion));
-                toFront(true);
-            }
-        },
-        nullptr);
-}
-
-void ImageINeDemoAudioProcessorEditor::updateState()
-{
-    if (modeBox.getSelectedId() != 0 && modeBox.getSelectedId() != static_cast<int>(currentStateIndex)) //check whether the state has actually changed
-    {
-        transitionToState(static_cast<PluginEditorStateIndex>(modeBox.getSelectedId()));
-    }
-}
-
 void ImageINeDemoAudioProcessorEditor::setStateAccordingToImage()
 {
+    //allow to transition to any state -> mode boxes all need to be activated!
+    modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::init), true);
+    modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingRegion), true);
+    modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingRegions), true);
+    modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingRegions), true);
+    modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingPlayPath), true);
+    modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::editingPlayPaths), true);
+    modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::playingPlayPaths), true);
+
     switch (image.getCurrentStateIndex())
     {
     case SegmentableImageStateIndex::empty:
@@ -420,6 +381,165 @@ void ImageINeDemoAudioProcessorEditor::setStateAccordingToImage()
 
     default:
         throw std::exception("unhandled SegmentableImageStateIndex.");
+    }
+}
+
+void ImageINeDemoAudioProcessorEditor::restorePreviousModeBoxSelection()
+{
+    modeBox.setSelectedId(static_cast<int>(currentStateIndex), juce::NotificationType::dontSendNotification);
+}
+
+
+
+
+
+void ImageINeDemoAudioProcessorEditor::showOpenImageDialogue()
+{
+    //image.setImage(juce::ImageFileFormat::loadFrom(juce::File("C:\\Users\\Aaron\\Desktop\\Programmierung\\GitHub\\ImageSegmentationTester\\Test Images\\Re_Legion_big+.jpg")));
+
+    fc.reset(new juce::FileChooser("Choose an image to open...", juce::File(R"(C:\Users\Aaron\Desktop\Programmierung\GitHub\ImageSegmentationTester\Test Images)") /*juce::File::getCurrentWorkingDirectory()*/,
+        "*.jpg;*.jpeg;*.png;*.gif;*.bmp", true));
+
+    fc->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+        [this](const juce::FileChooser& chooser)
+        {
+            juce::String chosen;
+
+            auto result = chooser.getURLResult();
+            if (result.isLocalFile())
+            {
+                chosen = result.getLocalFile().getFullPathName();
+                juce::Image img = juce::ImageFileFormat::loadFrom(result.getLocalFile());
+                image.setImage(img);
+                modeBox.setItemEnabled(static_cast<int>(PluginEditorStateIndex::drawingRegion), true);
+                modeBox.setSelectedId(static_cast<int>(PluginEditorStateIndex::drawingRegion));
+                toFront(true);
+            }
+        },
+        nullptr);
+}
+
+void ImageINeDemoAudioProcessorEditor::showOpenPresetDialogue()
+{
+    fc.reset(new juce::FileChooser("Choose a preset to open...", juce::File(), "*.imageine_preset", false, false, nullptr));
+
+    fc->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+        [this](const juce::FileChooser& chooser)
+        {
+            auto result = chooser.getURLResult();
+            if (result.isLocalFile())
+            {
+                juce::File chosenFile = result.getLocalFile();
+                juce::MemoryBlock fileBlock;
+
+                //load file to RAM
+                bool shouldBeSuspended = processor.isSuspended();
+                processor.suspendProcessing(true);
+                chosenFile.loadFileAsData(fileBlock);
+
+                //deserialise file
+                try
+                {
+                    processor.setStateInformation(fileBlock.getData(), fileBlock.getSize());
+                    juce::Timer::callAfterDelay(100, [this]
+                        {
+                            juce::Rectangle<int> prevBounds = image.getBounds();
+                            image.setBounds(prevBounds.expanded(100, 100));
+                            image.setBounds(prevBounds);
+                        }); //hacky, but the LFO lines don't redraw properly otherwise. don't question it :x
+                    juce::NativeMessageBox::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, "ImageINe - Preset loaded.", "The preset has been loaded successfully.", this, nullptr);
+                    processor.suspendProcessing(shouldBeSuspended);
+                }
+                catch (std::exception ex)
+                {
+                    juce::NativeMessageBox::showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon, "ImageINe.", "The preset could not be loaded. Reason: " + juce::String(ex.what()), this, nullptr);
+                    processor.suspendProcessing(shouldBeSuspended);
+                }       
+            }
+        },
+        nullptr);
+}
+void ImageINeDemoAudioProcessorEditor::showSavePresetDialogue()
+{
+    fc.reset(new juce::FileChooser("Choose a directory and name for the new preset...", juce::File(), "*.imageine_preset", false, false, nullptr));
+
+    fc->launchAsync(juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::warnAboutOverwriting,
+        [this](const juce::FileChooser& chooser)
+        {
+            auto result = chooser.getURLResult();
+            if (result.isLocalFile())
+            {
+                juce::File chosenFile = result.getLocalFile();
+                
+                //ensure correct file extension
+                DBG("detected file extension: " + chosenFile.getFileExtension());
+                if (chosenFile.getFileExtension().compareIgnoreCase(".imageine_preset") != 0)
+                {
+                    chosenFile = chosenFile.withFileExtension("imageine_preset");
+                    DBG("new file extension: " + chosenFile.getFileExtension());
+                }
+
+                if (chosenFile.hasWriteAccess())
+                {
+                    //serialise current state
+                    juce::MemoryBlock fileBlock;
+                    processor.getStateInformation(fileBlock);
+
+                    //save to file
+                    bool shouldBeSuspended = processor.isSuspended();
+                    processor.suspendProcessing(true);
+                    try
+                    {
+                        chosenFile.replaceWithData(fileBlock.getData(), fileBlock.getSize());
+                        juce::NativeMessageBox::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, "ImageINe - Preset saved.", "The preset has been saved successfully.", this, nullptr);
+                        processor.suspendProcessing(shouldBeSuspended);
+                    }
+                    catch (std::exception ex)
+                    {
+                        juce::NativeMessageBox::showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon, "ImageINe.", "The preset could not be saved. Reason: " + juce::String(ex.what()), this, nullptr);
+                        processor.suspendProcessing(shouldBeSuspended);
+                    }
+                }
+            }
+        },
+        nullptr);
+}
+
+void ImageINeDemoAudioProcessorEditor::updateState()
+{
+    if (modeBox.getSelectedId() != 0 && modeBox.getSelectedId() != static_cast<int>(currentStateIndex)) //check whether the state has actually changed
+    {
+        if (modeBox.getSelectedId() == static_cast<int>(PluginEditorStateIndex::init) &&            //when transitioning to init
+            static_cast<int>(currentStateIndex) > static_cast<int>(PluginEditorStateIndex::init) && //from any state after init
+            (image.hasAtLeastOneRegion() || image.hasAtLeastOnePlayPath())                          //while there are regions or play paths on the image
+            )
+        {
+            //display warning prompt about deleting regions and/or play paths. allow the user to cancel the transition!
+
+            //define message box and its callback
+            void(*f)(int, ImageINeDemoAudioProcessorEditor*, PluginEditorStateIndex) = [](int result, ImageINeDemoAudioProcessorEditor* editor, PluginEditorStateIndex stateID)
+            {
+                if (result > 0)
+                {
+                    editor->transitionToState(stateID);
+                }
+                else
+                {
+                    editor->restorePreviousModeBoxSelection();
+                }
+            };
+            juce::ModalComponentManager::Callback* cb = juce::ModalCallbackFunction::withParam(f, this, static_cast<PluginEditorStateIndex>(modeBox.getSelectedId()));
+
+            auto result = juce::NativeMessageBox::showYesNoBox(juce::MessageBoxIconType::WarningIcon,
+                "Transition back to Init?",
+                "Are you sure that you would like to transition back to the initial state? All regions and play paths would be deleted!",
+                this,
+                cb);
+        }
+        else
+        {
+            transitionToState(static_cast<PluginEditorStateIndex>(modeBox.getSelectedId()));
+        }
     }
 }
 

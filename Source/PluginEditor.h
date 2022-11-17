@@ -38,12 +38,18 @@ public:
     };
 
     void transitionToState(PluginEditorStateIndex stateToTransitionTo);
+    void setStateAccordingToImage();
+
+    void restorePreviousModeBoxSelection();
 
 private:
     //==============================================================================
     void updateState();
 
-    void showLoadImageDialogue();
+    void showOpenImageDialogue();
+
+    void showOpenPresetDialogue();
+    void showSavePresetDialogue();
 
     void setMidiInput(int index);
 
@@ -56,10 +62,12 @@ private:
     juce::Label midiInputListLabel;
     int lastInputIndex = 0;
 
-    juce::TextButton loadImageButton;
+    juce::TextButton openPresetButton;
+    juce::TextButton savePresetButton;
+
+    juce::TextButton openImageButton;
 
     PluginEditorStateIndex currentStateIndex = PluginEditorStateIndex::null;
-    void setStateAccordingToImage();
 
     juce::Label modeLabel;
     juce::ComboBox modeBox;
