@@ -17,6 +17,7 @@ const float SegmentedRegion::focusRadius = 2.5f;
 const float SegmentedRegion::outlineThickness = 1.0f;
 const float SegmentedRegion::inherentTransparency = 0.70f;
 const float SegmentedRegion::disabledTransparency = 0.20f;
+const float SegmentedRegion::disabledTransparencyOutline = 0.50f;
 
 //public
 
@@ -56,6 +57,7 @@ SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangl
     setBuffer(juce::AudioSampleBuffer(), "", 0.0); //no audio file set yet -> empty buffer
     
     setBufferedToImage(true);
+    setMouseClickGrabsKeyboardFocus(false);
     //setRepaintsOnMouseActivity(false); //doesn't work for DrawableButton sadly (but makes kind of sense since it needs to change its background image while interacting with it)
     //currentLfoLine = juce::Line<float>(juce::Point<float>(0.0f, 0.0f), juce::Point<float>(static_cast<float>(getWidth()), static_cast<float>(getHeight()))); //diagonal -> entire region will be redrawn (a little hacky, but ensures that the LFO line is drawn before the region is first played)
     //repaint(); //paints the LFO line
@@ -114,55 +116,62 @@ void SegmentedRegion::initialiseImages()
     DBG("initial size of segmented region: " + getBounds().toString());
     DBG("bounds of the passed path: " + p.getBounds().toString());
 
+    juce::Colour invertedFillColour = juce::Colour::fromRGBA(255 - fillColour.getRed(), 255 - fillColour.getGreen(), 255 - fillColour.getBlue(), 255);
+
     normalImage.setPath(p);
     normalImage.setFill(juce::FillType(fillColour.withAlpha(inherentTransparency)));
     //normalImage.setBufferedToImage(true) <- WIP: do this? would this improve performance?
     //normalImage.setHasFocusOutline
     normalImage.setStrokeThickness(outlineThickness);
-    normalImage.setStrokeFill(juce::FillType(normalImage.getFill().colour.contrasting()));
+    normalImage.setStrokeFill(juce::FillType(normalImage.getFill().colour.withAlpha(1.0f).contrasting()));
     normalImage.setBounds(getBounds());
 
     overImage.setPath(p);
     overImage.setFill(juce::FillType(fillColour.brighter(0.2f).withAlpha(inherentTransparency)));
     overImage.setStrokeThickness(outlineThickness);
-    overImage.setStrokeFill(juce::FillType(overImage.getFill().colour.contrasting()));
+    overImage.setStrokeFill(juce::FillType(overImage.getFill().colour.withAlpha(1.0f).contrasting()));
     overImage.setBounds(getBounds());
 
     downImage.setPath(p);
     downImage.setFill(juce::FillType(fillColour.darker(0.2f).withAlpha(inherentTransparency)));
     downImage.setStrokeThickness(outlineThickness);
-    downImage.setStrokeFill(juce::FillType(downImage.getFill().colour.contrasting()));
+    //downImage.setStrokeFill(juce::FillType(downImage.getFill().colour.withAlpha(1.0f).contrasting()));
+    downImage.setStrokeFill(juce::FillType(invertedFillColour.darker(0.2f)));
     downImage.setBounds(getBounds());
 
     disabledImage.setPath(p);
     disabledImage.setFill(juce::FillType(fillColour.withAlpha(disabledTransparency)));
     disabledImage.setStrokeThickness(outlineThickness);
-    disabledImage.setStrokeFill(juce::FillType(disabledImage.getFill().colour.contrasting()));
+    disabledImage.setStrokeFill(juce::FillType(disabledImage.getFill().colour.withAlpha(1.0f).contrasting().withAlpha(disabledTransparencyOutline)));
     disabledImage.setBounds(getBounds());
 
 
     normalImageOn.setPath(p);
     normalImageOn.setFill(juce::FillType(fillColour.darker(0.4f).withAlpha(inherentTransparency)));
     normalImageOn.setStrokeThickness(outlineThickness);
-    normalImageOn.setStrokeFill(juce::FillType(normalImageOn.getFill().colour.contrasting()));
+    //normalImageOn.setStrokeFill(juce::FillType(normalImageOn.getFill().colour.withAlpha(1.0f).contrasting()));
+    normalImageOn.setStrokeFill(juce::FillType(invertedFillColour.darker(0.4f)));
     normalImageOn.setBounds(getBounds());
 
     overImageOn.setPath(p);
     overImageOn.setFill(juce::FillType(fillColour.darker(0.2f).withAlpha(inherentTransparency)));
     overImageOn.setStrokeThickness(outlineThickness);
-    overImageOn.setStrokeFill(juce::FillType(overImageOn.getFill().colour.contrasting()));
+    //overImageOn.setStrokeFill(juce::FillType(overImageOn.getFill().colour.withAlpha(1.0f).contrasting()));
+    overImageOn.setStrokeFill(juce::FillType(invertedFillColour.darker(0.2f)));
     overImageOn.setBounds(getBounds());
 
     downImageOn.setPath(p);
     downImageOn.setFill(juce::FillType(fillColour.darker(0.6f).withAlpha(inherentTransparency)));
     downImageOn.setStrokeThickness(outlineThickness);
-    downImageOn.setStrokeFill(juce::FillType(downImageOn.getFill().colour.contrasting()));
+    //downImageOn.setStrokeFill(juce::FillType(downImageOn.getFill().colour.withAlpha(1.0f).contrasting()));
+    downImageOn.setStrokeFill(juce::FillType(invertedFillColour.darker(0.6f)));
     downImageOn.setBounds(getBounds());
 
     disabledImageOn.setPath(p);
     disabledImageOn.setFill(juce::FillType(fillColour.darker(0.4f).withAlpha(disabledTransparency)));
     disabledImageOn.setStrokeThickness(outlineThickness);
-    disabledImageOn.setStrokeFill(juce::FillType(disabledImageOn.getFill().colour.contrasting()));
+    //disabledImageOn.setStrokeFill(juce::FillType(disabledImageOn.getFill().colour.withAlpha(1.0f).contrasting().withAlpha(disabledTransparency)));
+    disabledImageOn.setStrokeFill(juce::FillType(invertedFillColour.darker(0.4).withAlpha(disabledTransparencyOutline)));
     disabledImageOn.setBounds(getBounds());
 
     setImages(&normalImage, &overImage, &downImage, &disabledImage, &normalImageOn, &overImageOn, &downImageOn, &disabledImageOn);
@@ -549,9 +558,17 @@ void SegmentedRegion::refreshEditor()
     }
 }
 
+void SegmentedRegion::setIsPlaying_Click(bool shouldBePlaying)
+{
+    isPlaying_click = shouldBePlaying;
+}
+bool SegmentedRegion::shouldBePlaying()
+{
+    return isPlaying_click || isPlaying_courier || isPlaying_midi;
+}
 void SegmentedRegion::startPlaying()
 {
-    if (audioFileName != "" && !isPlaying)
+    if (audioFileName != "" && !isPlaying && shouldBePlaying()) //audio file is set, and the region isn't playing yet, but it was requested to do so
     {
         DBG("*plays music*");
         isPlaying = true;
@@ -562,12 +579,26 @@ void SegmentedRegion::startPlaying()
         //audioEngine->getSynth()->noteOn(1, 64, 1.0f); //might be worth a thought for later because of polyphony, but since voices will then be chosen automatically, adjustments to the voices class would have to be made
         //audioEngine->getSynth()->getVoice(voiceIndex)->startNote(0, 1.0f, audioEngine->getSynth()->getSound(0).get(), 64);
 
+        //try to set the button's toggle state to "down" (needs to be done cross-thread for MIDI messages because they do not run on the same thread as couriers and clicks)
+        if (juce::MessageManager::getInstance()->isThisTheMessageThread())
+        {
+            setToggleState(true, juce::NotificationType::dontSendNotification);
+        }
+        else
+        {
+            juce::MessageManager::getInstance()->callFunctionOnMessageThread([](void* data)
+                {
+                    static_cast<SegmentedRegion*>(data)->setToggleState(true, juce::NotificationType::dontSendNotification);
+                    return static_cast<void*>(nullptr);
+                }, this);
+        }
+
         startTimer(timerIntervalMs); //animates the LFO line
     }
 }
 void SegmentedRegion::stopPlaying()
 {
-    if (audioFileName != "" && isPlaying && currentCourierCount == 0)
+    if (isPlaying && !shouldBePlaying()) //region is playing, but it was requested that it shouldn't do so anymore. (the audio file needn't be checked because the region cannot start playing without the file having been checked beforehand.)
     {
         DBG("*stops music*");
         associatedVoices[currentVoiceIndex]->stopNote(1.0f, true); //cycles through all voices bit by bit
@@ -575,6 +606,20 @@ void SegmentedRegion::stopPlaying()
         //audioEngine->getSynth()->noteOff(1, 64, 1.0f, true);
         //audioEngine->getSynth()->getVoice(voiceIndex)->stopNote(1.0f, true);
         isPlaying = false;
+
+        //try to set the button's toggle state to "up" (needs to be done cross-thread for MIDI messages because they do not run on the same thread as couriers and clicks)
+        if (juce::MessageManager::getInstance()->isThisTheMessageThread())
+        {
+            setToggleState(false, juce::NotificationType::dontSendNotification);
+        }
+        else
+        {
+            juce::MessageManager::getInstance()->callFunctionOnMessageThread([](void* data)
+                {
+                    static_cast<SegmentedRegion*>(data)->setToggleState(false, juce::NotificationType::dontSendNotification);
+                    return static_cast<void*>(nullptr);
+                }, this);
+        }
 
         //stopTimer(); //stopped in the drawing method since the LFO will have to keep being drawn for a little longer because of release time
     }
@@ -631,10 +676,12 @@ void SegmentedRegion::handleNoteOn(juce::MidiKeyboardState* source, int midiChan
         if (shouldBeToggleable && isPlaying)
         {
             //setToggleState(!getToggleState(), juce::NotificationType::sendNotificationAsync); //WIP: this would be cleaner, but requires a message manager (throws as assert)
+            isPlaying_midi = false;
             stopPlaying();
         }
         else
         {
+            isPlaying_midi = true;
             startPlaying();
         }
         
@@ -669,6 +716,7 @@ void SegmentedRegion::handleNoteOff(juce::MidiKeyboardState* source, int midiCha
     if ((this->midiChannel >= 0 && noteNumber >= 0) && (this->midiChannel == 0 || (this->midiChannel == midiChannel)) && (noteNumber == midiNoteNumber) && (!isToggleable()))
     {
         //region is set up to receive MIDI, and the incoming MIDI corresponds to that which the region recognises
+        isPlaying_midi = false;
         stopPlaying();
     }
 }
@@ -677,7 +725,8 @@ void SegmentedRegion::signalCourierEntered()
 {
     if (currentCourierCount++ == 0)
     {
-        //only play if there weren't any couriers before
+        //only attempt playing if there weren't any couriers before (note: doesn't play if the region was already set to playing through the region playing mode)
+        isPlaying_courier = true;
         startPlaying();
     }
 }
@@ -685,7 +734,8 @@ void SegmentedRegion::signalCourierLeft()
 {
     if (--currentCourierCount == 0)
     {
-        //only no playing if there are no couriers left
+        //only attempt to stop playing if there are no couriers left
+        isPlaying_courier = false;
         stopPlaying();
     }
 }
@@ -693,6 +743,7 @@ void SegmentedRegion::resetCouriers()
 {
     if (currentCourierCount > 0)
     {
+        isPlaying_courier = false;
         stopPlaying();
     }
     currentCourierCount = 0;
@@ -912,4 +963,27 @@ bool SegmentedRegion::deserialise(juce::XmlElement* xmlRegion, juce::Array<juce:
 void SegmentedRegion::buttonStateChanged() //void handleButtonStateChanged() //void clicked(const juce::ModifierKeys& modifiers) override
 {
     currentState->buttonStateChanged();
+}
+
+void SegmentedRegion::mouseDown(const juce::MouseEvent& e)
+{
+    if (isEnabled())
+    {
+        juce::DrawableButton::mouseDown(e);
+    }
+    else
+    {
+        getParentComponent()->mouseDown(e.getEventRelativeTo(getParentComponent())); //when the region is disabled, pass clicks back to the segmentable image (setInterceptsMouseClicks(false, false) doesn't do anything for DrawableButtons sadly...)
+    }
+}
+void SegmentedRegion::mouseUp(const juce::MouseEvent& e)
+{
+    if (isEnabled())
+    {
+        juce::DrawableButton::mouseUp(e);
+    }
+    else
+    {
+        getParentComponent()->mouseUp(e.getEventRelativeTo(getParentComponent())); //when the region is disabled, pass clicks back to the segmentable image (setInterceptsMouseClicks(false, false) doesn't do anything for DrawableButtons sadly...)
+    }
 }

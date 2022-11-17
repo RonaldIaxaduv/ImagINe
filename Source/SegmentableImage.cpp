@@ -69,6 +69,10 @@ SegmentableImage::~SegmentableImage()
 void SegmentableImage::paint(juce::Graphics& g)
 {
     juce::ImageComponent::paint(g);
+}
+void SegmentableImage::paintOverChildren(juce::Graphics& g)
+{
+    juce::ImageComponent::paintOverChildren(g);
 
     if (currentPathPoints.size() > 0)
     {
@@ -94,25 +98,15 @@ void SegmentableImage::paint(juce::Graphics& g)
             g.drawLine(juce::Line<float>(p1, p2), lineThickness);
             g.setColour(juce::Colours::gold);
             g.drawLine(juce::Line<float>(p1, p2), lineThickness * 0.5f);
-            
+
             g.setColour(juce::Colours::black);
             g.fillEllipse(p2.x - dotRadius, p2.y - dotRadius, dotRadius * 2.0f, dotRadius * 2.0f);
             g.setColour(juce::Colours::gold);
             g.fillEllipse(p2.x - dotRadius * 0.75f, p2.y - dotRadius * 0.75f, dotRadius * 1.5f, dotRadius * 1.5f);
-            
+
             p1 = p2;
         }
     }
-
-    //if (static_cast<int>(currentStateIndex) < static_cast<int>(SegmentableImageStateIndex::editingRegions))
-    //{
-    //    //repaintAllRegions();
-
-    //    for (auto* itRegion = regions.begin(); itRegion != regions.end(); ++itRegion)
-    //    {
-    //        (*itRegion)->paintEntireComponent(g, false);
-    //    }
-    //}
 }
 
 void SegmentableImage::resized()
@@ -194,10 +188,13 @@ void SegmentableImage::transitionToState(SegmentableImageStateIndex stateToTrans
             {
                 (*it)->setAlwaysOnTop(false);
                 (*it)->transitionToState(PlayPathStateIndex::notInteractable);
+                //(*it)->setInterceptsMouseClicks(false, false); //doesn't work
+                (*it)->setEnabled(false);
             }
             for (auto it = regions.begin(); it != regions.end(); ++it)
             {
                 (*it)->setAlwaysOnTop(true);
+                (*it)->setEnabled(true);
                 (*it)->transitionToState(SegmentedRegionStateIndex::notInteractable);
             }
             nonInstantStateFound = true;
@@ -213,10 +210,12 @@ void SegmentableImage::transitionToState(SegmentableImageStateIndex stateToTrans
             {
                 (*it)->setAlwaysOnTop(false);
                 (*it)->transitionToState(PlayPathStateIndex::notInteractable, true);
+                (*it)->setEnabled(false);
             }
             for (auto it = regions.begin(); it != regions.end(); ++it)
             {
                 (*it)->setAlwaysOnTop(true);
+                (*it)->setEnabled(true);
                 (*it)->transitionToState(SegmentedRegionStateIndex::editable);
             }
             nonInstantStateFound = true;
@@ -232,10 +231,12 @@ void SegmentableImage::transitionToState(SegmentableImageStateIndex stateToTrans
             {
                 (*it)->setAlwaysOnTop(false);
                 (*it)->transitionToState(PlayPathStateIndex::notInteractable, true);
+                (*it)->setEnabled(false);
             }
             for (auto it = regions.begin(); it != regions.end(); ++it)
             {
                 (*it)->setAlwaysOnTop(true);
+                (*it)->setEnabled(true);
                 (*it)->transitionToState(SegmentedRegionStateIndex::playable);
             }
             nonInstantStateFound = true;
@@ -251,10 +252,13 @@ void SegmentableImage::transitionToState(SegmentableImageStateIndex stateToTrans
             {
                 (*it)->setAlwaysOnTop(false);
                 (*it)->transitionToState(SegmentedRegionStateIndex::notInteractable);
+                //(*it)->setInterceptsMouseClicks(false, false); //doesn't work
+                (*it)->setEnabled(false);
             }
             for (auto it = playPaths.begin(); it != playPaths.end(); ++it)
             {
                 (*it)->setAlwaysOnTop(true);
+                (*it)->setEnabled(true);
                 (*it)->transitionToState(PlayPathStateIndex::notInteractable);
             }
             nonInstantStateFound = true;
@@ -270,10 +274,12 @@ void SegmentableImage::transitionToState(SegmentableImageStateIndex stateToTrans
             {
                 (*it)->setAlwaysOnTop(false);
                 (*it)->transitionToState(SegmentedRegionStateIndex::notInteractable, true);
+                (*it)->setEnabled(false);
             }
             for (auto it = playPaths.begin(); it != playPaths.end(); ++it)
             {
                 (*it)->setAlwaysOnTop(true);
+                (*it)->setEnabled(true);
                 (*it)->transitionToState(PlayPathStateIndex::editable);
             }
             nonInstantStateFound = true;
@@ -289,10 +295,12 @@ void SegmentableImage::transitionToState(SegmentableImageStateIndex stateToTrans
             {
                 (*it)->setAlwaysOnTop(false);
                 (*it)->transitionToState(SegmentedRegionStateIndex::notInteractable, true);
+                (*it)->setEnabled(false);
             }
             for (auto it = playPaths.begin(); it != playPaths.end(); ++it)
             {
                 (*it)->setAlwaysOnTop(true);
+                (*it)->setEnabled(true);
                 (*it)->transitionToState(PlayPathStateIndex::playable);
             }
             nonInstantStateFound = true;

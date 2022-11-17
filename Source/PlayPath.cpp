@@ -46,6 +46,7 @@ PlayPath::PlayPath(int ID, const juce::Path& path, const juce::Rectangle<float>&
     //rest
     setToggleable(true);
     setBufferedToImage(true);
+    setMouseClickGrabsKeyboardFocus(false);
     setSize(parentBounds.getWidth(), parentBounds.getHeight());
 }
 PlayPath::~PlayPath()
@@ -924,4 +925,27 @@ bool PlayPath::deserialise(juce::XmlElement* xmlPlayPath)
 void PlayPath::buttonStateChanged()
 {
     currentState->buttonStateChanged();
+}
+
+void PlayPath::mouseDown(const juce::MouseEvent& e)
+{
+    if (isEnabled())
+    {
+        juce::DrawableButton::mouseDown(e);
+    }
+    else
+    {
+        getParentComponent()->mouseDown(e.getEventRelativeTo(getParentComponent())); //when the play path is disabled, pass clicks back to the segmentable image (setInterceptsMouseClicks(false, false) doesn't do anything for DrawableButtons sadly...)
+    }
+}
+void PlayPath::mouseUp(const juce::MouseEvent& e)
+{
+    if (isEnabled())
+    {
+        juce::DrawableButton::mouseUp(e);
+    }
+    else
+    {
+        getParentComponent()->mouseUp(e.getEventRelativeTo(getParentComponent())); //when the play path is disabled, pass clicks back to the segmentable image (setInterceptsMouseClicks(false, false) doesn't do anything for DrawableButtons sadly...)
+    }
 }

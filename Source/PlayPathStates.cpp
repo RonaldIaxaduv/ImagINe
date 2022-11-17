@@ -29,7 +29,7 @@ PlayPathState_NotInteractable::PlayPathState_NotInteractable(PlayPath& path) :
 bool PlayPathState_NotInteractable::hitTest(int x, int y)
 {
     //return false; //no interaction
-    return path.hitTest_Interactable(x, y); //this is fine (and beneficial to redrawing) as long as clicked and buttonStateChanged remain empty
+    return path.hitTest_Interactable(x, y); //this is fine (and beneficial to redrawing) as long as clicked and buttonStateChanged remain empty or the path is disabled
 }
 
 void PlayPathState_NotInteractable::clicked(const juce::ModifierKeys& modifiers)
@@ -38,7 +38,7 @@ void PlayPathState_NotInteractable::clicked(const juce::ModifierKeys& modifiers)
 }
 void PlayPathState_NotInteractable::buttonStateChanged()
 {
-    //no interaction
+    path.triggerDrawableButtonStateChanged(); //this is fine because to disable clicking, the path can just be disabled.
 }
 
 #pragma endregion PlayPathState_NotInteractable

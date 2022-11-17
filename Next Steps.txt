@@ -387,33 +387,41 @@
 # things that can be made into static consts:
 	# initialStateIndex in every class with states
 	/ maybe the implementedState variable in the different state classes?
-!- add note bindings to regions!
+!# add note bindings to regions!
 	-> this is a crucial feature because it allows users to let several regions start/stop playing at once!
-	- make SegmentedRegion a juce::MidiKeyboardState::Listener add whenever a region is added, pass it as a juce::MidiKeyboardState::Listener to the addRegion method of the AudioEngine where it'll get added as a listener to the keyboardState. then, overwrite the pure virtual methods of the interface.
-	- might have to add some way to select specific devices? (shouldn't this be included in the PluginProcessor somewhere?)
+	# make SegmentedRegion a juce::MidiKeyboardState::Listener add whenever a region is added, pass it as a juce::MidiKeyboardState::Listener to the addRegion method of the AudioEngine where it'll get added as a listener to the keyboardState. then, overwrite the pure virtual methods of the interface.
+	# might have to add some way to select specific devices? (shouldn't this be included in the PluginProcessor somewhere?)
+	# button toggle state doesn't update when playing via MIDI yet. fixing this will require some sort of message manager though, because it's cross-thread communication.
+# bug: cannot draw region points on top of regions
+	/> turn off "intercepts mouse clicks"
+		-> doesn't work...
+	# the only way to make this work was to override mouseDown/mouseUp in SegmentedRegion so that when the region is disabled, it sends the event back to its parent o.ô not too hacky ig. but it's weird that everything else didn't work, not even unregistering the button from the mouse listeners, wth...
+# bug: the drawing line of the SegmentableImage is behind its child components
 !- check docs.juce.com/master/tutorial_app_plugin_packaging.html
 
 - demo presets
 - testing sessions with ant/leon/sam
 - survey (incl. privacy policy)
 - demo videos (one in German, one in English - both quick rundowns, nothing too in-depth)
+	- could show off the presets for a 1min introduction video at the start of the survey and add tutorial videos later when the users received the program
 - discord server
 
 !- remove the fixed directory paths from the code (loading image, loading audio)
-?- maybe make regions playable in play path playing mode
+?# maybe make regions playable in play path playing mode
 	-> actually, it's possible to do that now since the user can freely switch between "Playing Regions" and "Playing Play Paths" without interruption
-	!- do make sure, though, that the regions don't start/stop playing in "Playing Regions" mode depending on whether or not there are couriers in them! (just needs an additional condition in the startPlaying/stopPlaying methods)
+	!# do make sure, though, that the regions don't start/stop playing in "Playing Regions" mode depending on whether or not there are couriers in them! (just needs an additional condition in the startPlaying/stopPlaying methods)
 !- add save/load program buttons onto the editor (not sure whether all editors inherently provide a safe system - the fact that many VSTs provide load/save buttons makes me think that they don't... also, it would be difficult to provide sample programs otherwise, so... yea, better put buttons on there)
-- make it so that a region's outline colour is actually coloured (not just black/white) when it's playing -> easier to differentiate from non-playing regions
+# make it so that a region's outline colour is actually coloured (not just black/white) when it's playing -> easier to differentiate from non-playing regions
 	-> use inverted fill colour
 !- warning prompt when switching back to init state while an image (and potentially regions and play paths) have been loaded already!
-!- display LFO depth in the region editor (somewhat close to where the focus point can be shifted)
+!# display LFO depth in the region editor (somewhat close to where the focus point can be shifted)
 !- make the width of the LFO line depend on its depth (1.0 = maximum depth, 0.0 = gone, >0.0 = minimum width)
 !- are mp3s supported yet? if not, absolutely do include them! include as many formats as possible in general.
 ?- LFO phase modulation doesn't seem to work quite right just yet
-	- setup: 1 region modding its own pitch (no quant) at 5 Hz, another region modding region 1's phase at 0.03 Hz -> wobble should alternate between being strong and weak, but it actually doesn' atm (it seems to be correctly displayed for the LFO line though)
-		- is this perhaps dependent on the order in which LFOs are advanced? (because that order is fixed!)
+	- setup for testing: 1 region modding its own pitch (no quant) at 5 Hz, another region modding region 1's phase at 0.03 Hz -> wobble should alternate between being strong and weak, but it actually doesn' atm (it seems to be correctly displayed for the LFO line though)
+		?- is this perhaps dependent on the order in which LFOs are advanced? (because that order is fixed!)
 ?- add note bindings to play paths?
+!- add more/better key bindings
 !- add some kind of information button that displays key mappings for each mode (e.g. using backspace to delete points while in drawing mode)
 	- can be easily implemented using NativeMessageBox (or whatever it was called)!
 	- should also include my name, a link to the survey, to the demo videos (on YT, presumably) and to the (yet to be created) ImageINe discord server
@@ -434,10 +442,13 @@
 - use the SynthesiserSound class to store the sampler data for voices (instead of storing the data in each voice separately). that way, the audio data only has to be stored once instead of [polyphony] times, and adding new voices only requires a reference to a region's sound instead of a full update.
 	-> can use the SamplerOscillator class to do this, it's already derived from SynthesiserSound!
 	- actually, also derive it from SamplerSound instead of just SynthesiserSound - that class should fit the purpose of the implementation a lot better obviously
+- allow the user to choose a play path colour
+	- actually make them be able to choose both a normal colour and a down colour! that way, it's easier to retain a good contrast than by code, probably. by default, just set the down colour to the normal colour darkened by 0.2 or so.
 - implement more scales (esp. pentatonic scales and various modes)
 - implement more parameters
 	- current LFO phase (rename current implementation "LFO phase multiplier")
 		- is there a way to calculate this modded value efficiently without if cases?
+		- draw the current minimum and maximum phase onto the region similar to the current phase -> better visual feedback
 	- current playback position (rename current implementation "current playback position multiplier")
 		- is there a way to calculate this modded value efficiently without if cases?
 	!- panning
@@ -455,6 +466,8 @@
 	- no update rate slider
 	- no pitch quantisation settings
 	- no initial LFO phase / phase multiplier, playback pos / pos multiplier settings (in case i'm adding these options at some point)
+!- OH. MY. GOD. why didn't i see this earlier? THERE'S THREADS WITH A PROGRESS WINDOW!
+	-> https://docs.juce.com/master/classThreadWithProgressWindow.html
 - code QoL: clean up obsolete commented-out code sections in the code
 - code QoL: add descriptions to all major methods
 ?- minor bug: window is still resizable even when in editing/playing mode

@@ -29,7 +29,7 @@ SegmentedRegionState_NotInteractable::SegmentedRegionState_NotInteractable(Segme
 bool SegmentedRegionState_NotInteractable::hitTest(int x, int y)
 {
     //return false; //no interaction
-    return region.hitTest_Interactable(x, y); //this is fine (and beneficial to redrawing) as long as clicked and buttonStateChanged remain empty
+    return region.hitTest_Interactable(x, y); //this is fine (and beneficial to redrawing) as long as clicked and buttonStateChanged remain empty or the region is disabled
 }
 
 void SegmentedRegionState_NotInteractable::clicked(const juce::ModifierKeys& modifiers)
@@ -38,7 +38,7 @@ void SegmentedRegionState_NotInteractable::clicked(const juce::ModifierKeys& mod
 }
 void SegmentedRegionState_NotInteractable::buttonStateChanged()
 {
-    //no interaction
+    region.triggerDrawableButtonStateChanged(); //this is fine because to disable clicking, the region can just be disabled.
 }
 
 #pragma endregion SegmentedRegionState_NotInteractable
@@ -109,10 +109,12 @@ void SegmentedRegionState_Playable::buttonStateChanged()
         //if toggleable, toggle music off or on
         if (region.isToggleable() && region.getToggleState() == true)
         {
+            region.setIsPlaying_Click(false);
             region.stopPlaying();
         }
         else //not in toggle mode or toggling on
         {
+            region.setIsPlaying_Click(true);
             region.startPlaying();
         }
         break;
@@ -120,6 +122,7 @@ void SegmentedRegionState_Playable::buttonStateChanged()
     default:
         if (!region.isToggleable())
         {
+            region.setIsPlaying_Click(false);
             region.stopPlaying();
         }
         break;

@@ -69,6 +69,8 @@ public:
 
 protected:
     void buttonStateChanged() override;
+    void mouseDown(const juce::MouseEvent& e) override;
+    void mouseUp(const juce::MouseEvent& e) override;
 
 private:
     PlayPathState* states[static_cast<int>(PlayPathStateIndex::StateIndexCount)];

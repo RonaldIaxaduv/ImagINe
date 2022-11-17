@@ -79,6 +79,8 @@ public:
     void openEditor();
     void refreshEditor();
 
+    void setIsPlaying_Click(bool shouldBePlaying);
+    bool shouldBePlaying();
     void startPlaying();
     void stopPlaying();
 
@@ -107,6 +109,9 @@ public:
 protected:
     void buttonStateChanged() override;
 
+    void mouseDown(const juce::MouseEvent&) override;
+    void mouseUp(const juce::MouseEvent&) override;
+
 private:
     int ID;
 
@@ -117,7 +122,10 @@ private:
 
     bool shouldBeToggleable = false;
 
-    bool isPlaying = false;
+    bool isPlaying = false; //states whether the region is playing. equals (isPlaying_click || isPlaying_courier || isPlaying_midi).
+    bool isPlaying_click = false; //states whether the user has attempted to play the region by clicking it.
+    bool isPlaying_courier = false; //states whether one or more couriers are within a region, causing it to play.
+    bool isPlaying_midi = false; //states whether the MIDI note associated with this region is pressed, causing the region to play.
     int currentVoiceIndex = 0;
     int currentCourierCount = 0; //used to determine whether a region should start/stop playing when a courier enters/exits it (depending on whether there are already couriers contained at that time)
 
@@ -141,6 +149,7 @@ private:
     static const float outlineThickness;
     static const float inherentTransparency;
     static const float disabledTransparency;
+    static const float disabledTransparencyOutline;
     juce::DrawablePath normalImage; //normal image when not toggleable or toggled off
     juce::DrawablePath overImage; //image when hovering over the button when not toggleable or toggled off
     juce::DrawablePath downImage; //image when clicking the button when not toggleable or toggled off

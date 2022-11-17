@@ -34,6 +34,7 @@ public:
     ~SegmentableImage() override;
 
     void paint(juce::Graphics& g) override;
+    void paintOverChildren(juce::Graphics& g) override;
     void resized() override;
 
     void transitionToState(SegmentableImageStateIndex stateToTransitionTo);
