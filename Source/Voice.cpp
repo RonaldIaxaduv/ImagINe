@@ -157,7 +157,7 @@ void Voice::startNote(int midiNoteNumber, float velocity,
 
     updateBufferPosDelta();
 
-    DBG("note on. current state index: " + juce::String(static_cast<int>(currentStateIndex)));
+    //DBG("note on. current state index: " + juce::String(static_cast<int>(currentStateIndex)));
 }
 
 void Voice::stopNote(float /*velocity*/, bool allowTailOff)

@@ -377,7 +377,7 @@ void RegionEditor::selectFile()
 
     fc = std::make_unique<juce::FileChooser>("Select a Wave file shorter than 2 seconds to play...",
         juce::File(R"(C:\Users\Aaron\Desktop\Musikproduktion\VSTs\Iris 2\Iris 2 Library\Samples)"),
-        "*.wav");
+        formatManager.getWildcardForAllFormats());
     auto chooserFlags = juce::FileBrowserComponent::openMode
         | juce::FileBrowserComponent::canSelectFiles;
 
@@ -424,6 +424,14 @@ void RegionEditor::selectFile()
                 copyRegionParameters(); //updates pitch quantisation, makes sure nothing's missing
 
                 associatedRegion->getAudioEngine()->suspendProcessing(false);
+            }
+            else
+            {
+                juce::NativeMessageBox::showMessageBoxAsync(
+                    juce::MessageBoxIconType::WarningIcon,
+                    "ImageINe - unknown format",
+                    "The file couldn't be opened. This is most likely because the format isn't supported.",
+                    this, nullptr);
             }
         });
 }

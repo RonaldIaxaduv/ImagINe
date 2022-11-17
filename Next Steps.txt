@@ -417,6 +417,9 @@
 !# display LFO depth in the region editor (somewhat close to where the focus point can be shifted)
 !# make the width of the LFO line depend on its depth (1.0 = maximum depth, 0.0 = gone, >0.0 = minimum width)
 !- are mp3s supported yet? if not, absolutely do include them! include as many formats as possible in general.
+	-> nope, it doesn't
+	# add the additional formats
+	!- huh, playing the region after loading an mp3 file caused a crash related to a realloc -> maybe this is where locks just have to be used?
 ?- LFO phase modulation doesn't seem to work quite right just yet
 	- setup for testing: 1 region modding its own pitch (no quant) at 5 Hz, another region modding region 1's phase at 0.03 Hz -> wobble should alternate between being strong and weak, but it actually doesn' atm (it seems to be correctly displayed for the LFO line though)
 		?- is this perhaps dependent on the order in which LFOs are advanced? (because that order is fixed!)
