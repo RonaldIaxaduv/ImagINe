@@ -248,6 +248,23 @@ public:
         list.setBounds(getLocalBounds());
     }
 
+    bool keyPressed(const juce::KeyPress& key) override
+    {
+        if (key == juce::KeyPress::createFromDescription("ctrl + r"))
+        {
+            auto mousePos = getMouseXYRelative();
+            juce::Component* target = getComponentAt(mousePos.getX(), mousePos.getY());
+
+            if (dynamic_cast<CheckBoxListItem*>(target) != nullptr)
+            {
+                randomiseItem(static_cast<CheckBoxListItem*>(target));
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     int addItem(juce::String text, int regionID, juce::ChangeListener* changeListener)
     {
         auto* newItem = new CheckBoxListItem(text, getNumRows(), regionID);
@@ -318,6 +335,26 @@ public:
                 (*it)->setIsModulated(false);
             }
 
+        }
+    }
+
+    void randomiseAllParameters()
+    {
+        for (auto it = items.begin(); it != items.end(); ++it)
+        {
+            randomiseItem(*it);
+        }
+    }
+    void randomiseItem(CheckBoxListItem* item)
+    {
+        juce::Random& rng = juce::Random::getSystemRandom();
+
+        item->setIsModulated(rng.nextBool()); //50% chance to be modulated
+
+        if (item->isModulated())
+        {
+            //set to a random parameter (excluding "no modulation")
+            item->setModulatedParameterID(static_cast<LfoModulatableParameter>(rng.nextInt(juce::Range<int>(1, static_cast<int>(LfoModulatableParameter::ModulatableParameterCount)))));
         }
     }
 

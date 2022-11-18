@@ -198,7 +198,8 @@ void SegmentedRegion::timerCallback()
         juce::jmax(currentLfoLine.getStartY(), currentLfoLine.getEndY()) - juce::jmin(currentLfoLine.getStartY(), currentLfoLine.getEndY()));
 
     //update currentLfoLine
-    float curLfoPhase = associatedLfo->getLatestModulatedPhase(); //basically the same value as getModulatedValue of the parameter, but won't update that parameter (which would mess with the modulation)
+    //float curLfoPhase = associatedLfo->getLatestModulatedPhase(); //basically the same value as getModulatedValue of the parameter, but won't update that parameter (which would mess with the modulation)
+    float curLfoPhase = associatedLfo->getPhase(); //basically the same value as getModulatedValue of the parameter, but won't update that parameter (which would mess with the modulation)
     juce::Point<float> outlinePt = p.getPointAlongPath(curLfoPhase * p.getLength(), juce::AffineTransform(), juce::Path::defaultToleranceForMeasurement);
     currentLfoLine = juce::Line<float>(focusAbs.x, focusAbs.y,
                                        outlinePt.x, outlinePt.y);
@@ -567,7 +568,7 @@ bool SegmentedRegion::shouldBePlaying()
 {
     return isPlaying_click || isPlaying_courier || isPlaying_midi;
 }
-void SegmentedRegion::startPlaying()
+void SegmentedRegion::startPlaying(bool toggleButtonState)
 {
     if (audioFileName != "" && !isPlaying && shouldBePlaying()) //audio file is set, and the region isn't playing yet, but it was requested to do so
     {
@@ -583,7 +584,11 @@ void SegmentedRegion::startPlaying()
         //try to set the button's toggle state to "down" (needs to be done cross-thread for MIDI messages because they do not run on the same thread as couriers and clicks)
         if (juce::MessageManager::getInstance()->isThisTheMessageThread())
         {
-            setToggleState(true, juce::NotificationType::dontSendNotification);
+            if (toggleButtonState)
+            {
+                setToggleState(true, juce::NotificationType::dontSendNotification);
+            }
+            //setState(juce::Button::ButtonState::buttonDown);
         }
         else
         {
@@ -597,7 +602,7 @@ void SegmentedRegion::startPlaying()
         startTimer(timerIntervalMs); //animates the LFO line
     }
 }
-void SegmentedRegion::stopPlaying()
+void SegmentedRegion::stopPlaying(bool toggleButtonState)
 {
     if (isPlaying && !shouldBePlaying()) //region is playing, but it was requested that it shouldn't do so anymore. (the audio file needn't be checked because the region cannot start playing without the file having been checked beforehand.)
     {
@@ -611,7 +616,11 @@ void SegmentedRegion::stopPlaying()
         //try to set the button's toggle state to "up" (needs to be done cross-thread for MIDI messages because they do not run on the same thread as couriers and clicks)
         if (juce::MessageManager::getInstance()->isThisTheMessageThread())
         {
-            setToggleState(false, juce::NotificationType::dontSendNotification);
+            if (toggleButtonState)
+            {
+                setToggleState(false, juce::NotificationType::dontSendNotification);
+            }
+            //setState(juce::Button::ButtonState::buttonNormal);
         }
         else
         {

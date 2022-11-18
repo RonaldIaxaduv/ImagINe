@@ -30,5 +30,7 @@ enum class LfoModulatableParameter : int
     lfoPhase,
     lfoPhase_inverted,
     lfoUpdateInterval,
-    lfoUpdateInterval_inverted
+    lfoUpdateInterval_inverted,
+
+    ModulatableParameterCount
 };

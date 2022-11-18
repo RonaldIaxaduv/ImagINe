@@ -416,37 +416,42 @@
 !# warning prompt when switching back to init state while an image (and potentially regions and play paths) have been loaded already!
 !# display LFO depth in the region editor (somewhat close to where the focus point can be shifted)
 !# make the width of the LFO line depend on its depth (1.0 = maximum depth, 0.0 = gone, >0.0 = minimum width)
-!- are mp3s supported yet? if not, absolutely do include them! include as many formats as possible in general.
+!# are mp3s supported yet? if not, absolutely do include them! include as many formats as possible in general.
 	-> nope, it doesn't
 	# add the additional formats
-	!- huh, playing the region after loading an mp3 file caused a crash related to a realloc -> maybe this is where locks just have to be used?
-?- LFO phase modulation doesn't seem to work quite right just yet
-	- setup for testing: 1 region modding its own pitch (no quant) at 5 Hz, another region modding region 1's phase at 0.03 Hz -> wobble should alternate between being strong and weak, but it actually doesn' atm (it seems to be correctly displayed for the LFO line though)
-		?- is this perhaps dependent on the order in which LFOs are advanced? (because that order is fixed!)
-?- add note bindings to play paths?
-!- add more/better key bindings
-!- add some kind of information button that displays key mappings for each mode (e.g. using backspace to delete points while in drawing mode)
-	- can be easily implemented using NativeMessageBox (or whatever it was called)!
-	- should also include my name, a link to the survey, to the demo videos (on YT, presumably) and to the (yet to be created) ImageINe discord server
-!- set help texts for all components
-	- there should already be a method setHelpText for all Component members
-- make unipolar modulation symmetrical like bipolar modulation (see written note)
-	- maybe only for some parameters (perhaps it only sounds good that way for a select few)
+	!# huh, playing the region after loading an mp3 file caused a crash related to a realloc -> maybe this is where locks just have to be used?
+		# ohhhh, no, i blieve it's the toggle that breaks it
+# LFO phase modulation doesn't seem to work quite right just yet
+	-> setup for testing: 1 region modding its own pitch (no quant) at 5 Hz, another region modding region 1's phase at 0.03 Hz -> wobble should alternate between being strong and weak, but it actually doesn' atm (it seems to be correctly displayed for the LFO line though)
+	/ idea 1: is this perhaps dependent on the order in which LFOs are advanced? (because that order is fixed!)
+	/ idea 2: wrong function for pitch modulation?
+	/ idea 3: when an LFO updates its values, does it use the unmodulated phase?
+	#> actually, the problem was that phase modulation currently worked differently than what i thought *and* the LFO line used the wrong value to display itself. welp
+# make unipolar modulation symmetrical like bipolar modulation (see written note)
+	/ maybe only for some parameters (perhaps it only sounds good that way for a select few)
+!- updating the focus point position while playing regions can cause an access violation
+	- another case of where locks would be wise...
+	-> suspend processing while switching the LFO table
 !- implement a simple means of randomisation
-	- add a "randomise" button to the region editor
+	# add a "randomise" button to the region editor
 		-> nice way to quickly randomise everything at once
 	- also in the region editor, make it possible to hover over a component and press ctrl+r to randomise the value of that component
 		-> nice way to randomise only a selected number of components
+		- currently doesn't work - maybe in the if clauses, dynamic casts will have to be used...
+		- making the region editor a key listener actually isn't necessary to do this, remove it (for simplicity's sake) and stick to juce::Component's keyPressed method (same but without the second argument)
 	- important: slightly weight the randomness, so that the values produced are actually useful (e.g. don't naively randomise volume - prefer values closer to 0.0dB!)
-!- add a subtle watermark to the image
-	- maybe one little textbox in a corner + a mostly transparent font across the image?
-- ensure that outlined paths actually constitute a 2D plane
-	- calculate determinant -> if it's close to 0, it's not 2D
-- use the SynthesiserSound class to store the sampler data for voices (instead of storing the data in each voice separately). that way, the audio data only has to be stored once instead of [polyphony] times, and adding new voices only requires a reference to a region's sound instead of a full update.
-	-> can use the SamplerOscillator class to do this, it's already derived from SynthesiserSound!
-	- actually, also derive it from SamplerSound instead of just SynthesiserSound - that class should fit the purpose of the implementation a lot better obviously
+	- add a "randomise button to the path editor
+	- also in the path editor, make it possible to randomise a component by pressing ctrl+r while hovering above it
+!- set help texts for all components
+	- there should already be a method setHelpText for all Component members
 - allow the user to choose a play path colour
 	- actually make them be able to choose both a normal colour and a down colour! that way, it's easier to retain a good contrast than by code, probably. by default, just set the down colour to the normal colour darkened by 0.2 or so.
+- add MIDI note bindings to play paths?
+!- add some kind of information button that displays key mappings for each mode (e.g. using backspace to delete points while in drawing mode)
+	- can be easily implemented using NativeMessageBox (or whatever it was called)!
+	- should also include my name, a link to the survey, to the demo videos (on YT, presumably) and to the (yet to be created) ImageINe discord server
+!- add more/better key bindings
+- bug: updating the toggle parameter in the region editor while in playing mode doesn't affect the region when actually playing it. to update it, one must go back into editing mode and back to playing mode o.ô
 - implement more scales (esp. pentatonic scales and various modes)
 - implement more parameters
 	- current LFO phase (rename current implementation "LFO phase multiplier")
@@ -462,15 +467,22 @@
 	!- interpret the LFO wavetable as a waveshaping table, where the starting value is at the LFO's current phase
 		- this would (most likely) result in rather distorted sounds that change over time
 		- depth: dry/wet mix
+!- OH. MY. GOD. why didn't i see this earlier? THERE'S THREADS WITH A PROGRESS WINDOW!
+	-> https://docs.juce.com/master/classThreadWithProgressWindow.html
 - add a button next to the LFO phase editor to switch its units to ms instead of Hz
 	-> this would be extremely useful because it makes it possible to sync the LFO's frequency to its update rate without rounding errors
+!- add a subtle watermark to the image
+	- maybe one little textbox in a corner + a mostly transparent font across the image?
+- ensure that outlined paths actually constitute a 2D plane
+	- calculate determinant -> if it's close to 0, it's not 2D
+- use the SynthesiserSound class to store the sampler data for voices (instead of storing the data in each voice separately). that way, the audio data only has to be stored once instead of [polyphony] times, and adding new voices only requires a reference to a region's sound instead of a full update.
+	-> can use the SamplerOscillator class to do this, it's already derived from SynthesiserSound!
+	- actually, also derive it from SamplerSound instead of just SynthesiserSound - that class should fit the purpose of the implementation a lot better obviously
 - add a combobox to the region editor to switch between "simple options" and "advanced options" to make things easier to get into
 	- ADSR instead of DAHDSR, no setting for the peak volume
 	- no update rate slider
 	- no pitch quantisation settings
 	- no initial LFO phase / phase multiplier, playback pos / pos multiplier settings (in case i'm adding these options at some point)
-!- OH. MY. GOD. why didn't i see this earlier? THERE'S THREADS WITH A PROGRESS WINDOW!
-	-> https://docs.juce.com/master/classThreadWithProgressWindow.html
 - code QoL: clean up obsolete commented-out code sections in the code
 - code QoL: add descriptions to all major methods
 ?/ minor bug: window is still resizable even when in editing/playing mode

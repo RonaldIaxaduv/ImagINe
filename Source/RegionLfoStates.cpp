@@ -193,7 +193,8 @@ void RegionLfoState_WithoutModulatedParameters::advance()
 
 float RegionLfoState_WithoutModulatedParameters::getPhase()
 {
-    return lfo.getCurrentTablePos() / static_cast<float>(lfo.getNumSamplesUnsafe());
+    //return lfo.getCurrentTablePos() / static_cast<float>(lfo.getNumSamplesUnsafe());
+    return lfo.getLatestModulatedPhase();
 }
 void RegionLfoState_WithoutModulatedParameters::setPhase(float relativeTablePos)
 {
@@ -264,7 +265,8 @@ void RegionLfoState_Muted::advance()
 
 float RegionLfoState_Muted::getPhase()
 {
-    return lfo.getCurrentTablePos() / static_cast<float>(lfo.getNumSamplesUnsafe());
+    //return lfo.getCurrentTablePos() / static_cast<float>(lfo.getNumSamplesUnsafe());
+    return lfo.getLatestModulatedPhase();
 }
 void RegionLfoState_Muted::setPhase(float relativeTablePos)
 {
@@ -343,7 +345,8 @@ void RegionLfoState_Active::advance()
 
 float RegionLfoState_Active::getPhase()
 {
-    return lfo.getCurrentTablePos() / static_cast<float>(lfo.getNumSamplesUnsafe());
+    //return lfo.getCurrentTablePos() / static_cast<float>(lfo.getNumSamplesUnsafe());
+    return lfo.getLatestModulatedPhase();
 }
 void RegionLfoState_Active::setPhase(float relativeTablePos)
 {
@@ -423,7 +426,8 @@ void RegionLfoState_ActiveRealTime::advance()
 
 float RegionLfoState_ActiveRealTime::getPhase()
 {
-    return lfo.getCurrentTablePos() / static_cast<float>(lfo.getNumSamplesUnsafe());
+    //return lfo.getCurrentTablePos() / static_cast<float>(lfo.getNumSamplesUnsafe());
+    return lfo.getLatestModulatedPhase();
 }
 void RegionLfoState_ActiveRealTime::setPhase(float relativeTablePos)
 {

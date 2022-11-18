@@ -29,11 +29,6 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     addChildComponent(selectedFileLabel);
     selectedFileLabel.attachToComponent(&selectFileButton, false);
 
-    //colour picker
-    colourPickerWIP.setText("[colour picker WIP]", juce::NotificationType::dontSendNotification);
-    //colourPickerWIP.setColour(...); //when a region has actually been selected, the background colour of this component will change
-    addChildComponent(colourPickerWIP);
-
     //focus position + LFO depth
     focusPositionX.setSliderStyle(juce::Slider::SliderStyle::IncDecButtons);
     focusPositionX.setIncDecButtonsMode(juce::Slider::IncDecButtonMode::incDecButtonsDraggable_Vertical);
@@ -208,6 +203,11 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     //LFO editor
     addChildComponent(lfoEditor);
 
+    //randomise button
+    randomiseButton.setButtonText("Randomise Region Parameters");
+    randomiseButton.onClick = [this] { randomiseAllParameters(); };
+    addChildComponent(randomiseButton);
+
     //other preparations
     copyRegionParameters();
     setChildVisibility(true);
@@ -241,8 +241,6 @@ void RegionEditor::resized()
     selectedFileLabel.setBounds(area.removeFromTop(20));
     selectFileButton.setBounds(area.removeFromTop(20));
 
-    colourPickerWIP.setBounds(area.removeFromTop(20));
-
     auto focusArea = area.removeFromTop(20);
     focusArea.removeFromLeft(focusArea.getWidth() / 3);
     focusPositionX.setBounds(focusArea.removeFromLeft(focusArea.getWidth() / 2));
@@ -272,7 +270,54 @@ void RegionEditor::resized()
     midiNoteLabel.setBounds(midiArea.removeFromLeft(midiArea.getWidth() / 3));
     midiNoteChoice.setBounds(midiArea);
 
+    randomiseButton.setBounds(area.removeFromBottom(20));
+
     lfoEditor.setBounds(area); //fill rest with lfoEditor
+}
+
+bool RegionEditor::keyPressed(const juce::KeyPress& key, Component* originatingComponent)
+{
+    if (key == juce::KeyPress::createFromDescription("ctrl + r"))
+    {
+        auto mousePos = getMouseXYRelative();
+        juce::Component* target = getComponentAt(mousePos.getX(), mousePos.getY());
+
+        if (target != nullptr && target != this)
+        {
+            //try to randomise the component that the user pointed at
+
+            if (target == &focusPositionX || target == &focusPositionY)
+            {
+                randomiseFocusPosition();
+                return true;
+            }
+            else if (target == &dahdsrEditor)
+            {
+                return dahdsrEditor.keyPressed(key);
+            }
+            else if (target == &volumeSlider)
+            {
+                randomiseVolume();
+                return true;
+            }
+            else if (target == &pitchSlider)
+            {
+                randomisePitch();
+                return true;
+            }
+            else if (target == &pitchQuantisationChoice)
+            {
+                randomisePitchQuantisation();
+                return true;
+            }
+            else if (target == &lfoEditor)
+            {
+                return lfoEditor.keyPressed(key);
+            }
+        }
+    }
+
+    return false;
 }
 
 SegmentedRegion* RegionEditor::getAssociatedRegion()
@@ -294,8 +339,6 @@ void RegionEditor::setChildVisibility(bool shouldBeVisible)
 {
     selectedFileLabel.setVisible(shouldBeVisible);
     selectFileButton.setVisible(shouldBeVisible);
-
-    colourPickerWIP.setVisible(false); //WIP - probably not necessary anymore tbh
 
     focusPositionLabel.setVisible(shouldBeVisible);
     focusPositionX.setVisible(shouldBeVisible);
@@ -320,6 +363,8 @@ void RegionEditor::setChildVisibility(bool shouldBeVisible)
     midiNoteLabel.setVisible(shouldBeVisible);
 
     lfoEditor.setVisible(shouldBeVisible);
+
+    randomiseButton.setVisible(shouldBeVisible);
 }
 
 void RegionEditor::copyRegionParameters()
@@ -440,6 +485,14 @@ void RegionEditor::updateFocusPosition()
 {
     associatedRegion->setFocusPoint(juce::Point<float>(static_cast<float>(focusPositionX.getValue()), static_cast<float>(focusPositionY.getValue())));
 }
+void RegionEditor::randomiseFocusPosition()
+{
+    juce::Random& rng = juce::Random::getSystemRandom();
+    
+    //some completely random position is fine
+    focusPositionX.setValue(rng.nextDouble(), juce::NotificationType::dontSendNotification);
+    focusPositionY.setValue(rng.nextDouble(), juce::NotificationType::sendNotification);
+}
 
 void RegionEditor::renderLfoWaveform()
 {
@@ -467,6 +520,13 @@ void RegionEditor::updateVolume()
         (*it)->setBaseLevel(juce::Decibels::decibelsToGain<double>(volumeSlider.getValue(), -60.0));
     }
 }
+void RegionEditor::randomiseVolume()
+{
+    juce::Random& rng = juce::Random::getSystemRandom();
+
+    //prefer values closer to 0 (by dividing the result randomly by a value within [1, 6] -> average value of -7,7dB)
+    volumeSlider.setValue((volumeSlider.getMinimum() + rng.nextDouble() * (volumeSlider.getMaximum() - volumeSlider.getMinimum())) / (1.0 + 5 * rng.nextDouble()), juce::NotificationType::sendNotification);
+}
 void RegionEditor::updatePitch()
 {
     juce::Array<Voice*> voices = associatedRegion->getAudioEngine()->getVoicesWithID(associatedRegion->getID());
@@ -474,6 +534,27 @@ void RegionEditor::updatePitch()
     for (auto* it = voices.begin(); it != voices.end(); it++)
     {
         (*it)->setBasePitchShift(pitchSlider.getValue());
+    }
+}
+void RegionEditor::randomisePitch()
+{
+    juce::Random& rng = juce::Random::getSystemRandom();
+    
+    //prefer value closer to 0 (see volume, same divisor). values are rounded to the closest integer since that's usually cleaner
+    pitchSlider.setValue(std::round((pitchSlider.getMinimum() + rng.nextDouble() * (pitchSlider.getMaximum() - pitchSlider.getMinimum())) / (1.0 + 5 * rng.nextDouble())), juce::NotificationType::sendNotification);
+}
+void RegionEditor::randomisePitchQuantisation()
+{
+    juce::Random& rng = juce::Random::getSystemRandom();
+
+    //50% chance to be continuous. otherwise, choose a random entry
+    if (rng.nextFloat() < 0.5f)
+    {
+        pitchQuantisationChoice.setSelectedItemIndex(0, juce::NotificationType::sendNotification);
+    }
+    else
+    {
+        pitchQuantisationChoice.setSelectedItemIndex(rng.nextInt(juce::Range<int>(1, pitchQuantisationChoice.getNumItems())), juce::NotificationType::sendNotification);
     }
 }
 void RegionEditor::updatePlaybackPosition()
@@ -484,4 +565,23 @@ void RegionEditor::updatePlaybackPosition()
     {
         //(*it)->setBasePlaybackPosition(playbackPositionSlider.getValue());
     }
+}
+
+void RegionEditor::randomiseAllParameters()
+{
+    randomiseFocusPosition();
+    
+    //don't randomise toggle mode - it's more of a coordination tool imo
+
+    //DAHDSR parameters
+    dahdsrEditor.randomiseAllParameters();
+
+    randomiseVolume();
+    randomisePitch();
+    randomisePitchQuantisation();
+
+    //MIDI channel/note: no randomisation.
+
+    //LFO editor
+    lfoEditor.randomiseAllParameters();
 }

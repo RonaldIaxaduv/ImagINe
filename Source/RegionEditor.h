@@ -20,7 +20,7 @@
 class SegmentedRegion;
 
 
-class RegionEditor final : public juce::Component
+class RegionEditor final : public juce::Component, public juce::KeyListener
 {
 public:
     RegionEditor(SegmentedRegion* region);
@@ -28,6 +28,8 @@ public:
 
     void paint(juce::Graphics& g) override;
     void resized() override;
+
+    bool keyPressed(const juce::KeyPress& key, Component* originatingComponent) override;
 
     void refreshParameters();
 
@@ -41,6 +43,7 @@ private:
     void selectFile();
 
     void updateFocusPosition();
+    void randomiseFocusPosition();
 
     void renderLfoWaveform();
 
@@ -48,17 +51,19 @@ private:
 
     void updateAllVoiceSettings();
     void updateVolume();
+    void randomiseVolume();
     void updatePitch();
+    void randomisePitch();
+    void randomisePitchQuantisation();
     void updatePlaybackPosition();
+
+    void randomiseAllParameters();
 
     //================================================================
     SegmentedRegion* associatedRegion;
 
     juce::Label selectedFileLabel;
     juce::TextButton selectFileButton;
-
-    juce::Label colourPickerWIP; //WIP: later, this will be a button that opens a separate window containing a juce::ColourSelector (the GUI for these is rather large, see https://www.ccoderun.ca/juce/api/ColourSelector.png )
-    //^- when changing region colours, also call associatedRegion->audioEngine->changeRegionColour
 
     juce::Label focusPositionLabel;
     juce::Slider focusPositionX; //inc/dec slider 
@@ -83,6 +88,8 @@ private:
     juce::ComboBox midiNoteChoice;
 
     LfoEditor lfoEditor;
+
+    juce::TextButton randomiseButton;
 
     std::unique_ptr<juce::FileChooser> fc;
     juce::AudioFormatManager formatManager;

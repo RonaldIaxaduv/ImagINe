@@ -81,8 +81,8 @@ public:
 
     void setIsPlaying_Click(bool shouldBePlaying);
     bool shouldBePlaying();
-    void startPlaying();
-    void stopPlaying();
+    void startPlaying(bool toggleButtonState = true);
+    void stopPlaying(bool toggleButtonState = true);
 
     int getMidiChannel();
     void setMidiChannel(int newMidiChannel);

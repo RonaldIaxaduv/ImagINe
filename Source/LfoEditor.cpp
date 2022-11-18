@@ -83,6 +83,37 @@ void LfoEditor::resized()
     lfoRegionsList.setBounds(area);
 }
 
+bool LfoEditor::keyPressed(const juce::KeyPress& key)
+{
+    if (key == juce::KeyPress::createFromDescription("ctrl + r"))
+    {
+        auto mousePos = getMouseXYRelative();
+        juce::Component* target = getComponentAt(mousePos.getX(), mousePos.getY());
+
+        if (target != nullptr && target != this)
+        {
+            //try to randomise the component that the user pointed at
+
+            if (target == &lfoRateSlider)
+            {
+                randomiseLfoRate();
+                return true;
+            }
+            else if (target == &lfoUpdateIntervalSlider)
+            {
+                randomiseLfoUpdateInterval();
+                return true;
+            }
+            else if (target == &lfoRegionsList)
+            {
+                return lfoRegionsList.keyPressed(key);
+            }
+        }
+    }
+    
+    return false;
+}
+
 void LfoEditor::copyParameters()
 {
     //copy rate
@@ -127,6 +158,13 @@ void LfoEditor::changeListenerCallback(juce::ChangeBroadcaster* source)
     updateLfoParameter(cbListItem->getRegionID(), cbListItem->isModulated(), cbListItem->getModulatedParameter());
 }
 
+void LfoEditor::randomiseAllParameters()
+{
+    randomiseLfoRate();
+    randomiseLfoUpdateInterval();
+    lfoRegionsList.randomiseAllParameters();
+}
+
 
 
 
@@ -136,10 +174,25 @@ void LfoEditor::updateLfoRate()
 {
     associatedLfo->setBaseFrequency(lfoRateSlider.getValue());
 }
+void LfoEditor::randomiseLfoRate()
+{
+    juce::Random& rng = juce::Random::getSystemRandom();
+
+    //prefer values closer to 0 (by dividing the result randomly by a value within [1, 0.5*max])
+    lfoRateSlider.setValue((lfoRateSlider.getMinimum() + rng.nextDouble() * (lfoRateSlider.getMaximum() - lfoRateSlider.getMinimum())) / (1.0 + rng.nextDouble() * 0.5 * lfoRateSlider.getMaximum()), juce::NotificationType::sendNotification);
+}
+
 void LfoEditor::updateLfoUpdateInterval()
 {
     associatedLfo->setUpdateInterval_Milliseconds(static_cast<float>(lfoUpdateIntervalSlider.getValue()));
     static_cast<RegionEditor*>(getParentComponent())->getAssociatedRegion()->setTimerInterval(static_cast<int>(lfoUpdateIntervalSlider.getValue()));
+}
+void LfoEditor::randomiseLfoUpdateInterval()
+{
+    juce::Random& rng = juce::Random::getSystemRandom();
+
+    //choose a value depending on LFO frequency. the value should reflect a 1/16...2/1 rhythm = 2^(-4...2)
+    lfoUpdateIntervalSlider.setValue((1.0 / lfoRateSlider.getValue()) * std::pow(2, rng.nextInt(juce::Range<int>(-4, 3))));
 }
 
 void LfoEditor::updateLfoParameter(int targetRegionID, bool shouldBeModulated, LfoModulatableParameter modulatedParameter)

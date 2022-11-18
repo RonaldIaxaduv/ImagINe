@@ -90,6 +90,33 @@ public:
         //levelArea //final level of release is always 0.0 in this case
     }
 
+    bool keyPressed(const juce::KeyPress& key) override
+    {
+        if (key == juce::KeyPress::createFromDescription("ctrl + r"))
+        {
+            auto mousePos = getMouseXYRelative();
+            juce::Component* target = getComponentAt(mousePos.getX(), mousePos.getY());
+
+            if (target != nullptr && target != this)
+            {
+                //try to randomise the component that the user pointed at
+
+                if (target == &delaySlider || target == &attackSlider || target == &holdSlider || target == &decaySlider || target == &releaseSlider)
+                {
+                    randomiseTimeSlider(static_cast<juce::Slider*>(target));
+                    return true;
+                }
+                else if (target == &initialSlider || target == &peakSlider || target == &sustainSlider)
+                {
+                    randomiseLevelSlider(static_cast<juce::Slider*>(target));
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>
     /// Sets the text of the label at the top of the component to "[name] DAHDSR Envelope"
     /// </summary>
@@ -109,7 +136,26 @@ public:
         copyEnvelopeParameters();
     }
 
+    void randomiseAllParameters()
+    {
+        //time sliders
+        //randomiseTimeSlider(&delaySlider); //no delay time - the delay is probably more of a coordination tool, so it's better not to randomise it.
+        randomiseTimeSlider(&attackSlider);
+        randomiseTimeSlider(&holdSlider);
+        randomiseTimeSlider(&decaySlider);
+        randomiseTimeSlider(&releaseSlider);
+
+        //level sliders
+        randomiseLevelSlider(&initialSlider);
+        randomiseLevelSlider(&peakSlider);
+        randomiseLevelSlider(&sustainSlider);
+    }
+
 private:
+    const double sliderMinimumLevel = -60.0;
+    const double sliderMaximumLevel = 6.0;
+    const double sliderMaximumTime = 60.0;
+
     juce::Array<DahdsrEnvelope*> associatedEnvelopes;
 
     juce::Label titleLabel; //will read "[referenced sound] DAHDSR Envelope"
@@ -144,22 +190,36 @@ private:
     {
         sliderToInitialise->setSliderStyle(juce::Slider::SliderStyle::LinearBar);
         sliderToInitialise->setTextValueSuffix("s");
-        sliderToInitialise->setRange(0.0, 10.0, 0.0001); //in seconds (minimum interval: 0.1ms)
+        sliderToInitialise->setRange(0.0, sliderMaximumTime, 0.0001); //in seconds (minimum interval: 0.1ms)
         sliderToInitialise->setSkewFactorFromMidPoint(1.0);
         sliderToInitialise->setNumDecimalPlacesToDisplay(4);
         sliderToInitialise->onValueChange = valueChangeFunction;
         addAndMakeVisible(sliderToInitialise);
+    }
+    void randomiseTimeSlider(juce::Slider* sliderToRandomise)
+    {
+        juce::Random& rng = juce::Random::getSystemRandom();
+
+        //prefer values closer to 0. since the min value is 0, the calculation is slightly simplified.
+        sliderToRandomise->setValue((rng.nextDouble() * sliderMaximumTime) / (1.0 + rng.nextDouble() * 0.5 * sliderMaximumTime), juce::NotificationType::sendNotification);
     }
 
     void initialiseLevelSlider(juce::Slider* sliderToInitialise, std::function<void()> valueChangeFunction)
     {
         sliderToInitialise->setSliderStyle(juce::Slider::SliderStyle::LinearBar);
         sliderToInitialise->setTextValueSuffix("dB");
-        sliderToInitialise->setRange(-60.0, 6.0, 0.01);
+        sliderToInitialise->setRange(sliderMinimumLevel, sliderMaximumLevel, 0.01);
         sliderToInitialise->setSkewFactorFromMidPoint(-6.0);
         sliderToInitialise->setNumDecimalPlacesToDisplay(2);
         sliderToInitialise->onValueChange = valueChangeFunction;
         addAndMakeVisible(sliderToInitialise);
+    }
+    void randomiseLevelSlider(juce::Slider* sliderToRandomise)
+    {
+        juce::Random& rng = juce::Random::getSystemRandom();
+
+        //level sliders -> prefer values closer to 0 (by dividing the result randomly by a value within [1, 6] -> average value of -7,7dB)
+        sliderToRandomise->setValue((sliderMinimumLevel + rng.nextDouble() * (sliderMaximumLevel - sliderMinimumLevel)) / (1.0 + 5 * rng.nextDouble()), juce::NotificationType::sendNotification);
     }
 
     void initialiseSliderLabel(juce::Label* labelToInitialise, juce::String text, juce::Slider* sliderToAttachTo)

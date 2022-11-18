@@ -25,11 +25,15 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
 
+    bool keyPressed(const juce::KeyPress& key) override;
+
     void copyParameters();
 
     void updateAvailableVoices();
 
     void changeListenerCallback(juce::ChangeBroadcaster* source) override;
+
+    void randomiseAllParameters();
 
 private:
     AudioEngine* audioEngine;
@@ -44,7 +48,10 @@ private:
     CheckBoxList lfoRegionsList;
 
     void updateLfoRate();
+    void randomiseLfoRate();
+
     void updateLfoUpdateInterval();
+    void randomiseLfoUpdateInterval();
 
     void updateLfoParameter(int targetRegionID, bool shouldBeModulated, LfoModulatableParameter modulatedParameter);
 

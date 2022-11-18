@@ -297,87 +297,43 @@ void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParamete
         switch (newModulatedParameterID) //this only needs to handle parameters associated with Voice members
         {
         case LfoModulatableParameter::volume:
-            lfoEvaluationFunction = [](RegionLfo* lfo)
-            {
-                return static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
-            };
-            break;
-        case LfoModulatableParameter::volume_inverted:
-            lfoEvaluationFunction = [](RegionLfo* lfo)
-            {
-                return 1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
-            };
-            break;
-
-        case LfoModulatableParameter::pitch:
-            lfoEvaluationFunction = [](RegionLfo* lfo)
-            {
-                return 12.0 * static_cast<double>(lfo->getCurrentValue_Bipolar() * lfo->getDepth());
-            };
-            break;
-        case LfoModulatableParameter::pitch_inverted:
-            lfoEvaluationFunction = [](RegionLfo* lfo)
-            {
-                return 12.0 * static_cast<double>(-lfo->getCurrentValue_Bipolar() * lfo->getDepth());
-            };
-            break;
-
         case LfoModulatableParameter::playbackPosition:
-            lfoEvaluationFunction = [](RegionLfo* lfo)
-            {
-                return static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
-            };
-            break;
-        case LfoModulatableParameter::playbackPosition_inverted:
-            lfoEvaluationFunction = [](RegionLfo* lfo)
-            {
-                return 1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
-            };
-            break;
-
-        
-
-
-        case LfoModulatableParameter::lfoRate:
-            lfoEvaluationFunction = [](RegionLfo* lfo)
-            {
-                return 12.0 * static_cast<double>(lfo->getCurrentValue_Bipolar() * lfo->getDepth());
-            };
-            break;
-        case LfoModulatableParameter::lfoRate_inverted:
-            lfoEvaluationFunction = [](RegionLfo* lfo)
-            {
-                return 12.0 * static_cast<double>(-lfo->getCurrentValue_Bipolar() * lfo->getDepth());
-            };
-            break;
-
         case LfoModulatableParameter::lfoPhase:
-            lfoEvaluationFunction = [](RegionLfo* lfo)
-            {
-                return static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
-            };
-            break;
-        case LfoModulatableParameter::lfoPhase_inverted:
-            lfoEvaluationFunction = [](RegionLfo* lfo)
-            {
-                return 1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
-            };
-            break;
-
         case LfoModulatableParameter::lfoUpdateInterval:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
-                return static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
+                //return static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
+                return 1.0 - static_cast<double>(lfo->getDepth()) * (1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar())); //interval: [1.0-depth, 1.0]
             };
             break;
+
+        case LfoModulatableParameter::volume_inverted:
+        case LfoModulatableParameter::playbackPosition_inverted:
+        case LfoModulatableParameter::lfoPhase_inverted:
         case LfoModulatableParameter::lfoUpdateInterval_inverted:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
-                return 1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
+                //return 1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
+                return static_cast<double>(lfo->getDepth()) * (1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar())); //interval: [1.0, 1.0-depth]
             };
             break;
 
 
+        case LfoModulatableParameter::pitch:
+        case LfoModulatableParameter::lfoRate:
+            lfoEvaluationFunction = [](RegionLfo* lfo)
+            {
+                return 12.0 * static_cast<double>(lfo->getCurrentValue_Bipolar()) * static_cast<double>(lfo->getDepth()); //12.0: one octave
+            };
+            break;
+
+        case LfoModulatableParameter::pitch_inverted:
+        case LfoModulatableParameter::lfoRate_inverted:
+            lfoEvaluationFunction = [](RegionLfo* lfo)
+            {
+                return 12.0 * static_cast<double>(-lfo->getCurrentValue_Bipolar()) * static_cast<double>(lfo->getDepth()); //12.0: one octave
+            };
+            break;
 
 
         default:
@@ -493,7 +449,8 @@ void RegionLfo::resetPhaseUnsafe_WithUpdate()
 
 float RegionLfo::getLatestModulatedPhase()
 {
-    return latestModulatedPhase * getPhase();
+    //return latestModulatedPhase * getPhase();
+    return latestModulatedPhase;
 }
 
 double RegionLfo::getCurrentValue_Unipolar()
@@ -617,13 +574,15 @@ void RegionLfo::evaluateFrequencyModulation()
 
 void RegionLfo::updateCurrentValues() //pre-calculates the current LFO values (unipolar, bipolar) for quicker repeated access
 {
-    latestModulatedPhase = static_cast<float>(phaseModParameter.getModulatedValue()); //update this variable to keep the LFO line drawn updated that's drawn over regions; normally, division by phaseModParameter.getBaseValue() would be necessary, but that value is fixed at 1.0
+    //latestModulatedPhase = static_cast<float>(phaseModParameter.getModulatedValue()); //update this variable to keep the LFO line drawn updated that's drawn over regions; normally, division by phaseModParameter.getBaseValue() would be necessary, but that value is fixed at 1.0
 
-    float effectiveTablePos = currentTablePos + static_cast<float>(waveTable.getNumSamples() - 1) * latestModulatedPhase;
-    if (static_cast<int>(effectiveTablePos) >= waveTable.getNumSamples() - 1)
+    //float effectiveTablePos = currentTablePos + static_cast<float>(waveTable.getNumSamples() - 1) * static_cast<float>(phaseModParameter.getModulatedValue());
+    float effectiveTablePos = currentTablePos * static_cast<float>(phaseModParameter.getModulatedValue());
+    /*if (static_cast<int>(effectiveTablePos) >= waveTable.getNumSamples() - 1)
     {
         effectiveTablePos -= static_cast<float>(waveTable.getNumSamples() - 1);
-    }
+    }*/
+    latestModulatedPhase = effectiveTablePos / static_cast<float>(getNumSamplesUnsafe()); //update this variable to keep the LFO line drawn updated that's drawn over regions; normally, division by phaseModParameter.getBaseValue() would be necessary, but that value is fixed at 1.0
 
     int sampleIndex1 = static_cast<int>(effectiveTablePos);
     int sampleIndex2 = sampleIndex1 + 1;
