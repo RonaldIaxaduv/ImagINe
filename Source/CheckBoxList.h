@@ -14,7 +14,7 @@
 #include "LfoModulatableParameter.h"
 
 
-class CheckBoxListItem : public juce::Component, public juce::ChangeBroadcaster
+class CheckBoxListItem final : public juce::Component, public juce::ChangeBroadcaster, public juce::TooltipClient
 {
 public:
     CheckBoxListItem(juce::String text, int row, int regionID)
@@ -147,6 +147,49 @@ public:
         }
     }
 
+    juce::String getTooltip() override
+    {
+        if (regionButton.getToggleState() == true)
+        {
+            //region is checked
+            switch (modulationChoice.getSelectedId())
+            {
+            case static_cast<int>(LfoModulatableParameter::volume):
+            case static_cast<int>(LfoModulatableParameter::volume_inverted):
+                return "You are currently modulating region " + juce::String(regionID) + "'s volume, i.e. it grows louder the longer the LFO line is (or shorter if inverted). This is a multiplicative parameter.";
+
+            case static_cast<int>(LfoModulatableParameter::pitch):
+            case static_cast<int>(LfoModulatableParameter::pitch_inverted):
+                return "You are currently modulating region " + juce::String(regionID) + "'s pitch, i.e. its pitch rises the longer the LFO line is (or shorter if inverted). This is an additive parameter.";
+
+            case static_cast<int>(LfoModulatableParameter::playbackPosition):
+            case static_cast<int>(LfoModulatableParameter::playbackPosition_inverted):
+                return "You are currently modulating region " + juce::String(regionID) + "'s playback position. This is done by shifting the current position in the audio file by a certain amount (up to the length of the file), i.e. the longer the LFO is, the more the position will be shifted (or less if inverted). This is a multiplicative parameter.";
+
+
+            case static_cast<int>(LfoModulatableParameter::lfoRate):
+            case static_cast<int>(LfoModulatableParameter::lfoRate_inverted):
+                return "You are currently modulating the speed of region " + juce::String(regionID) + "'s LFO, i.e. the longer this LFO's line is, the faster that other LFO becomes (or slower if inverted). This is an additive parameter.";
+
+            case static_cast<int>(LfoModulatableParameter::lfoPhase):
+            case static_cast<int>(LfoModulatableParameter::lfoPhase_inverted):
+                return "You are currently modulating the phase of region " + juce::String(regionID) + "'s LFO. This is done by multiplying the current position of the LFO with a factor between 0 and 1, i.e. the section that the line crosses becomes larger the longer this LFO's line is (or shorter if inverted). This is a multiplicative parameter.";
+
+            case static_cast<int>(LfoModulatableParameter::lfoUpdateInterval):
+            case static_cast<int>(LfoModulatableParameter::lfoUpdateInterval_inverted):
+                return "You are currently modulating the update rate of region " + juce::String(regionID) + "'s LFO, i.e. the longer this LFO's line is, the slower that other LFO's update rate becomes (or faster if inverted). This is a multiplicative parameter.";
+
+            default:
+                return "You can modulate this region by selecting a parameter in the combo box on the right.";
+            }
+        }
+        else
+        {
+            //region is not checked
+            return "You can modulate this region by putting a check mark on the left and then selecting a parameter in the combo box on the right.";
+        }
+    }
+
 private:
     int row;
     int regionID;
@@ -163,7 +206,7 @@ private:
 /*
 * A ListBox containing items which are all CheckBoxes
 */
-class CheckBoxList : public juce::Component, public juce::ListBoxModel
+class CheckBoxList final : public juce::Component, public juce::ListBoxModel, public juce::TooltipClient
 {
 public:
     CheckBoxList() : juce::ListBoxModel()
@@ -364,6 +407,11 @@ public:
             //set to a random parameter (excluding "no modulation")
             item->setModulatedParameterID(static_cast<LfoModulatableParameter>(rng.nextInt(juce::Range<int>(1, static_cast<int>(LfoModulatableParameter::ModulatableParameterCount)))));
         }
+    }
+
+    juce::String getTooltip() override
+    {
+        return "In this list, there is one entry per region (incl. this one). For each region, you can select one parameter. That parameter will then be modulated by this region by interpreting the line from the region's focus point to its outline as an LFO.";
     }
 
 private:

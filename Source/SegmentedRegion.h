@@ -33,7 +33,7 @@ class RegionEditorWindow;
 //==============================================================================
 /*
 */
-class SegmentedRegion final : public juce::DrawableButton, public juce::Timer, public juce::MidiKeyboardState::Listener
+class SegmentedRegion final : public juce::DrawableButton, public juce::Timer, public juce::MidiKeyboardState::Listener, public juce::TooltipClient
 {
 public:
     SegmentedRegion(const juce::Path& outline, const juce::Rectangle<float>& relativeBounds, const juce::Rectangle<int>& parentBounds, juce::Colour fillColour, AudioEngine* audioEngine)/* :
@@ -54,6 +54,8 @@ public:
     bool hitTest_Interactable(int x, int y);
 
     void forceRepaint();
+
+    juce::String getTooltip() override;
 
     void transitionToState(SegmentedRegionStateIndex stateToTransitionTo, bool keepPlayingAndEditing = false);
 

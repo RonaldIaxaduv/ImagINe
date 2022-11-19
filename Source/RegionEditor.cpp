@@ -23,6 +23,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     //file selection
     selectFileButton.setButtonText("Select Sound File");
     selectFileButton.onClick = [this] { selectFile(); };
+    selectFileButton.setTooltip("Click here to select an audio file for the region to play.");
     addChildComponent(selectFileButton);
 
     selectedFileLabel.setText("Please select a file", juce::NotificationType::dontSendNotification); //WIP: changes to "Selected file: (file name)" once a file has been selected
@@ -43,6 +44,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
         }
     };
     focusPositionX.onDragEnd = [this] { renderLfoWaveform(); };
+    focusPositionX.setTooltip("This value changes the horizontal position of the focus point (the dot within a region from which the LFO line originates). The higher the maximum length of the LFO is, the higher its modulation depth becomes.");
     addChildComponent(focusPositionX);
     lfoDepth.setText("LFO depth: ", juce::NotificationType::dontSendNotification);
     lfoDepth.attachToComponent(&focusPositionX, false); //above!
@@ -61,6 +63,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
         }
     };
     focusPositionY.onDragEnd = [this] { renderLfoWaveform(); };
+    focusPositionY.setTooltip("This value changes the vertical position of the focus point (the dot within a region from which the Lfo line originates). The higher the maximum length of the LFO is, the higher its modulation depth becomes.");
     addChildComponent(focusPositionY);
 
     focusPositionLabel.setText("Focus: ", juce::NotificationType::dontSendNotification);
@@ -69,6 +72,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
 
     //toggle mode
     toggleModeButton.setButtonText("Toggle Mode");
+    toggleModeButton.setTooltip("When toggle mode is off, regions will try to stop playing as soon as clicks/notes/play path interactions stop. When it's on, they will turn on on the first interaction and off after the second.");
     addChildComponent(toggleModeButton);
 
     //DAHDSR
@@ -94,6 +98,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     volumeSlider.setSkewFactorFromMidPoint(-6.0);
     volumeSlider.onValueChange = [this] { updateVolume(); };
     volumeSlider.setValue(-6.0, juce::NotificationType::dontSendNotification);
+    volumeSlider.setTooltip("This slider sets the base volume of your selected audio file.");
     addChildComponent(volumeSlider);
 
     volumeLabel.setText("Volume: ", juce::NotificationType::dontSendNotification);
@@ -106,6 +111,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     pitchSlider.setRange(-60.0, 60.0, 0.1);
     pitchSlider.onValueChange = [this] { updatePitch(); };
     pitchSlider.setValue(0.0, juce::NotificationType::dontSendNotification);
+    pitchSlider.setTooltip("This slider offsets the base pitch of your selected audio file, e.g. to adjust the tuning. It's achieved by playing the audio at different speeds (slower = lower).");
     addChildComponent(pitchSlider);
 
     pitchLabel.setText("Pitch: ", juce::NotificationType::dontSendNotification);
@@ -126,6 +132,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
             (*it)->setPitchQuantisationMethod(static_cast<PitchQuantisationMethod>(pitchQuantisationChoice.getSelectedId() - 1)); //set the new pitch quantisation method for all associated voices
         }
     };
+    pitchQuantisationChoice.setTooltip("If you want pitch shifts to only hit notes on a certain scale, you can choose so here. This does not affect the pitch slider, only pitch modulation.");
     addChildComponent(pitchQuantisationChoice);
 
     pitchQuantisationLabel.setText("Pitch Quantisation: ", juce::NotificationType::dontSendNotification);
@@ -162,6 +169,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
             associatedRegion->setMidiChannel(midiChannelChoice.getSelectedId() - 1);
         }
     };
+    midiChannelChoice.setTooltip("If you want to play this region via MIDI notes, you can select the channel that it should listen to here.");
     addChildComponent(midiChannelChoice);
 
     midiChannelLabel.setText("MIDI Channel: ", juce::NotificationType::dontSendNotification);
@@ -193,6 +201,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     {
         associatedRegion->setMidiNote(midiNoteChoice.getSelectedId());
     };
+    midiNoteChoice.setTooltip("If you want to play this region via MIDI notes, you can select the note that it should listen to here.");
     addChildComponent(midiNoteChoice);
 
     midiNoteLabel.setText("MIDI Note: ", juce::NotificationType::dontSendNotification);
@@ -206,6 +215,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     //randomise button
     randomiseButton.setButtonText("Randomise Region Parameters");
     randomiseButton.onClick = [this] { randomiseAllParameters(); };
+    randomiseButton.setTooltip("Clicking this button will randomise most of the parameters in this editor. The randomness is biased in a useful way to achieve useful results. You can also press Ctrl + r while hovering above a parameter to randomise only that one value.");
     addChildComponent(randomiseButton);
 
     //other preparations

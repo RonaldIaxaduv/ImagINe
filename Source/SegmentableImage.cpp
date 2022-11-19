@@ -371,6 +371,31 @@ bool SegmentableImage::keyPressed(const juce::KeyPress& key, juce::Component* or
     return currentState->keyPressed(key, originatingComponent);
 }
 
+juce::String SegmentableImage::getTooltip()
+{
+    switch (currentStateIndex)
+    {
+    case SegmentableImageStateIndex::drawingRegion:
+        return "You can click anywhere on this image to add an outline point of a region that you would like to segment. Press backspace to delete points or o to complete the region by connecting the last point to the first.";
+    case SegmentableImageStateIndex::editingRegions:
+        return "You can click on any segmented region on this image to open its editor window. Several editors may be open at a time and they remain open when switching to playing mode.";
+    case SegmentableImageStateIndex::playingRegions:
+        return "You can click on any segmented region on this image to play it. If the region is toggleable, it will keep playing until you click it again. Note that regions won't stop playing when you switch to playing play paths or to any editing mode.";
+
+    case SegmentableImageStateIndex::drawingPlayPath:
+        return "You can click anywhere on this image to add an outline point of a play path. Press backspace to delete points or o to complete the play path by connecting the last point to the first.";
+    case SegmentableImageStateIndex::editingPlayPaths:
+        return "You can click on any play path on this image to open its editor window. Several editors may be open at a time and they remain open when switching to playing mode.";
+    case SegmentableImageStateIndex::playingPlayPaths:
+        return "You can click on any play path on this image to play it. It will keep playing until you click it again. Note that play paths won't stop playing when you switch to playing regions or to any editing mode.";
+
+    default:
+        return "";
+    }
+}
+
+
+
 void SegmentableImage::startNewPath(juce::Point<float> newPt)
 {
     if (getLocalBounds().contains(newPt.toInt()))

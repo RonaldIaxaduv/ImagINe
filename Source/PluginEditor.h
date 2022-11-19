@@ -76,5 +76,7 @@ private:
 
     std::unique_ptr<juce::FileChooser> fc;
 
+    juce::SharedResourcePointer<juce::TooltipWindow> tooltipWindow; //used for displaying tooltips. automatically initialised
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ImageINeDemoAudioProcessorEditor)
 };

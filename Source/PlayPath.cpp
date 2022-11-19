@@ -265,6 +265,22 @@ bool PlayPath::hitTest_Interactable(int x, int y)
     return distanceSquared <= (2.5f * outlineThickness) * (2.5f * outlineThickness); //only register interactions near the outline, not in the inner region
 }
 
+juce::String PlayPath::getTooltip()
+{
+    switch (currentStateIndex)
+    {
+    case PlayPathStateIndex::editable:
+        return "Click on this play path to open its editor window. You may have editor windows of other play paths open at the same time.";
+
+        //case PlayPathStateIndex::playable:
+        //    return "Click on this play path to play it. It will keep playing until you click it again.";
+            //^- i'm pretty sure this would only get annoying
+
+    default:
+        return "";
+    }
+}
+
 juce::Point<float> PlayPath::getPointAlongPath(double normedDistanceFromStart)
 {
     return underlyingPath.getPointAlongPath(normedDistanceFromStart * underlyingPath.getLength());

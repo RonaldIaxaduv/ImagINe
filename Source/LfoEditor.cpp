@@ -26,6 +26,7 @@ LfoEditor::LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo)
     lfoRateSlider.setRange(0.01, 100.0, 0.01);
     lfoRateSlider.setSkewFactorFromMidPoint(1.0);
     lfoRateSlider.onValueChange = [this] { updateLfoRate(); };
+    lfoRateSlider.setTooltip("This slider changes the speed at which the LFO line travels around the region.");
     addAndMakeVisible(lfoRateSlider);
 
     lfoRateLabel.setText("LFO rate: ", juce::NotificationType::dontSendNotification);
@@ -38,6 +39,7 @@ LfoEditor::LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo)
     lfoUpdateIntervalSlider.setRange(0.0, 10000.0, 0.01);
     lfoUpdateIntervalSlider.setSkewFactorFromMidPoint(100.0);
     lfoUpdateIntervalSlider.onValueChange = [this] { updateLfoUpdateInterval(); };
+    lfoUpdateIntervalSlider.setTooltip("This value determines how often the value of the LFO is evaluated. It's also reflected in how often the LFO line is updated. Slower update rates can be useful for some modulated parameters, e.g. pitch or LFO phase. They also reduce the CPU load.");
     addAndMakeVisible(lfoUpdateIntervalSlider);
 
     lfoUpdateIntervalLabel.setText("Update Interval: ", juce::NotificationType::dontSendNotification);

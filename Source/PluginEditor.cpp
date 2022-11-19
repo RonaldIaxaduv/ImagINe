@@ -16,6 +16,7 @@ ImageINeDemoAudioProcessorEditor::ImageINeDemoAudioProcessorEditor (ImageINeDemo
     //code for the MIDI input box: see https://docs.juce.com/master/tutorial_synth_using_midi_input.html
     auto midiInputs = juce::MidiInput::getAvailableDevices();
     midiInputList.setTextWhenNoChoicesAvailable("No MIDI Inputs Enabled");
+    midiInputList.setTooltip("If you would like to play ImageINe using MIDI notes, you can select the MIDI input to listen to here.");
     addAndMakeVisible(midiInputList);
 
     juce::StringArray midiInputNames;
@@ -47,18 +48,20 @@ ImageINeDemoAudioProcessorEditor::ImageINeDemoAudioProcessorEditor (ImageINeDemo
     //preset buttons
     openPresetButton.setButtonText("Open Preset");
     openPresetButton.onClick = [this] { showOpenPresetDialogue(); };
+    openPresetButton.setTooltip("Click this button to load a preset for ImageINe. Presets can contain a background image as well as regions (including their audio), play paths and all their settings and modulations.");
     addAndMakeVisible(openPresetButton);
     savePresetButton.setButtonText("Save Preset");
     savePresetButton.onClick = [this] { showSavePresetDialogue(); };
+    savePresetButton.setTooltip("Click this button to save the current program state as a preset. The preset will contain the current background image as well as any regions (incl. their audio), play paths and all their settings and modulations.");
     addAndMakeVisible(savePresetButton);
     
     //load image button
-    addAndMakeVisible(openImageButton);
     openImageButton.setButtonText("Open Image");
     openImageButton.onClick = [this] { showOpenImageDialogue(); };
+    openImageButton.setTooltip("Click this button to load an image into ImageINe. After doing so, you will be able to draw regions and play paths on it.");
+    addAndMakeVisible(openImageButton);
 
     //mode box
-    addAndMakeVisible(modeBox);
     modeBox.addItem("Init", static_cast<int>(PluginEditorStateIndex::init));
     modeBox.addItem("Drawing Regions", static_cast<int>(PluginEditorStateIndex::drawingRegion));
     modeBox.addItem("Editing Regions", static_cast<int>(PluginEditorStateIndex::editingRegions));
@@ -70,6 +73,8 @@ ImageINeDemoAudioProcessorEditor::ImageINeDemoAudioProcessorEditor (ImageINeDemo
     addAndMakeVisible(modeLabel);
     modeLabel.setText("Mode: ", juce::NotificationType::dontSendNotification);
     modeLabel.attachToComponent(&modeBox, true);
+    modeBox.setTooltip("Here you can select the current mode of the program. To go beyond Init, you first have to load an image. Afterwards, you can freely switch between states. Note especially that any editors remain open when switching to play mode, and any regions and play paths keep playing when switching to another play or editing mode!");
+    addAndMakeVisible(modeBox);
 
     //segmentable image
     image.setImagePlacement(juce::RectanglePlacement::stretchToFit);
@@ -79,6 +84,9 @@ ImageINeDemoAudioProcessorEditor::ImageINeDemoAudioProcessorEditor (ImageINeDemo
     //setResizable(true, true); //set during state changes
     setResizeLimits(100, 100, 4096, 2160); //maximum resolution: 4k
     setSize(600, 400);
+
+    //tooltips
+    tooltipWindow->setMillisecondsBeforeTipAppears(2000);
 
     //modeBox.setSelectedId(static_cast<int>(PluginEditorStateIndex::Init));
     setStateAccordingToImage();

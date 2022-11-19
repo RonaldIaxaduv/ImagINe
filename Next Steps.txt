@@ -450,7 +450,9 @@
 	-> i'm surprised i didn't suspend the audio there yet, i could've sworn i did o.ô
 !# messed up the positioning of the LFO depth label again -> adjust!
 !- set help texts for all components
-	- there should already be a method setHelpText for all Component members
+	/ there should already be a method setHelpText for all Component members
+	# actually, TooltipWindow is what i was looking for. setHelpText, setDescription and setTitle are used for AccessibilityHandler implementations - which is smth that should absolutely be implemented later! but in the context of the bacherlor's thesis, it's most likely overkill
+	- bug(?): the sliders don't display their tooltips yet for some reason
 - allow the user to choose a play path colour
 	- actually make them be able to choose both a normal colour and a down colour! that way, it's easier to retain a good contrast than by code, probably. by default, just set the down colour to the normal colour darkened by 0.2 or so.
 - add MIDI note bindings to play paths?
@@ -612,4 +614,4 @@ possible features to add later:
 	!- idea 2: clockwise wipe on the background of the region, with unplayable areas being greyed out
 - button to open/save settings in a regions/play path editor
 - smooth transitions for when a region's playback position changes
-
+- implement AccessibilityHandler to set help texts, descriptions and titles for all objects that can be read with screenreaders

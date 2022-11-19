@@ -26,28 +26,36 @@ public:
         addAndMakeVisible(titleLabel);
 
         initialiseTimeSlider(&delaySlider, [this] { updateDelayTime(); });
+        delaySlider.setTooltip("This slider changes how much time passes until the audio becomes audible after a region has started to be played.");
         initialiseSliderLabel(&delayLabel, "Delay", &delaySlider);
 
         initialiseTimeSlider(&attackSlider, [this] { updateAttackTime(); });
+        attackSlider.setTooltip("This slider changes how long it takes to get from the initial volume to the peak volume of the audio.");
         initialiseSliderLabel(&attackLabel, "Attack", &attackSlider);
 
         initialiseTimeSlider(&holdSlider, [this] { updateHoldTime(); });
+        holdSlider.setTooltip("This slider changes how long the peak volume is kept up.");
         initialiseSliderLabel(&holdLabel, "Hold", &holdSlider);
 
         initialiseTimeSlider(&decaySlider, [this] { updateDecayTime(); });
+        decaySlider.setTooltip("This slider changes how long it takes to get from the peak volume to the sustain volume of the audio.");
         initialiseSliderLabel(&decayLabel, "Decay", &decaySlider);
 
         initialiseTimeSlider(&releaseSlider, [this] { updateReleaseTime(); });
+        releaseSlider.setTooltip("This slider changes how long it takes for the audio to fade out after a region has requested to stop playing.");
         initialiseSliderLabel(&releaseLabel, "Release", &releaseSlider);
 
 
         initialiseLevelSlider(&initialSlider, [this] { updateInitialLevel(); });
+        initialSlider.setTooltip("This slider changes the initial volume of the audio that's used after the delay stage, at the beginning of the attack stage.");
         initialiseSliderLabel(&initialLabel, "Initial", &initialSlider);
 
         initialiseLevelSlider(&peakSlider, [this] { updatePeakLevel(); });
+        peakSlider.setTooltip("This slider changes the peak volume of the audio that's used after the attack stage, during the hold stage and at the beginning of the decay stage.");
         initialiseSliderLabel(&peakLabel, "Peak", &peakSlider);
 
         initialiseLevelSlider(&sustainSlider, [this] { updateSustainLevel(); });
+        sustainSlider.setTooltip("This slider changes the sustain volume of the audio that's used after the decay stage, during the sustain stage and at the beginning of the release stage.");
         initialiseSliderLabel(&sustainLabel, "Sustain", &sustainSlider);
 
         //copy current parameter values

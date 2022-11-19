@@ -20,7 +20,7 @@ class PlayPathEditorWindow;
 
 #include "SegmentedRegion.h"
 
-class PlayPath final : public juce::DrawableButton
+class PlayPath final : public juce::DrawableButton, public juce::TooltipClient
 {
 public:
     PlayPath(int ID, const juce::Path& path, const juce::Rectangle<float>& relativeBounds, const juce::Rectangle<int>& parentBounds, juce::Colour fillColour);
@@ -33,6 +33,8 @@ public:
 
     bool hitTest(int x, int y) override;
     bool hitTest_Interactable(int x, int y);
+
+    juce::String getTooltip() override;
 
     juce::Point<float> getPointAlongPath(double normedDistanceFromStart);
     float getPathLength();

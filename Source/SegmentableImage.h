@@ -27,7 +27,7 @@ class SegmentableImageState_PlayingRegions;
 //==============================================================================
 /*
 */
-class SegmentableImage : public juce::ImageComponent, public juce::KeyListener
+class SegmentableImage : public juce::ImageComponent, public juce::KeyListener, public juce::TooltipClient
 {
 public:
     SegmentableImage(AudioEngine* audioEngine);
@@ -49,6 +49,8 @@ public:
 
     //to finish/restart path
     bool keyPressed(const juce::KeyPress& key, juce::Component* originatingComponent) override;
+
+    juce::String getTooltip() override;
 
 
     //================================================================

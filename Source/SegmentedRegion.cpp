@@ -328,6 +328,22 @@ void SegmentedRegion::forceRepaint()
     transitionToState(previousStateIndex);
 }
 
+juce::String SegmentedRegion::getTooltip()
+{
+    switch (currentStateIndex)
+    {
+    case SegmentedRegionStateIndex::editable:
+        return "Click on this region to open its editor window. You may have editor windows of other regions open at the same time.";
+
+    //case SegmentedRegionStateIndex::playable:
+    //    return "Click on this region to play it. If it's toggleable, it will keep playing until you click it again.";
+        //^- i'm pretty sure this would only get annoying
+
+    default:
+        return "";
+    }
+}
+
 //void SegmentedRegion::setState(SegmentedRegionState newState)
 //{
 //    if (currentState != newState)

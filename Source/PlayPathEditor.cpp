@@ -21,6 +21,7 @@ PlayPathEditor::PlayPathEditor(PlayPath* path)
     courierIntervalSlider.setSkewFactorFromMidPoint(60.0);
     courierIntervalSlider.onValueChange = [this] { updateCourierInterval(); };
     courierIntervalSlider.setValue(10.0, juce::NotificationType::dontSendNotification);
+    courierIntervalSlider.setTooltip("This slider changes the time that it takes the courier (the point traveling around the play path) to complete one lap around the play path.");
     addAndMakeVisible(courierIntervalSlider);
 
     courierIntervalLabel.setText("Courier Interval:", juce::NotificationType::dontSendNotification);
@@ -30,6 +31,7 @@ PlayPathEditor::PlayPathEditor(PlayPath* path)
     //randomise button
     randomiseButton.setButtonText("Randomise Region Parameters");
     randomiseButton.onClick = [this] { randomiseAllParameters(); };
+    randomiseButton.setTooltip("Clicking this button will randomise most of the parameters in this editor. The randomness is biased in a useful way to achieve useful results. You can also press Ctrl + r while hovering above a parameter to randomise only that one value.");
     addChildComponent(randomiseButton);
 
     //rest
