@@ -90,24 +90,19 @@ bool LfoEditor::keyPressed(const juce::KeyPress& key)
         auto mousePos = getMouseXYRelative();
         juce::Component* target = getComponentAt(mousePos.getX(), mousePos.getY());
 
-        if (target != nullptr && target != this)
+        if (lfoRateSlider.getBounds().contains(mousePos))
         {
-            //try to randomise the component that the user pointed at
-
-            if (target == &lfoRateSlider)
-            {
-                randomiseLfoRate();
-                return true;
-            }
-            else if (target == &lfoUpdateIntervalSlider)
-            {
-                randomiseLfoUpdateInterval();
-                return true;
-            }
-            else if (target == &lfoRegionsList)
-            {
-                return lfoRegionsList.keyPressed(key);
-            }
+            randomiseLfoRate();
+            return true;
+        }
+        else if (lfoUpdateIntervalSlider.getBounds().contains(mousePos))
+        {
+            randomiseLfoUpdateInterval();
+            return true;
+        }
+        else if (lfoRegionsList.getBounds().contains(mousePos))
+        {
+            return lfoRegionsList.keyPressed(key);
         }
     }
     
@@ -197,13 +192,18 @@ void LfoEditor::randomiseLfoUpdateInterval()
 
 void LfoEditor::updateLfoParameter(int targetRegionID, bool shouldBeModulated, LfoModulatableParameter modulatedParameter)
 {
+    bool wasSuspended = audioEngine->isSuspended();
+
     if (!shouldBeModulated || static_cast<int>(modulatedParameter) <= 0)
     {
+        audioEngine->suspendProcessing(true);
         associatedLfo->removeRegionModulation(targetRegionID); //removing modulation is the same for every region
+        audioEngine->suspendProcessing(wasSuspended);
         return;
     }
     
     //there are different overloads for RegionLfo::addRegionModulation depending on whether a voice is modulated or an LFO
+    audioEngine->suspendProcessing(true);
     switch (modulatedParameter)
     {
     case LfoModulatableParameter::volume:
@@ -245,4 +245,5 @@ void LfoEditor::updateLfoParameter(int targetRegionID, bool shouldBeModulated, L
     default:
         throw std::exception("Unknown or unimplemented region modulation");
     }
+    audioEngine->suspendProcessing(wasSuspended);
 }

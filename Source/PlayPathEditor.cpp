@@ -14,6 +14,7 @@ PlayPathEditor::PlayPathEditor(PlayPath* path)
 {
     associatedPath = path;
 
+    //interval
     courierIntervalSlider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
     courierIntervalSlider.setTextValueSuffix("s");
     courierIntervalSlider.setRange(0.1, 600.0, 0.1);
@@ -26,6 +27,12 @@ PlayPathEditor::PlayPathEditor(PlayPath* path)
     courierIntervalLabel.attachToComponent(&courierIntervalSlider, true);
     addAndMakeVisible(courierIntervalLabel);
 
+    //randomise button
+    randomiseButton.setButtonText("Randomise Region Parameters");
+    randomiseButton.onClick = [this] { randomiseAllParameters(); };
+    addChildComponent(randomiseButton);
+
+    //rest
     copyPathParameters();
 
     setSize(350, 700);
@@ -55,6 +62,25 @@ void PlayPathEditor::resized()
     courierIntervalLabel.setBounds(courierIntervalArea);
 }
 
+bool PlayPathEditor::keyPressed(const juce::KeyPress& key)
+{
+    if (key == juce::KeyPress::createFromDescription("ctrl + r"))
+    {
+        auto mousePos = getMouseXYRelative();
+        juce::Component* target = getComponentAt(mousePos.getX(), mousePos.getY());
+
+        if (courierIntervalSlider.getBounds().contains(mousePos))
+        {
+            randomiseCourierInterval();
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+
 void PlayPathEditor::copyPathParameters()
 {
     DBG("copying play path parameters...");
@@ -67,4 +93,16 @@ void PlayPathEditor::copyPathParameters()
 void PlayPathEditor::updateCourierInterval()
 {
     associatedPath->setCourierInterval_seconds(static_cast<float>(courierIntervalSlider.getValue()));
+}
+void PlayPathEditor::randomiseCourierInterval()
+{
+    juce::Random& rng = juce::Random::getSystemRandom();
+
+    //some completely random value within the range is fine
+    courierIntervalSlider.setValue(courierIntervalSlider.getMinimum() + rng.nextDouble() * (courierIntervalSlider.getMaximum() - courierIntervalSlider.getMinimum()), juce::NotificationType::sendNotification);
+}
+
+void PlayPathEditor::randomiseAllParameters()
+{
+    randomiseCourierInterval();
 }

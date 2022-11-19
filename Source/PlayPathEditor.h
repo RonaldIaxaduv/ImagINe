@@ -22,15 +22,23 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
 
+    bool keyPressed(const juce::KeyPress& key) override;
+
 private:
     PlayPath* associatedPath;
+
+    juce::Label courierIntervalLabel;
+    juce::Slider courierIntervalSlider;
+
+    juce::TextButton randomiseButton;
+
 
     void copyPathParameters();
 
     void updateCourierInterval();
+    void randomiseCourierInterval();
 
-    juce::Label courierIntervalLabel;
-    juce::Slider courierIntervalSlider;
+    void randomiseAllParameters();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayPathEditor)
 };

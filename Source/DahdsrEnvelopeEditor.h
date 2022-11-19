@@ -97,20 +97,48 @@ public:
             auto mousePos = getMouseXYRelative();
             juce::Component* target = getComponentAt(mousePos.getX(), mousePos.getY());
 
-            if (target != nullptr && target != this)
+            //time sliders
+            if (delaySlider.getBounds().contains(mousePos))
             {
-                //try to randomise the component that the user pointed at
+                randomiseTimeSlider(&delaySlider);
+                return true;
+            }
+            else if(attackSlider.getBounds().contains(mousePos))
+            {
+                randomiseTimeSlider(&attackSlider);
+                return true;
+            }
+            else if (holdSlider.getBounds().contains(mousePos))
+            {
+                randomiseTimeSlider(&holdSlider);
+                return true;
+            }
+            else if (decaySlider.getBounds().contains(mousePos))
+            {
+                randomiseTimeSlider(&decaySlider);
+                return true;
+            }
+            else if (releaseSlider.getBounds().contains(mousePos))
+            {
+                randomiseTimeSlider(&releaseSlider);
+                return true;
+            }
 
-                if (target == &delaySlider || target == &attackSlider || target == &holdSlider || target == &decaySlider || target == &releaseSlider)
-                {
-                    randomiseTimeSlider(static_cast<juce::Slider*>(target));
-                    return true;
-                }
-                else if (target == &initialSlider || target == &peakSlider || target == &sustainSlider)
-                {
-                    randomiseLevelSlider(static_cast<juce::Slider*>(target));
-                    return true;
-                }
+            //level sliders
+            else if (initialSlider.getBounds().contains(mousePos))
+            {
+                randomiseInitialSlider();
+                return true;
+            }
+            else if (peakSlider.getBounds().contains(mousePos))
+            {
+                randomisePeakSlider();
+                return true;
+            }
+            else if (sustainSlider.getBounds().contains(mousePos))
+            {
+                randomiseSustainSlider();
+                return true;
             }
         }
 
@@ -146,9 +174,9 @@ public:
         randomiseTimeSlider(&releaseSlider);
 
         //level sliders
-        randomiseLevelSlider(&initialSlider);
-        randomiseLevelSlider(&peakSlider);
-        randomiseLevelSlider(&sustainSlider);
+        randomiseInitialSlider();
+        randomisePeakSlider();
+        randomiseSustainSlider();
     }
 
 private:
@@ -214,12 +242,53 @@ private:
         sliderToInitialise->onValueChange = valueChangeFunction;
         addAndMakeVisible(sliderToInitialise);
     }
-    void randomiseLevelSlider(juce::Slider* sliderToRandomise)
+    //void randomiseLevelSlider(juce::Slider* sliderToRandomise)
+    //{
+    //    juce::Random& rng = juce::Random::getSystemRandom();
+
+    //    //level sliders -> prefer values closer to 0 (by dividing the result randomly by a value within [1, 6] -> average value of -7,7dB)
+    //    sliderToRandomise->setValue((sliderMinimumLevel + rng.nextDouble() * (sliderMaximumLevel - sliderMinimumLevel)) / (1.0 + 5.0 * rng.nextDouble()), juce::NotificationType::sendNotification);
+    //}
+    void randomiseInitialSlider()
     {
         juce::Random& rng = juce::Random::getSystemRandom();
 
-        //level sliders -> prefer values closer to 0 (by dividing the result randomly by a value within [1, 6] -> average value of -7,7dB)
-        sliderToRandomise->setValue((sliderMinimumLevel + rng.nextDouble() * (sliderMaximumLevel - sliderMinimumLevel)) / (1.0 + 5 * rng.nextDouble()), juce::NotificationType::sendNotification);
+        //prefer either a value close to silence (minimum value) or 0dB
+        if (rng.nextInt(10) < 7) //70% chance
+        {
+            //prefer value close to silence
+            initialSlider.setValue(sliderMinimumLevel + rng.nextDouble() * (-30.0 - sliderMinimumLevel), juce::NotificationType::sendNotification); //values between -60 and -30
+        }
+        else //30% chance
+        {
+            //prefer value close to 0dB
+            initialSlider.setValue((-30.0 + rng.nextDouble() * (sliderMaximumLevel - -30.0)) / (1.0 + 5.0 * rng.nextDouble()), juce::NotificationType::sendNotification); //values between -30 and 6
+        }
+    }
+    void randomisePeakSlider()
+    {
+        juce::Random& rng = juce::Random::getSystemRandom();
+
+        //level sliders -> prefer values closer to 0, but allow any value in the possible range
+        peakSlider.setValue((sliderMinimumLevel + rng.nextDouble() * (sliderMaximumLevel - sliderMinimumLevel)) / (1.0 + 5.0 * rng.nextDouble()), juce::NotificationType::sendNotification);
+    }
+    void randomiseSustainSlider()
+    {
+        juce::Random& rng = juce::Random::getSystemRandom();
+
+        //prefer either a value close to silence (minimum value) or 0dB. if the peak level or initial level are on the louder side, prefer values closer to silence more.
+        int silenceThreshold = 1 + (initialSlider.getValue() < 0.75 * sliderMinimumLevel ? 1 : 0) + (peakSlider.getValue() < 0.75 * sliderMinimumLevel ? 1 : 0);
+        int zeroThreshold = 1 + (initialSlider.getValue() > 0.25 * sliderMinimumLevel ? 1 : 0) + (peakSlider.getValue() > 0.25 * sliderMinimumLevel ? 1 : 0);
+        if (rng.nextInt(silenceThreshold + zeroThreshold) < silenceThreshold) //chance of silenceThreshold/zeroThreshold
+        {
+            //prefer value close to silence
+            sustainSlider.setValue(sliderMinimumLevel / (1.0 + rng.nextDouble()), juce::NotificationType::sendNotification); //values between -60 and -30
+        }
+        else //chance of 1 - silenceThreshold/zeroThreshold
+        {
+            //prefer value close to 0dB
+            sustainSlider.setValue((0.5 * sliderMinimumLevel + rng.nextDouble() * (sliderMaximumLevel - sliderMinimumLevel * 0.5)) / (1.0 + 5.0 * rng.nextDouble()), juce::NotificationType::sendNotification); //values between -30 and 6
+        }
     }
 
     void initialiseSliderLabel(juce::Label* labelToInitialise, juce::String text, juce::Slider* sliderToAttachTo)

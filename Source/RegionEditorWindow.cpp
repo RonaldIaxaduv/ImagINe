@@ -30,7 +30,7 @@ RegionEditorWindow::RegionEditorWindow(juce::String name, SegmentedRegion* regio
     setVisible(true);
     setTitle("Region " + juce::String(region->getID()));
 
-    addKeyListener(static_cast<RegionEditor*>(getContentComponent()));
+    //addKeyListener(static_cast<RegionEditor*>(getContentComponent()));
 
     addToDesktop();
 }
@@ -45,7 +45,7 @@ void RegionEditorWindow::closeButtonPressed()
     //setVisible(false);
     //this->removeFromDesktop();
 
-    removeKeyListener(static_cast<RegionEditor*>(getContentComponent()));
+    //removeKeyListener(static_cast<RegionEditor*>(getContentComponent()));
 
     delete this;
 }

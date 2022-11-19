@@ -241,6 +241,8 @@ void RegionEditor::resized()
     selectedFileLabel.setBounds(area.removeFromTop(20));
     selectFileButton.setBounds(area.removeFromTop(20));
 
+    area.removeFromTop(20); //make space for the LFO depth label
+
     auto focusArea = area.removeFromTop(20);
     focusArea.removeFromLeft(focusArea.getWidth() / 3);
     focusPositionX.setBounds(focusArea.removeFromLeft(focusArea.getWidth() / 2));
@@ -275,45 +277,40 @@ void RegionEditor::resized()
     lfoEditor.setBounds(area); //fill rest with lfoEditor
 }
 
-bool RegionEditor::keyPressed(const juce::KeyPress& key, Component* originatingComponent)
+bool RegionEditor::keyPressed(const juce::KeyPress& key/*, Component* originatingComponent*/)
 {
     if (key == juce::KeyPress::createFromDescription("ctrl + r"))
     {
         auto mousePos = getMouseXYRelative();
         juce::Component* target = getComponentAt(mousePos.getX(), mousePos.getY());
 
-        if (target != nullptr && target != this)
+        if (focusPositionX.getBounds().contains(mousePos) || focusPositionY.getBounds().contains(mousePos))
         {
-            //try to randomise the component that the user pointed at
-
-            if (target == &focusPositionX || target == &focusPositionY)
-            {
-                randomiseFocusPosition();
-                return true;
-            }
-            else if (target == &dahdsrEditor)
-            {
-                return dahdsrEditor.keyPressed(key);
-            }
-            else if (target == &volumeSlider)
-            {
-                randomiseVolume();
-                return true;
-            }
-            else if (target == &pitchSlider)
-            {
-                randomisePitch();
-                return true;
-            }
-            else if (target == &pitchQuantisationChoice)
-            {
-                randomisePitchQuantisation();
-                return true;
-            }
-            else if (target == &lfoEditor)
-            {
-                return lfoEditor.keyPressed(key);
-            }
+            randomiseFocusPosition();
+            return true;
+        }
+        else if (dahdsrEditor.getBounds().contains(mousePos))
+        {
+            return dahdsrEditor.keyPressed(key);
+        }
+        else if (volumeSlider.getBounds().contains(mousePos))
+        {
+            randomiseVolume();
+            return true;
+        }
+        else if (pitchSlider.getBounds().contains(mousePos))
+        {
+            randomisePitch();
+            return true;
+        }
+        else if (pitchQuantisationChoice.getBounds().contains(mousePos))
+        {
+            randomisePitchQuantisation();
+            return true;
+        }
+        else if (lfoEditor.getBounds().contains(mousePos))
+        {
+            return lfoEditor.keyPressed(key);
         }
     }
 

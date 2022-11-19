@@ -439,6 +439,8 @@ void SegmentedRegion::setBuffer(juce::AudioSampleBuffer newBuffer, juce::String 
     audioFileName = fileName;
     this->origSampleRate = origSampleRate;
 
+    bool wasSuspended = audioEngine->isSuspended();
+    audioEngine->suspendProcessing(true);
     if (audioFileName != "")
     {
         if (associatedVoices.size() == 0)
@@ -462,6 +464,7 @@ void SegmentedRegion::setBuffer(juce::AudioSampleBuffer newBuffer, juce::String 
             (*itVoice)->setOsc(emptyBuffer, 0);
         }
     }
+    audioEngine->suspendProcessing(wasSuspended);
 
     DBG("new buffer has been set. length: " + juce::String(origSampleRate > 0.0 ? static_cast<double>(buffer.getNumSamples()) / origSampleRate : 0.0) + " seconds.");
 }
@@ -502,15 +505,20 @@ void SegmentedRegion::renderLfoWaveform()
     samples[waveform.getNumSamples() - 1] = waveform.getSample(0, 0); //the last sample is equal to the first -> makes wrapping simpler and faster
 
     //apply to LFO
+    bool wasSuspended = audioEngine->isSuspended();
     if (audioEngine->getLfo(ID) == nullptr) //lfo not yet initialised
     {
         associatedLfo = new RegionLfo(waveform, RegionLfo::Polarity::unipolar, getID()); //no modulation until the voice has been initialised
+        
+        audioEngine->suspendProcessing(true);
         audioEngine->addLfo(associatedLfo);
     }
     else
     {
+        audioEngine->suspendProcessing(true);
         associatedLfo->setWaveTable(waveform, RegionLfo::Polarity::unipolar);
     }
+    audioEngine->suspendProcessing(wasSuspended);
 
     float maxLength = std::sqrtf(static_cast<float>(getParentWidth() * getParentWidth() + getParentHeight() * getParentHeight())); //diagonal of the image (-> longest line)
     float maxDepthCutoff = 0.4f; //ratio of maxLength required to reach depth=1
@@ -547,10 +555,12 @@ bool SegmentedRegion::isEditorOpen()
 void SegmentedRegion::sendEditorToFront()
 {
     regionEditorWindow->toFront(true);
+    regionEditorWindow->getContentComponent()->grabKeyboardFocus();
 }
 void SegmentedRegion::openEditor()
 {
     regionEditorWindow = juce::Component::SafePointer<RegionEditorWindow>(new RegionEditorWindow("Region " + juce::String(ID) + " Editor", this));
+    regionEditorWindow->getContentComponent()->grabKeyboardFocus();
 }
 void SegmentedRegion::refreshEditor()
 {

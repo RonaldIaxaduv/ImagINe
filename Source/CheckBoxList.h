@@ -120,10 +120,10 @@ public:
     {
         return regionButton.getToggleState();
     }
-    void setIsModulated(bool shouldBeModulated)
+    void setIsModulated(bool shouldBeModulated, bool notifyParent = false)
     {
-        regionButton.setToggleState(shouldBeModulated, juce::NotificationType::dontSendNotification);
         modulationChoice.setEnabled(shouldBeModulated);
+        regionButton.setToggleState(shouldBeModulated, juce::NotificationType::sendNotification);
     }
     LfoModulatableParameter getModulatedParameter()
     {
@@ -131,7 +131,7 @@ public:
     }
     void setModulatedParameterID(LfoModulatableParameter id)
     {
-        modulationChoice.setSelectedId(static_cast<int>(id), juce::NotificationType::dontSendNotification);
+        modulationChoice.setSelectedId(static_cast<int>(id), juce::NotificationType::sendNotification);
     }
 
     void triggerClick(const juce::MouseEvent& e)
@@ -255,10 +255,13 @@ public:
             auto mousePos = getMouseXYRelative();
             juce::Component* target = getComponentAt(mousePos.getX(), mousePos.getY());
 
-            if (dynamic_cast<CheckBoxListItem*>(target) != nullptr)
+            for (auto itItem = items.begin(); itItem != items.end(); ++itItem)
             {
-                randomiseItem(static_cast<CheckBoxListItem*>(target));
-                return true;
+                if ((*itItem)->getBounds().contains(mousePos))
+                {
+                    randomiseItem(*itItem);
+                    return true;
+                }
             }
         }
 
@@ -349,7 +352,12 @@ public:
     {
         juce::Random& rng = juce::Random::getSystemRandom();
 
-        item->setIsModulated(rng.nextBool()); //50% chance to be modulated
+        bool wasModulated = item->isModulated();
+        bool shouldBeModulated = rng.nextInt(3) < 2; //66% chance to become modulated
+        if (wasModulated != shouldBeModulated)
+        {
+            item->setIsModulated(shouldBeModulated, true);
+        }
 
         if (item->isModulated())
         {

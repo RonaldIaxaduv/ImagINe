@@ -429,19 +429,26 @@
 	#> actually, the problem was that phase modulation currently worked differently than what i thought *and* the LFO line used the wrong value to display itself. welp
 # make unipolar modulation symmetrical like bipolar modulation (see written note)
 	/ maybe only for some parameters (perhaps it only sounds good that way for a select few)
-!- updating the focus point position while playing regions can cause an access violation
+!# updating the focus point position while playing regions can cause an access violation
 	- another case of where locks would be wise...
-	-> suspend processing while switching the LFO table
-!- implement a simple means of randomisation
+	#> suspend processing while switching the LFO table...
+!# implement a simple means of randomisation
 	# add a "randomise" button to the region editor
 		-> nice way to quickly randomise everything at once
-	- also in the region editor, make it possible to hover over a component and press ctrl+r to randomise the value of that component
+	# also in the region editor, make it possible to hover over a component and press ctrl+r to randomise the value of that component
 		-> nice way to randomise only a selected number of components
-		- currently doesn't work - maybe in the if clauses, dynamic casts will have to be used...
-		- making the region editor a key listener actually isn't necessary to do this, remove it (for simplicity's sake) and stick to juce::Component's keyPressed method (same but without the second argument)
-	- important: slightly weight the randomness, so that the values produced are actually useful (e.g. don't naively randomise volume - prefer values closer to 0.0dB!)
-	- add a "randomise button to the path editor
-	- also in the path editor, make it possible to randomise a component by pressing ctrl+r while hovering above it
+		# currently doesn't work - maybe in the if clauses, dynamic casts will have to be used...
+		# making the region editor a key listener actually isn't necessary to do this, remove it (for simplicity's sake) and stick to juce::Component's keyPressed method (same but without the second argument)
+		!# bug: when randomising the entries in the region parameter list, the values aren't registered in the LFO
+	# important: slightly weight the randomness, so that the values produced are actually useful (e.g. don't naively randomise volume - prefer values closer to 0.0dB!)
+	# add a randomise button to the path editor
+	# also in the path editor, make it possible to randomise a component by pressing ctrl+r while hovering above it
+!# bug: changing the modulated parameters in the editor while the region is playing may cause an access violation
+	- getting ever closer to having to use thread locks...
+	#> fix by suspending processing...
+!# bug: changing the region's audio while playing it may cause an access violation
+	-> i'm surprised i didn't suspend the audio there yet, i could've sworn i did o.ô
+!# messed up the positioning of the LFO depth label again -> adjust!
 !- set help texts for all components
 	- there should already be a method setHelpText for all Component members
 - allow the user to choose a play path colour
@@ -453,6 +460,8 @@
 !- add more/better key bindings
 - bug: updating the toggle parameter in the region editor while in playing mode doesn't affect the region when actually playing it. to update it, one must go back into editing mode and back to playing mode o.ô
 - implement more scales (esp. pentatonic scales and various modes)
+	- half up: 0 in first half of the octave, 1 in the second half
+	- half down: -1 in first half(?), 0 in second half	(alternatively 0 and 11)
 - implement more parameters
 	- current LFO phase (rename current implementation "LFO phase multiplier")
 		- is there a way to calculate this modded value efficiently without if cases?
@@ -601,3 +610,6 @@ possible features to add later:
 	- probably better to add this only in combination with the GPU-accelerated UI drawing, otherwise it might be too costly
 	- idea 1: use a second (but smaller) pointer line -> regions look a bit like clocks
 	!- idea 2: clockwise wipe on the background of the region, with unplayable areas being greyed out
+- button to open/save settings in a regions/play path editor
+- smooth transitions for when a region's playback position changes
+

@@ -286,10 +286,12 @@ bool PlayPath::isEditorOpen()
 void PlayPath::sendEditorToFront()
 {
     pathEditorWindow->toFront(true);
+    pathEditorWindow->getContentComponent()->grabKeyboardFocus();
 }
 void PlayPath::openEditor()
 {
     pathEditorWindow = juce::Component::SafePointer<PlayPathEditorWindow>(new PlayPathEditorWindow("Play Path " + juce::String(ID) + " Editor", this));
+    pathEditorWindow->getContentComponent()->grabKeyboardFocus();
 }
 
 void PlayPath::triggerButtonStateChanged()

@@ -20,7 +20,7 @@
 class SegmentedRegion;
 
 
-class RegionEditor final : public juce::Component, public juce::KeyListener
+class RegionEditor final : public juce::Component//, public juce::KeyListener
 {
 public:
     RegionEditor(SegmentedRegion* region);
@@ -29,7 +29,7 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
 
-    bool keyPressed(const juce::KeyPress& key, Component* originatingComponent) override;
+    bool keyPressed(const juce::KeyPress& key/*, Component* originatingComponent*/) override;
 
     void refreshParameters();
 
