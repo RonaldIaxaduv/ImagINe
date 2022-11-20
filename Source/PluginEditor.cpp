@@ -54,6 +54,12 @@ ImageINeDemoAudioProcessorEditor::ImageINeDemoAudioProcessorEditor (ImageINeDemo
     savePresetButton.onClick = [this] { showSavePresetDialogue(); };
     savePresetButton.setTooltip("Click this button to save the current program state as a preset. The preset will contain the current background image as well as any regions (incl. their audio), play paths and all their settings and modulations.");
     addAndMakeVisible(savePresetButton);
+
+    //information button
+    informationButton.setButtonText("?");
+    informationButton.onClick = [this] { displayModeInformation(); };
+    informationButton.setTooltip("Click here to display some information about the current program mode, useful keybindings et cetera.");
+    addAndMakeVisible(informationButton);
     
     //load image button
     openImageButton.setButtonText("Open Image");
@@ -65,9 +71,9 @@ ImageINeDemoAudioProcessorEditor::ImageINeDemoAudioProcessorEditor (ImageINeDemo
     modeBox.addItem("Init", static_cast<int>(PluginEditorStateIndex::init));
     modeBox.addItem("Drawing Regions", static_cast<int>(PluginEditorStateIndex::drawingRegion));
     modeBox.addItem("Editing Regions", static_cast<int>(PluginEditorStateIndex::editingRegions));
-    modeBox.addItem("Playing Regions", static_cast<int>(PluginEditorStateIndex::playingRegions));
     modeBox.addItem("Drawing Play Paths", static_cast<int>(PluginEditorStateIndex::drawingPlayPath));
     modeBox.addItem("Editing Play Paths", static_cast<int>(PluginEditorStateIndex::editingPlayPaths));
+    modeBox.addItem("Playing Regions", static_cast<int>(PluginEditorStateIndex::playingRegions));
     modeBox.addItem("Playing Play Paths", static_cast<int>(PluginEditorStateIndex::playingPlayPaths));
     modeBox.onChange = [this] { updateState(); };
     addAndMakeVisible(modeLabel);
@@ -116,15 +122,12 @@ void ImageINeDemoAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds();
 
-    juce::Rectangle<int> presetArea = area.removeFromTop(20);
-    int widthQuarter = presetArea.getWidth() / 4;
-    openPresetButton.setBounds(presetArea.removeFromLeft(widthQuarter));
-    savePresetButton.setBounds(presetArea.removeFromLeft(widthQuarter));
-
-    //juce::Rectangle<int> midiArea = area.removeFromTop(20);
-    //midiInputList.setBounds(midiArea.removeFromRight(2 * midiArea.getWidth() / 3));
-    juce::Rectangle<int> midiArea = presetArea;
-    midiInputList.setBounds(midiArea);
+    juce::Rectangle<int> headerArea = area.removeFromTop(20);
+    int widthQuarter = headerArea.getWidth() / 4;
+    openPresetButton.setBounds(headerArea.removeFromLeft(widthQuarter).reduced(2));
+    savePresetButton.setBounds(headerArea.removeFromLeft(widthQuarter).reduced(2));
+    informationButton.setBounds(headerArea.removeFromRight(20).reduced(2));
+    midiInputList.setBounds(headerArea.reduced(2));
 
     juce::Rectangle<int> modeArea;
     juce::Rectangle<int> imageArea;
@@ -132,15 +135,15 @@ void ImageINeDemoAudioProcessorEditor::resized()
     {
     case PluginEditorStateIndex::init:
         modeArea = area.removeFromTop(20);
-        modeLabel.setBounds(modeArea.removeFromLeft(50).reduced(2, 2));
-        modeBox.setBounds(modeArea.reduced(2, 2));
+        modeArea.removeFromLeft(50);
+        modeBox.setBounds(modeArea.reduced(1));
 
         //openImageButton.setBounds(area.removeFromTop(20).reduced(2, 2));
         imageArea = juce::Rectangle<int>(area.getCentreX() - area.getWidth() / 3,
                                          area.getCentreY() - 12,
                                          2 * area.getWidth() / 3,
                                          24);
-        openImageButton.setBounds(imageArea.reduced(2, 2));
+        openImageButton.setBounds(imageArea.reduced(2));
         break;
 
     case PluginEditorStateIndex::drawingRegion:
@@ -150,8 +153,8 @@ void ImageINeDemoAudioProcessorEditor::resized()
     case PluginEditorStateIndex::editingPlayPaths:
     case PluginEditorStateIndex::playingPlayPaths:
         modeArea = area.removeFromTop(20);
-        modeLabel.setBounds(modeArea.removeFromLeft(50).reduced(2, 2));
-        modeBox.setBounds(modeArea.reduced(2, 2));
+        modeArea.removeFromLeft(50);
+        modeBox.setBounds(modeArea.reduced(1));
         break;
 
     default:
@@ -513,16 +516,66 @@ void ImageINeDemoAudioProcessorEditor::showSavePresetDialogue()
         nullptr);
 }
 
+void ImageINeDemoAudioProcessorEditor::displayModeInformation()
+{
+    juce::String header = "";
+    juce::String body = "";
+
+    switch (currentStateIndex)
+    {
+    case PluginEditorStateIndex::init:
+        header = "About: ImageINe - Init";
+        body = "";ä
+        break;
+
+    case PluginEditorStateIndex::drawingRegion:
+        header = "About: ImageINe - Drawing Regions";
+        body = "";ä
+        break;
+        
+    case PluginEditorStateIndex::editingRegions:
+        header = "About: ImageINe - Editing Regions";
+        body = "";ä
+        break;
+
+    case PluginEditorStateIndex::playingRegions:
+        header = "About: ImageINe - Playing Regions";
+        body = "";ä
+        break;
+
+    case PluginEditorStateIndex::drawingPlayPath:
+        header = "About: ImageINe - Drawing Play Paths";
+        body = "";ä
+        break;
+
+    case PluginEditorStateIndex::editingPlayPaths:
+        header = "About: ImageINe - Editing Play Paths";
+        body = "";ä
+        break;
+
+    case PluginEditorStateIndex::playingPlayPaths:
+        header = "About: ImageINe - Playing Play Paths";
+        body = "";ä
+        break;
+
+    default:
+        return;
+    }
+
+    juce::NativeMessageBox::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, header, body, this);
+    juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, header, body, "I see!", this);
+}
+
 void ImageINeDemoAudioProcessorEditor::updateState()
 {
     if (modeBox.getSelectedId() != 0 && modeBox.getSelectedId() != static_cast<int>(currentStateIndex)) //check whether the state has actually changed
     {
-        if (modeBox.getSelectedId() == static_cast<int>(PluginEditorStateIndex::init) &&            //when transitioning to init
-            static_cast<int>(currentStateIndex) > static_cast<int>(PluginEditorStateIndex::init) && //from any state after init
-            (image.hasAtLeastOneRegion() || image.hasAtLeastOnePlayPath())                          //while there are regions or play paths on the image
+        if (modeBox.getSelectedId() == static_cast<int>(PluginEditorStateIndex::init) &&                //when transitioning to init
+            static_cast<int>(currentStateIndex) > static_cast<int>(PluginEditorStateIndex::init) &&     //from any state after init
+            (image.hasAtLeastOneRegion() || image.hasAtLeastOnePlayPath() || image.hasStartedDrawing()) //while there are regions, play paths or drawn points on the image
             )
         {
-            //display warning prompt about deleting regions and/or play paths. allow the user to cancel the transition!
+            //display warning prompt about deleting regions, play paths and/or drawn points. allow the user to cancel the transition!
 
             //define message box and its callback
             void(*f)(int, ImageINeDemoAudioProcessorEditor*, PluginEditorStateIndex) = [](int result, ImageINeDemoAudioProcessorEditor* editor, PluginEditorStateIndex stateID)
@@ -540,7 +593,34 @@ void ImageINeDemoAudioProcessorEditor::updateState()
 
             auto result = juce::NativeMessageBox::showYesNoBox(juce::MessageBoxIconType::WarningIcon,
                 "Transition back to Init?",
-                "Are you sure that you would like to transition back to the initial state? All regions and play paths would be deleted!",
+                "Are you sure that you would like to transition back to the initial state? All regions, play paths and drawn points would be deleted!",
+                this,
+                cb);
+        }
+        else if ((currentStateIndex == PluginEditorStateIndex::drawingRegion || currentStateIndex == PluginEditorStateIndex::drawingPlayPath) &&                                                    //when transitioning away from init
+                 (modeBox.getSelectedId() != static_cast<int>(PluginEditorStateIndex::drawingRegion) && modeBox.getSelectedId() != static_cast<int>(PluginEditorStateIndex::drawingPlayPath)) &&
+                 image.hasStartedDrawing()                                                                                                                                                          //while the user has already started drawing
+                )
+        {
+            //display warning prompt about deleting drawn points. allow the user to cancel the transition!
+
+            //define message box and its callback
+            void(*f)(int, ImageINeDemoAudioProcessorEditor*, PluginEditorStateIndex) = [](int result, ImageINeDemoAudioProcessorEditor* editor, PluginEditorStateIndex stateID)
+            {
+                if (result > 0)
+                {
+                    editor->transitionToState(stateID);
+                }
+                else
+                {
+                    editor->restorePreviousModeBoxSelection();
+                }
+            };
+            juce::ModalComponentManager::Callback* cb = juce::ModalCallbackFunction::withParam(f, this, static_cast<PluginEditorStateIndex>(modeBox.getSelectedId()));
+
+            auto result = juce::NativeMessageBox::showYesNoBox(juce::MessageBoxIconType::WarningIcon,
+                "Exit Drawing Mode?",
+                "Are you sure that you would like to exit drawing mode? All currently drawn points would be deleted!",
                 this,
                 cb);
         }

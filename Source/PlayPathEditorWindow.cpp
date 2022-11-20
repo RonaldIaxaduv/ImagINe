@@ -30,9 +30,6 @@ PlayPathEditorWindow::PlayPathEditorWindow(juce::String name, PlayPath* path)
     setVisible(true);
     setTitle("Play Path " + juce::String(path->getID()));
 
-    //tooltips
-    tooltipWindow->setMillisecondsBeforeTipAppears(2000);
-
     addToDesktop();
 }
 

@@ -53,17 +53,21 @@ private:
 
     void setMidiInput(int index);
 
+    void displayModeInformation();
+
     //==============================================================================
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     ImageINeDemoAudioProcessor& audioProcessor;
 
+    juce::TextButton openPresetButton;
+    juce::TextButton savePresetButton;
+
     juce::ComboBox midiInputList;
     juce::Label midiInputListLabel;
     int lastInputIndex = 0;
 
-    juce::TextButton openPresetButton;
-    juce::TextButton savePresetButton;
+    juce::TextButton informationButton;
 
     juce::TextButton openImageButton;
 

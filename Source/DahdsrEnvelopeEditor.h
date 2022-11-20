@@ -16,7 +16,7 @@
 //==============================================================================
 /*
 */
-class DahdsrEnvelopeEditor  : public juce::Component
+class DahdsrEnvelopeEditor  : public juce::Component, public juce::SettableTooltipClient
 {
 public:
     DahdsrEnvelopeEditor(juce::Array<DahdsrEnvelope*> associatedEnvelopes)
@@ -26,35 +26,43 @@ public:
         addAndMakeVisible(titleLabel);
 
         initialiseTimeSlider(&delaySlider, [this] { updateDelayTime(); });
+        delaySlider.setPopupMenuEnabled(true);
         delaySlider.setTooltip("This slider changes how much time passes until the audio becomes audible after a region has started to be played.");
         initialiseSliderLabel(&delayLabel, "Delay", &delaySlider);
 
         initialiseTimeSlider(&attackSlider, [this] { updateAttackTime(); });
+        attackSlider.setPopupMenuEnabled(true);
         attackSlider.setTooltip("This slider changes how long it takes to get from the initial volume to the peak volume of the audio.");
         initialiseSliderLabel(&attackLabel, "Attack", &attackSlider);
 
         initialiseTimeSlider(&holdSlider, [this] { updateHoldTime(); });
+        holdSlider.setPopupMenuEnabled(true);
         holdSlider.setTooltip("This slider changes how long the peak volume is kept up.");
         initialiseSliderLabel(&holdLabel, "Hold", &holdSlider);
 
         initialiseTimeSlider(&decaySlider, [this] { updateDecayTime(); });
+        decaySlider.setPopupMenuEnabled(true);
         decaySlider.setTooltip("This slider changes how long it takes to get from the peak volume to the sustain volume of the audio.");
         initialiseSliderLabel(&decayLabel, "Decay", &decaySlider);
 
         initialiseTimeSlider(&releaseSlider, [this] { updateReleaseTime(); });
+        releaseSlider.setPopupMenuEnabled(true);
         releaseSlider.setTooltip("This slider changes how long it takes for the audio to fade out after a region has requested to stop playing.");
         initialiseSliderLabel(&releaseLabel, "Release", &releaseSlider);
 
 
         initialiseLevelSlider(&initialSlider, [this] { updateInitialLevel(); });
+        initialSlider.setPopupMenuEnabled(true);
         initialSlider.setTooltip("This slider changes the initial volume of the audio that's used after the delay stage, at the beginning of the attack stage.");
         initialiseSliderLabel(&initialLabel, "Initial", &initialSlider);
 
         initialiseLevelSlider(&peakSlider, [this] { updatePeakLevel(); });
+        peakSlider.setPopupMenuEnabled(true);
         peakSlider.setTooltip("This slider changes the peak volume of the audio that's used after the attack stage, during the hold stage and at the beginning of the decay stage.");
         initialiseSliderLabel(&peakLabel, "Peak", &peakSlider);
 
         initialiseLevelSlider(&sustainSlider, [this] { updateSustainLevel(); });
+        sustainSlider.setPopupMenuEnabled(true);
         sustainSlider.setTooltip("This slider changes the sustain volume of the audio that's used after the decay stage, during the sustain stage and at the beginning of the release stage.");
         initialiseSliderLabel(&sustainLabel, "Sustain", &sustainSlider);
 
@@ -96,6 +104,16 @@ public:
         peakSlider.setBounds(levelArea.removeFromLeft(widthFifth).removeFromBottom(rowHeightTwoThirds).reduced(2));
         sustainSlider.setBounds(levelArea.removeFromLeft(widthFifth).removeFromBottom(rowHeightTwoThirds).reduced(2));
         //levelArea //final level of release is always 0.0 in this case
+
+        //update textbox styles - this may look redundant, but the tooltip won't display unless this is done...
+        delaySlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, delaySlider.getWidth(), delaySlider.getHeight());
+        attackSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, attackSlider.getWidth(), attackSlider.getHeight());
+        holdSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, holdSlider.getWidth(), holdSlider.getHeight());
+        decaySlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, decaySlider.getWidth(), decaySlider.getHeight());
+        releaseSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, releaseSlider.getWidth(), releaseSlider.getHeight());
+        initialSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, initialSlider.getWidth(), initialSlider.getHeight());
+        peakSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, peakSlider.getWidth(), peakSlider.getHeight());
+        sustainSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, delaySlider.getWidth(), sustainSlider.getHeight());
     }
 
     bool keyPressed(const juce::KeyPress& key) override

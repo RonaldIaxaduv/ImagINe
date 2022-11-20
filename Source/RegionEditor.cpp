@@ -44,6 +44,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
         }
     };
     focusPositionX.onDragEnd = [this] { renderLfoWaveform(); };
+    focusPositionX.setPopupMenuEnabled(true);
     focusPositionX.setTooltip("This value changes the horizontal position of the focus point (the dot within a region from which the LFO line originates). The higher the maximum length of the LFO is, the higher its modulation depth becomes.");
     addChildComponent(focusPositionX);
     lfoDepth.setText("LFO depth: ", juce::NotificationType::dontSendNotification);
@@ -63,6 +64,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
         }
     };
     focusPositionY.onDragEnd = [this] { renderLfoWaveform(); };
+    focusPositionY.setPopupMenuEnabled(true);
     focusPositionY.setTooltip("This value changes the vertical position of the focus point (the dot within a region from which the Lfo line originates). The higher the maximum length of the LFO is, the higher its modulation depth becomes.");
     addChildComponent(focusPositionY);
 
@@ -72,6 +74,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
 
     //toggle mode
     toggleModeButton.setButtonText("Toggle Mode");
+    toggleModeButton.onClick = [this] { updateToggleable(); };
     toggleModeButton.setTooltip("When toggle mode is off, regions will try to stop playing as soon as clicks/notes/play path interactions stop. When it's on, they will turn on on the first interaction and off after the second.");
     addChildComponent(toggleModeButton);
 
@@ -89,6 +92,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
         dahdsrEditor.setAssociatedEnvelopes(associatedEnvelopes);
     }
     dahdsrEditor.setDisplayedName("Amp");
+    dahdsrEditor.setTooltip("This is the DAHDSR editor.");
     addChildComponent(dahdsrEditor);
 
     //volume
@@ -98,6 +102,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     volumeSlider.setSkewFactorFromMidPoint(-6.0);
     volumeSlider.onValueChange = [this] { updateVolume(); };
     volumeSlider.setValue(-6.0, juce::NotificationType::dontSendNotification);
+    volumeSlider.setPopupMenuEnabled(true);
     volumeSlider.setTooltip("This slider sets the base volume of your selected audio file.");
     addChildComponent(volumeSlider);
 
@@ -111,6 +116,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     pitchSlider.setRange(-60.0, 60.0, 0.1);
     pitchSlider.onValueChange = [this] { updatePitch(); };
     pitchSlider.setValue(0.0, juce::NotificationType::dontSendNotification);
+    pitchSlider.setPopupMenuEnabled(true); 
     pitchSlider.setTooltip("This slider offsets the base pitch of your selected audio file, e.g. to adjust the tuning. It's achieved by playing the audio at different speeds (slower = lower).");
     addChildComponent(pitchSlider);
 
@@ -210,6 +216,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
 
 
     //LFO editor
+    lfoEditor.setTooltip("This is the LFO editor.");
     addChildComponent(lfoEditor);
 
     //randomise button
@@ -248,43 +255,41 @@ void RegionEditor::resized()
 {
     auto area = getLocalBounds();
 
-    selectedFileLabel.setBounds(area.removeFromTop(20));
-    selectFileButton.setBounds(area.removeFromTop(20));
+    area.removeFromTop(20);
+    selectFileButton.setBounds(area.removeFromTop(20).reduced(1));
 
     area.removeFromTop(20); //make space for the LFO depth label
 
     auto focusArea = area.removeFromTop(20);
     focusArea.removeFromLeft(focusArea.getWidth() / 3);
-    focusPositionX.setBounds(focusArea.removeFromLeft(focusArea.getWidth() / 2));
-    focusPositionY.setBounds(focusArea);
+    focusPositionX.setBounds(focusArea.removeFromLeft(focusArea.getWidth() / 2).reduced(1));
+    focusPositionY.setBounds(focusArea.reduced(1));
+    focusPositionX.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxLeft, false, focusPositionX.getWidth(), focusPositionX.getHeight());
+    focusPositionY.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxRight, false, focusPositionY.getWidth(), focusPositionY.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
 
-    toggleModeButton.setBounds(area.removeFromTop(20));
-    toggleModeButton.onClick = [this] { updateToggleable(); };
+    toggleModeButton.setBounds(area.removeFromTop(20).reduced(1));
 
-    dahdsrEditor.setBounds(area.removeFromTop(80));
+    dahdsrEditor.setBounds(area.removeFromTop(80).reduced(1));
 
     auto volumeArea = area.removeFromTop(20);
-    volumeLabel.setBounds(volumeArea.removeFromLeft(volumeArea.getWidth() / 3));
-    volumeSlider.setBounds(volumeArea);
+    volumeSlider.setBounds(volumeArea.removeFromRight(2 * volumeArea.getWidth() / 3).reduced(1));
+    volumeSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, volumeSlider.getWidth(), volumeSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
 
     auto pitchArea = area.removeFromTop(20);
-    pitchLabel.setBounds(pitchArea.removeFromLeft(pitchArea.getWidth() / 3));
-    pitchSlider.setBounds(pitchArea);
+    pitchSlider.setBounds(pitchArea.removeFromRight(2 * pitchArea.getWidth() / 3).reduced(1));
+    pitchSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, pitchSlider.getWidth(), pitchSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
 
     auto pitchQuantisationArea = area.removeFromTop(20);
-    pitchQuantisationLabel.setBounds(pitchQuantisationArea.removeFromLeft(pitchQuantisationArea.getWidth() / 3));
-    pitchQuantisationChoice.setBounds(pitchQuantisationArea);
+    pitchQuantisationChoice.setBounds(pitchQuantisationArea.removeFromRight(2 * pitchQuantisationArea.getWidth() / 3).reduced(2));
 
     auto midiArea = area.removeFromTop(20);
-    midiChannelLabel.setBounds(midiArea.removeFromLeft(midiArea.getWidth() / 3));
-    midiChannelChoice.setBounds(midiArea);
+    midiChannelChoice.setBounds(midiArea.removeFromRight(2 * midiArea.getWidth() / 3).reduced(2));
     midiArea = area.removeFromTop(20);
-    midiNoteLabel.setBounds(midiArea.removeFromLeft(midiArea.getWidth() / 3));
-    midiNoteChoice.setBounds(midiArea);
+    midiNoteChoice.setBounds(midiArea.removeFromRight(2 * midiArea.getWidth() / 3).reduced(2));
 
-    randomiseButton.setBounds(area.removeFromBottom(20));
+    randomiseButton.setBounds(area.removeFromBottom(20).reduced(1));
 
-    lfoEditor.setBounds(area); //fill rest with lfoEditor
+    lfoEditor.setBounds(area.reduced(1)); //fill rest with lfoEditor
 }
 
 bool RegionEditor::keyPressed(const juce::KeyPress& key/*, Component* originatingComponent*/)

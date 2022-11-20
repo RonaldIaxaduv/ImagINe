@@ -32,9 +32,6 @@ RegionEditorWindow::RegionEditorWindow(juce::String name, SegmentedRegion* regio
 
     //addKeyListener(static_cast<RegionEditor*>(getContentComponent()));
     
-    //tooltips
-    tooltipWindow->setMillisecondsBeforeTipAppears(2000);
-
     addToDesktop();
 }
 

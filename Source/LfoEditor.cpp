@@ -26,6 +26,7 @@ LfoEditor::LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo)
     lfoRateSlider.setRange(0.01, 100.0, 0.01);
     lfoRateSlider.setSkewFactorFromMidPoint(1.0);
     lfoRateSlider.onValueChange = [this] { updateLfoRate(); };
+    lfoRateSlider.setPopupMenuEnabled(true);
     lfoRateSlider.setTooltip("This slider changes the speed at which the LFO line travels around the region.");
     addAndMakeVisible(lfoRateSlider);
 
@@ -39,6 +40,7 @@ LfoEditor::LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo)
     lfoUpdateIntervalSlider.setRange(0.0, 10000.0, 0.01);
     lfoUpdateIntervalSlider.setSkewFactorFromMidPoint(100.0);
     lfoUpdateIntervalSlider.onValueChange = [this] { updateLfoUpdateInterval(); };
+    lfoUpdateIntervalSlider.setPopupMenuEnabled(true);
     lfoUpdateIntervalSlider.setTooltip("This value determines how often the value of the LFO is evaluated. It's also reflected in how often the LFO line is updated. Slower update rates can be useful for some modulated parameters, e.g. pitch or LFO phase. They also reduce the CPU load.");
     addAndMakeVisible(lfoUpdateIntervalSlider);
 
@@ -71,18 +73,14 @@ void LfoEditor::resized()
     auto area = getLocalBounds();
 
     auto lfoRateArea = area.removeFromTop(20);
-    lfoRateLabel.setBounds(lfoRateArea.removeFromLeft(lfoRateArea.getWidth() / 3));
-    lfoRateSlider.setBounds(lfoRateArea);
+    lfoRateSlider.setBounds(lfoRateArea.removeFromRight(2 * lfoRateArea.getWidth() / 3).reduced(1));
+    lfoRateSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, lfoRateSlider.getWidth(), lfoRateSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
 
     auto lfoUpdateIntervalArea = area.removeFromTop(20);
-    lfoUpdateIntervalLabel.setBounds(lfoUpdateIntervalArea.removeFromLeft(lfoUpdateIntervalArea.getWidth() / 3));
-    lfoUpdateIntervalSlider.setBounds(lfoUpdateIntervalArea);
+    lfoUpdateIntervalSlider.setBounds(lfoUpdateIntervalArea.removeFromRight(2 * lfoUpdateIntervalArea.getWidth() / 3).reduced(1));
+    lfoUpdateIntervalSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, lfoUpdateIntervalSlider.getWidth(), lfoUpdateIntervalSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
 
-    /*auto lfoParamArea = area.removeFromTop(20);
-    lfoParameterLabel.setBounds(lfoParamArea.removeFromLeft(lfoParamArea.getWidth() / 3));
-    lfoParameterChoice.setBounds(lfoParamArea);*/
-
-    lfoRegionsList.setBounds(area);
+    lfoRegionsList.setBounds(area.reduced(1));
 }
 
 bool LfoEditor::keyPressed(const juce::KeyPress& key)

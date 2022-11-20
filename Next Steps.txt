@@ -449,14 +449,22 @@
 !# bug: changing the region's audio while playing it may cause an access violation
 	-> i'm surprised i didn't suspend the audio there yet, i could've sworn i did o.ô
 !# messed up the positioning of the LFO depth label again -> adjust!
-!- set help texts for all components
+!# set help texts for all components
 	/ there should already be a method setHelpText for all Component members
 	# actually, TooltipWindow is what i was looking for. setHelpText, setDescription and setTitle are used for AccessibilityHandler implementations - which is smth that should absolutely be implemented later! but in the context of the bacherlor's thesis, it's most likely overkill
-	- bug(?): the sliders don't display their tooltips yet for some reason
+	(#) bug: the sliders don't display their tooltips yet for some reason
+		-> ughhh this is a bug with JUCE... the slider's textbox is blocking the cursor from reaching the slider's label. this can be circumvented by adjusting the textbox's size (using setTextBoxStyle), but that will only make the problem less worse, it won't fix it since the textbox will still block the most important part...
+		/ hacky solution that might work: when initialising the slider, set its size to smth positive, let's say 20x20, and by using getComponentAt, it's possible to get the actual textbox component (as i've noticed before...). let's hope it's a tooltip client...
+		(#) what the...??? so apparently, it's enough to call setTextBoxStyle in general, even when setting the size that that of the entire slider?? dafuq? (it's obviously fixable now though)
+	# bug: tooltips don't show for custom components (DAHDSR editor, LFO editor)
+		/> gotta add the tooltip window to them again?
+		-> only affects the DAHDSR editor's sliders (see previous bug) and the checkboxlist
+			#> oh, there's a method getTooltipForRow of the ListBoxModel class
+# add a warning prompt for when the user tries to switch away from drawing mode while there are points on the image
 - allow the user to choose a play path colour
 	- actually make them be able to choose both a normal colour and a down colour! that way, it's easier to retain a good contrast than by code, probably. by default, just set the down colour to the normal colour darkened by 0.2 or so.
 - add MIDI note bindings to play paths?
-!- add some kind of information button that displays key mappings for each mode (e.g. using backspace to delete points while in drawing mode)
+>>!- add some kind of information button that displays key mappings for each mode (e.g. using backspace to delete points while in drawing mode)
 	- can be easily implemented using NativeMessageBox (or whatever it was called)!
 	- should also include my name, a link to the survey, to the demo videos (on YT, presumably) and to the (yet to be created) ImageINe discord server
 !- add more/better key bindings
@@ -496,6 +504,7 @@
 	- no initial LFO phase / phase multiplier, playback pos / pos multiplier settings (in case i'm adding these options at some point)
 - code QoL: clean up obsolete commented-out code sections in the code
 - code QoL: add descriptions to all major methods
+- code QoL: organise the order of the methods in all the classes. also use pragma regions whenever it's helpful
 ?/ minor bug: window is still resizable even when in editing/playing mode
 	- dunno why this happens... the handle doesn't show anymore, so the command seems to go through, so why does it still allow dragging?
 	- weirdly enough, this doesn't happen for the play path editing/playing mode o.ô
@@ -579,6 +588,9 @@
 				- this has the added benefit that implementing MIDI support for the instrument will be easier - just make that MIDI note adjustable in the region editor!
 - option to set an LFO's rate to that of its associated region's sound
 - button to reset an LFO's phase
+- add an option to reset a region's LFO phase and/or playback position when its voice stops playing
+?- add an option to only register an LFO's modulations while its region is playing. i.e. if a region starts playing, its LFO registers itself to all parameters that it's supposed to modulate, and when it stops playing, it unsubscribes from all the parameters again
+	- one thing that could be done with this: a region A with phase mult 0 modulating another region B's pitch -> one can play A to temporarily change the pitch of B, e.g. to achieve a different harmony
 - perhaps modulate a region's LFO depth with its AHDSR modulator (whether or not it's possible to modulate LFO depth otherwise)
 - make it necessary to provide a product key
 	- see https://docs.juce.com/master/tutorial_online_unlock_status.html
@@ -612,6 +624,7 @@ possible features to add later:
 	- probably better to add this only in combination with the GPU-accelerated UI drawing, otherwise it might be too costly
 	- idea 1: use a second (but smaller) pointer line -> regions look a bit like clocks
 	!- idea 2: clockwise wipe on the background of the region, with unplayable areas being greyed out
-- button to open/save settings in a regions/play path editor
+!- button to open/save settings in a regions/play path editor
 - smooth transitions for when a region's playback position changes
 - implement AccessibilityHandler to set help texts, descriptions and titles for all objects that can be read with screenreaders
+?- make it possible to modulate a DAW's parameters (perhaps ImageINe's own) using the region LFOs

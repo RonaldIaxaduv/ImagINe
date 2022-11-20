@@ -16,7 +16,7 @@
 #include "RegionLfo.h"
 #include "LfoModulatableParameter.h"
 
-class LfoEditor : public juce::Component, public juce::ChangeListener
+class LfoEditor : public juce::Component, public juce::ChangeListener, public juce::SettableTooltipClient
 {
 public:
     LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo);
@@ -54,6 +54,8 @@ private:
     void randomiseLfoUpdateInterval();
 
     void updateLfoParameter(int targetRegionID, bool shouldBeModulated, LfoModulatableParameter modulatedParameter);
+
+
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LfoEditor)
 };

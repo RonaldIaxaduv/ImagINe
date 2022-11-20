@@ -20,7 +20,7 @@
 class SegmentedRegion;
 
 
-class RegionEditor final : public juce::Component//, public juce::KeyListener
+class RegionEditor final : public juce::Component, public juce::SettableTooltipClient
 {
 public:
     RegionEditor(SegmentedRegion* region);
@@ -94,7 +94,6 @@ private:
     std::unique_ptr<juce::FileChooser> fc;
     juce::AudioFormatManager formatManager;
     juce::AudioSampleBuffer tempBuffer;
-
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(RegionEditor)
 };

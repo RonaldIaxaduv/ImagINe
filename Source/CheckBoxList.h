@@ -31,6 +31,7 @@ public:
             modulationChoice.setEnabled(regionButton.getToggleState());
             sendChangeMessage();
         };
+        regionButton.setTooltip("This is a test. 1");
         addAndMakeVisible(regionButton);
 
         modulationChoice.addSectionHeading("Voice");
@@ -54,6 +55,7 @@ public:
         //modulationChoice.addSectionHeading("Experimental");
         modulationChoice.onChange = [this] { sendChangeMessage(); }; //the LfoEditor does the actualy routing to the RegionLfo. that way, this class doesn't need any references to RegionLfo or the LfoEditor or any of that stuff, which is cleaner overall
         modulationChoice.setEnabled(false);
+        modulationChoice.setTooltip("This is a test. 2");
         addAndMakeVisible(modulationChoice);
     }
 
@@ -86,8 +88,8 @@ public:
         auto area = getLocalBounds();
         int unit = area.getWidth() / 6;
 
-        regionButton.setBounds(area.removeFromLeft(unit * 2));
-        modulationChoice.setBounds(area); //unit
+        regionButton.setBounds(area.removeFromLeft(unit * 2).reduced(1));
+        modulationChoice.setBounds(area.reduced(1)); //unit
     }
 
     juce::Colour getBackgroundColour()
@@ -206,7 +208,7 @@ private:
 /*
 * A ListBox containing items which are all CheckBoxes
 */
-class CheckBoxList final : public juce::Component, public juce::ListBoxModel, public juce::TooltipClient
+class CheckBoxList final : public juce::Component, public juce::ListBoxModel //, public juce::TooltipClient
 {
 public:
     CheckBoxList() : juce::ListBoxModel()
@@ -283,6 +285,14 @@ public:
         if (row < getNumRows())
         {
             items[row]->triggerClick(e);
+        }
+    }
+
+    juce::String getTooltipForRow(int row) override
+    {
+        if (row < getNumRows())
+        {
+            return items[row]->getTooltip();
         }
     }
 
@@ -409,10 +419,10 @@ public:
         }
     }
 
-    juce::String getTooltip() override
-    {
-        return "In this list, there is one entry per region (incl. this one). For each region, you can select one parameter. That parameter will then be modulated by this region by interpreting the line from the region's focus point to its outline as an LFO.";
-    }
+    //juce::String getTooltip() override
+    //{
+    //    return "In this list, there is one entry per region (incl. this one). For each region, you can select one parameter. That parameter will then be modulated by this region by interpreting the line from the region's focus point to its outline as an LFO.";
+    //}
 
 private:
     juce::ListBox list;

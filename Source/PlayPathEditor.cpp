@@ -21,6 +21,7 @@ PlayPathEditor::PlayPathEditor(PlayPath* path)
     courierIntervalSlider.setSkewFactorFromMidPoint(60.0);
     courierIntervalSlider.onValueChange = [this] { updateCourierInterval(); };
     courierIntervalSlider.setValue(10.0, juce::NotificationType::dontSendNotification);
+    courierIntervalSlider.setPopupMenuEnabled(true);
     courierIntervalSlider.setTooltip("This slider changes the time that it takes the courier (the point traveling around the play path) to complete one lap around the play path.");
     addAndMakeVisible(courierIntervalSlider);
 
@@ -60,8 +61,10 @@ void PlayPathEditor::resized()
     auto area = getLocalBounds();
 
     auto courierIntervalArea = area.removeFromTop(20);
-    courierIntervalSlider.setBounds(courierIntervalArea.removeFromRight(2 * courierIntervalArea.getWidth() / 3));
-    courierIntervalLabel.setBounds(courierIntervalArea);
+    courierIntervalSlider.setBounds(courierIntervalArea.removeFromRight(2 * courierIntervalArea.getWidth() / 3).reduced(1));
+    courierIntervalSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, courierIntervalSlider.getWidth(), courierIntervalSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
+
+    randomiseButton.setBounds(area.removeFromBottom(20).reduced(1));
 }
 
 bool PlayPathEditor::keyPressed(const juce::KeyPress& key)
