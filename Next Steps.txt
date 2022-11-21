@@ -405,6 +405,7 @@
 - demo videos (one in German, one in English - both quick rundowns, nothing too in-depth)
 	- could show off the presets for a 1min introduction video at the start of the survey and add tutorial videos later when the users received the program
 - discord server
+- add links to the survey and the discord server to the information box within ImageINe
 
 !- remove the fixed directory paths from the code (loading image, loading audio)
 ?# maybe make regions playable in play path playing mode
@@ -464,11 +465,18 @@
 - allow the user to choose a play path colour
 	- actually make them be able to choose both a normal colour and a down colour! that way, it's easier to retain a good contrast than by code, probably. by default, just set the down colour to the normal colour darkened by 0.2 or so.
 - add MIDI note bindings to play paths?
->>!- add some kind of information button that displays key mappings for each mode (e.g. using backspace to delete points while in drawing mode)
-	- can be easily implemented using NativeMessageBox (or whatever it was called)!
-	- should also include my name, a link to the survey, to the demo videos (on YT, presumably) and to the (yet to be created) ImageINe discord server
-!- add more/better key bindings
+!# add some kind of information button that displays key mappings for each mode (e.g. using backspace to delete points while in drawing mode)
+	# can be easily implemented using NativeMessageBox (or whatever it was called)!
+	# should also include my name, a link to the survey, to the demo videos (on YT, presumably) and to the ImageINe discord server
+!# add more/better key bindings
+- show a warning prompt when trying to open a preset while not in the init state
 - bug: updating the toggle parameter in the region editor while in playing mode doesn't affect the region when actually playing it. to update it, one must go back into editing mode and back to playing mode o.ô
+- bug: play paths are already interactable while in drawing mode -> handle them in the same way as regions in region drawing mode instead!
+!- display play path length (normed) in the play path editor!
+	-> this is very useful to coordiante the different play paths
+- add a panic button (stops all regions (does NOT allow for tailoff!) and play paths)
+	- should be red and say PANIC in capital letters
+	- next to the mode selection would be a good place i think. there's still plenty of space left there
 - implement more scales (esp. pentatonic scales and various modes)
 	- half up: 0 in first half of the octave, 1 in the second half
 	- half down: -1 in first half(?), 0 in second half	(alternatively 0 and 11)

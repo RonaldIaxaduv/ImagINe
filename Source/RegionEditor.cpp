@@ -175,7 +175,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
             associatedRegion->setMidiChannel(midiChannelChoice.getSelectedId() - 1);
         }
     };
-    midiChannelChoice.setTooltip("If you want to play this region via MIDI notes, you can select the channel that it should listen to here.");
+    midiChannelChoice.setTooltip("If you want to play this region via MIDI notes, you can select the channel that it should listen to here. Tip: there can be several regions responding to the same channel and note!");
     addChildComponent(midiChannelChoice);
 
     midiChannelLabel.setText("MIDI Channel: ", juce::NotificationType::dontSendNotification);
@@ -207,7 +207,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     {
         associatedRegion->setMidiNote(midiNoteChoice.getSelectedId());
     };
-    midiNoteChoice.setTooltip("If you want to play this region via MIDI notes, you can select the note that it should listen to here.");
+    midiNoteChoice.setTooltip("If you want to play this region via MIDI notes, you can select the note that it should listen to here. Tip: there can be several regions responding to the same channel and note!");
     addChildComponent(midiNoteChoice);
 
     midiNoteLabel.setText("MIDI Note: ", juce::NotificationType::dontSendNotification);

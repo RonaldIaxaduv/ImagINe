@@ -52,15 +52,6 @@ bool SegmentableImageState_Empty::keyPressed(const juce::KeyPress& key, juce::Co
 
     }*/
 
-    DBG(key.getTextCharacter());
-
-    if (key.getTextCharacter() == 'o')
-    {
-        //WIP: open file dialogue
-    }
-
-    //else
-    DBG("unhandled key");
     return false;
 }
 
@@ -104,13 +95,9 @@ bool SegmentableImageState_WithImage::keyPressed(const juce::KeyPress& key, juce
     case juce::KeyPress::createFromDescription("o").getKeyCode():
 
     }*/
-
-    DBG(key.getTextCharacter());
     
     //no key bindings for this state atm
 
-    //else
-    DBG("unhandled key");
     return false;
 }
 
@@ -166,8 +153,6 @@ bool SegmentableImageState_DrawingRegion::keyPressed(const juce::KeyPress& key, 
 
     }*/
 
-    DBG(key.getTextCharacter());
-
     if (key == juce::KeyPress::backspaceKey)
     {
         image.deleteLastNode();
@@ -214,8 +199,6 @@ bool SegmentableImageState_DrawingRegion::keyPressed(const juce::KeyPress& key, 
         }
     }
 
-    //else
-    DBG("unhandled key");
     return false;
 }
 
@@ -261,8 +244,6 @@ bool SegmentableImageState_EditingRegions::keyPressed(const juce::KeyPress& key,
 
     }*/
 
-    DBG(key.getTextCharacter());
-
     if (key == juce::KeyPress::deleteKey)
     {
         //try to delete region (if there is any here)
@@ -294,8 +275,6 @@ bool SegmentableImageState_EditingRegions::keyPressed(const juce::KeyPress& key,
         }
     }
 
-    //else
-    DBG("unhandled key");
     return false;
 }
 
@@ -341,12 +320,37 @@ bool SegmentableImageState_PlayingRegions::keyPressed(const juce::KeyPress& key,
 
     }*/
 
-    DBG(key.getTextCharacter());
+    if (key == juce::KeyPress::createFromDescription("p"))
+    {
+        image.playAllRegions();
+        return true;
+    }
+    else if (key == juce::KeyPress::createFromDescription("ctrl + p"))
+    {
+        image.playAllPlayPaths();
+        return true;
+    }
+    else if (key == juce::KeyPress::createFromDescription("alt + p"))
+    {
+        image.stopAllRegions();
+        return true;
+    }
+    else if (key == juce::KeyPress::createFromDescription("ctrl + alt + p"))
+    {
+        image.stopAllPlayPaths();
+        return true;
+    }
+    else if (key == juce::KeyPress::createFromDescription("t"))
+    {
+        image.toggleAllRegions();
+        return true;
+    }
+    else if (key == juce::KeyPress::createFromDescription("ctrl + t"))
+    {
+        image.toggleAllPlayPaths();
+        return true;
+    }
 
-    //currently no key bindings for this state
-
-    //else
-    DBG("unhandled key");
     return false;
 }
 
@@ -402,8 +406,6 @@ bool SegmentableImageState_DrawingPlayPath::keyPressed(const juce::KeyPress& key
 
     }*/
 
-    DBG(key.getTextCharacter());
-
     if (key == juce::KeyPress::backspaceKey)
     {
         image.deleteLastNode();
@@ -450,8 +452,6 @@ bool SegmentableImageState_DrawingPlayPath::keyPressed(const juce::KeyPress& key
         }
     }
 
-    //else
-    DBG("unhandled key");
     return false;
 }
 
@@ -497,8 +497,6 @@ bool SegmentableImageState_EditingPlayPaths::keyPressed(const juce::KeyPress& ke
 
     }*/
 
-    DBG(key.getTextCharacter());
-
     if (key == juce::KeyPress::deleteKey)
     {
         //try to delete play path (if there is any here)
@@ -528,8 +526,6 @@ bool SegmentableImageState_EditingPlayPaths::keyPressed(const juce::KeyPress& ke
         }
     }
 
-    //else
-    DBG("unhandled key");
     return false;
 }
 
@@ -575,12 +571,37 @@ bool SegmentableImageState_PlayingPlayPaths::keyPressed(const juce::KeyPress& ke
 
     }*/
 
-    DBG(key.getTextCharacter());
+    if (key == juce::KeyPress::createFromDescription("p"))
+    {
+        image.playAllPlayPaths();
+        return true;
+    }
+    else if (key == juce::KeyPress::createFromDescription("ctrl + p"))
+    {
+        image.playAllRegions();
+        return true;
+    }
+    else if (key == juce::KeyPress::createFromDescription("alt + p"))
+    {
+        image.stopAllPlayPaths();
+        return true;
+    }
+    else if (key == juce::KeyPress::createFromDescription("ctrl + alt + p"))
+    {
+        image.stopAllRegions();
+        return true;
+    }
+    else if (key == juce::KeyPress::createFromDescription("t"))
+    {
+        image.toggleAllPlayPaths();
+        return true;
+    }
+    else if (key == juce::KeyPress::createFromDescription("ctrl + t"))
+    {
+        image.toggleAllRegions();
+        return true;
+    }
 
-    //currently no key bindings for this state
-
-    //else
-    DBG("unhandled key");
     return false;
 }
 

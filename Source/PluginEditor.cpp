@@ -194,6 +194,65 @@ void ImageINeDemoAudioProcessorEditor::resized()
     }
 }
 
+bool ImageINeDemoAudioProcessorEditor::keyPressed(const juce::KeyPress& key)
+{
+    //state-specific key bindings:
+    switch (currentStateIndex)
+    {
+    case PluginEditorStateIndex::init:
+        if (key == juce::KeyPress::createFromDescription("ctrl + i"))
+        {
+            openImageButton.triggerClick();
+            return true;
+        }
+    }
+
+    //(largely) state-unrelated key-bindings:
+    if (static_cast<int>(currentStateIndex) > static_cast<int>(PluginEditorStateIndex::init))
+    {
+        //switch state
+        if (key == juce::KeyPress::createFromDescription("w") || key == juce::KeyPress::createFromDescription("a") || key == juce::KeyPress::upKey || key == juce::KeyPress::leftKey)
+        {
+            if (modeBox.getSelectedId() > 1)
+            {
+                modeBox.setSelectedId(modeBox.getSelectedId() - 1);
+                return true;
+            }
+        }
+        if (key == juce::KeyPress::createFromDescription("s") || key == juce::KeyPress::createFromDescription("d") || key == juce::KeyPress::downKey || key == juce::KeyPress::rightKey)
+        {
+            if (modeBox.getSelectedId() < static_cast<int>(PluginEditorStateIndex::StateIndexCount) - 1)
+            {
+                modeBox.setSelectedId(modeBox.getSelectedId() + 1);
+                return true;
+            }
+        }
+
+        for (int i = 0; i < modeBox.getNumItems(); ++i)
+        {
+            if (key == juce::KeyPress::createFromDescription(juce::String(i)))
+            {
+                //modeBox.setSelectedId(i + 1);
+                modeBox.setSelectedItemIndex(i);
+                return true;
+            }
+        }
+    }
+
+    if (key == juce::KeyPress::createFromDescription("ctrl + o"))
+    {
+        openPresetButton.triggerClick();
+        return true;
+    }
+    else if (key == juce::KeyPress::createFromDescription("ctrl + s"))
+    {
+        savePresetButton.triggerClick();
+        return true;
+    }
+
+    return false;
+}
+
 void ImageINeDemoAudioProcessorEditor::transitionToState(PluginEditorStateIndex stateToTransitionTo)
 {
     currentStateIndex = stateToTransitionTo;
@@ -524,45 +583,165 @@ void ImageINeDemoAudioProcessorEditor::displayModeInformation()
     switch (currentStateIndex)
     {
     case PluginEditorStateIndex::init:
-        header = "About: ImageINe - Init";
-        body = "";ä
+        header = "About: ImageINe - " + modeBox.getItemText(modeBox.indexOfItemId(static_cast<int>(PluginEditorStateIndex::init)));
+        body = juce::String("Welcome to ImageINe!\n") +
+               "In this menu, you will find information about each program mode including key bindings and so on. You can hover your cursor over any component to give you more information on what it does (note that there is a short delay before tooltips appear).\n\n" +
+
+               "Before you can draw any regions or play paths, you first need to select a background image. You can do so by pressing the '" + openImageButton.getButtonText() + "' button. The original aspect ratio of the image will always be maintained even when you resize this window.\n\n" +
+
+               "Key Bindings:\n" +
+               "Ctrl + i: open image\n\n" +
+               
+               "Ctrl + o: open preset\n" +
+               "Ctrl + s: save current state as preset";
         break;
 
     case PluginEditorStateIndex::drawingRegion:
-        header = "About: ImageINe - Drawing Regions";
-        body = "";ä
+        header = "About: ImageINe - " + modeBox.getItemText(modeBox.indexOfItemId(static_cast<int>(PluginEditorStateIndex::drawingRegion)));
+        body = juce::String("To create a region, a path needs to be traced. You can do so by left-clicking the image, which will make points appear. The points will be connected in the order they were created. To finish a region, press 'o'. This will connect the last point you've created to the first. You need at least 3 points to create a region. When you're happy with the regions you've created, you can switch to " + modeBox.getItemText(modeBox.indexOfItemId(static_cast<int>(PluginEditorStateIndex::editingRegions))) + " to assign sounds to them.\n\n") +
+
+               "Key Bindings:\n" +
+               "o: complete region (because 'o' is a closed circle)\n" +
+               "Backspace: delete last point\n" +
+               "Esc: delete all currently drawn points\n" +
+               "Del: delete the (completed) region that the cursor points at\n\n";
+
+        for (int i = 0; i < modeBox.getNumItems(); ++i)
+        {
+            if (modeBox.getItemId(i) != static_cast<int>(PluginEditorStateIndex::drawingRegion))
+            {
+                body += juce::String(i) + ": switch to " + modeBox.getItemText(i) + "\n";
+            }
+        }
+        body += juce::String("up/left/w/a: switch to previous mode\n") +
+                "down/right/s/d: switch to next mode\n\n" +
+                "Ctrl + o: open preset\n" +
+                "Ctrl + s: save current state as preset";
         break;
         
     case PluginEditorStateIndex::editingRegions:
-        header = "About: ImageINe - Editing Regions";
-        body = "";ä
+        header = "About: ImageINe - " + modeBox.getItemText(modeBox.indexOfItemId(static_cast<int>(PluginEditorStateIndex::editingRegions)));
+        body = juce::String("To open a region's editor window, simply click on the region. In the editor, you can select the audio file that a region should play, and you have a range of other options, including how regions can influence each others' sounds through their LFO lines (the line going from the dot within the region towards its outline). As always, you can hover your cursor over any component to give you more information on what it does. Editors are resizable and will remain open when switching to playing mode to ensure a smoother workflow.\n\n") +
+
+               "Key Bindings:\n" +
+               "Del: delete the region that the cursor points at\n\n";
+
+        for (int i = 0; i < modeBox.getNumItems(); ++i)
+        {
+            if (modeBox.getItemId(i) != static_cast<int>(PluginEditorStateIndex::editingRegions))
+            {
+                body += juce::String(i) + ": switch to " + modeBox.getItemText(i) + "\n";
+            }
+        }
+        body += juce::String("up/left/w/a: switch to previous mode\n") +
+                "down/right/s/d: switch to next mode\n\n" +
+                "Ctrl + o: open preset\n" +
+                "Ctrl + s: save current state as preset";
         break;
 
     case PluginEditorStateIndex::playingRegions:
-        header = "About: ImageINe - Playing Regions";
-        body = "";ä
+        header = "About: ImageINe - " + modeBox.getItemText(modeBox.indexOfItemId(static_cast<int>(PluginEditorStateIndex::playingRegions)));
+        body = juce::String("You can play a region by simply clicking on it. Depending on the region's settings, it may keep playing until you press it again. It may also respond to MIDI messages and to interactions with play paths. The region will play if *any* of the three cases is true and will only stop playing if *all* three conditions are no longer met.\n\n") +
+
+               "Key Bindings:\n" +
+               "p: play all regions (treated as clicks)\n" +
+               "Alt + p: stop all regions (treated as clicks)\n" +
+               "t: toggle all regions (treated as clicks)\n" +
+               "Ctrl + p: play all play paths (treated as clicks)\n" +
+               "Ctrl + Alt + p: stop all play paths (treated as clicks)\n" +
+               "Ctrl + t: toggle all play paths (treated as clicks)\n\n";
+
+        for (int i = 0; i < modeBox.getNumItems(); ++i)
+        {
+            if (modeBox.getItemId(i) != static_cast<int>(PluginEditorStateIndex::playingRegions))
+            {
+                body += juce::String(i) + ": switch to " + modeBox.getItemText(i) + "\n";
+            }
+        }
+        body += juce::String("up/left/w/a: switch to previous mode\n") +
+                "down/right/s/d: switch to next mode\n\n" +
+                "Ctrl + o: open preset\n" +
+                "Ctrl + s: save current state as preset";
         break;
 
     case PluginEditorStateIndex::drawingPlayPath:
-        header = "About: ImageINe - Drawing Play Paths";
-        body = "";ä
+        header = "About: ImageINe - " + modeBox.getItemText(modeBox.indexOfItemId(static_cast<int>(PluginEditorStateIndex::drawingPlayPath)));
+        body = juce::String("To create a play path, its outline needs to be traced. You can do so, as with regions, by left-clicking the image, which will make points appear. The points will be connected in the order they were created. To finish a play path, press 'o'. This will connect the last point you've created to the first. You need at least 3 points to create a play path. When you're happy with the play paths you've created, you can switch to " + modeBox.getItemText(modeBox.indexOfItemId(static_cast<int>(PluginEditorStateIndex::editingPlayPaths))) + " to assign timings to them.\n\n") +
+
+               "Key Bindings:\n" +
+               "o: complete play path (because 'o' is a closed circle)\n" +
+               "Backspace: delete last point\n" +
+               "Esc: delete all currently drawn points\n" +
+               "Del: delete the (completed) play path that the cursor points at\n\n";
+
+        for (int i = 0; i < modeBox.getNumItems(); ++i)
+        {
+            if (modeBox.getItemId(i) != static_cast<int>(PluginEditorStateIndex::drawingPlayPath))
+            {
+                body += juce::String(i) + ": switch to " + modeBox.getItemText(i) + "\n";
+            }
+        }
+        body += juce::String("up/left/w/a: switch to previous mode\n") +
+                "down/right/s/d: switch to next mode\n\n" +
+                "Ctrl + o: open preset\n" +
+                "Ctrl + s: save current state as preset";
         break;
 
     case PluginEditorStateIndex::editingPlayPaths:
-        header = "About: ImageINe - Editing Play Paths";
-        body = "";ä
+        header = "About: ImageINe - " + modeBox.getItemText(modeBox.indexOfItemId(static_cast<int>(PluginEditorStateIndex::editingPlayPaths)));
+        body = juce::String("To open a play path's editor window, simply click on the play path. In the editor, you can select how fast the courier (the point which travels along the play path) moves. As always, you can hover your cursor over any component to give you more information on what it does. Editors are resizable and will remain open when switching to playing mode to ensure a smoother workflow.\n\n") +
+
+               "Key Bindings:\n" +
+               "Del: delete the play path that the cursor points at\n\n";
+
+        for (int i = 0; i < modeBox.getNumItems(); ++i)
+        {
+            if (modeBox.getItemId(i) != static_cast<int>(PluginEditorStateIndex::editingPlayPaths))
+            {
+                body += juce::String(i) + ": switch to " + modeBox.getItemText(i) + "\n";
+            }
+        }
+        body += juce::String("up/left/w/a: switch to previous mode\n") +
+                "down/right/s/d: switch to next mode\n\n" +
+                "Ctrl + o: open preset\n" +
+                "Ctrl + s: save current state as preset";
         break;
 
     case PluginEditorStateIndex::playingPlayPaths:
-        header = "About: ImageINe - Playing Play Paths";
-        body = "";ä
+        header = "About: ImageINe - " + modeBox.getItemText(modeBox.indexOfItemId(static_cast<int>(PluginEditorStateIndex::playingPlayPaths)));
+        body = juce::String("You can play a play path by simply clicking on it. This will cause its courier (the point on it) to start moving according to the play path's settings. When the courier enters any region, that region will start playing, and when there are no longer any couriers within a region, it will stop playing. (There are some exceptions to this - see the " + modeBox.getItemText(modeBox.indexOfItemId(static_cast<int>(PluginEditorStateIndex::playingRegions))) + " info box for more information.)\n\n") +
+
+               "Key Bindings:\n" +
+               "p: play all play paths (treated as clicks)\n" +
+               "Alt + p: stop all play paths (treated as clicks)\n" + 
+               "t: toggle all play paths (treated as clicks)\n" +
+               "Ctrl + p: play all regions (treated as clicks)\n" +
+               "Ctrl + Alt + p: stop all regions (treated as clicks)\n" +
+               "Ctrl + t: toggle all regions (treated as clicks)\n\n";
+
+        for (int i = 0; i < modeBox.getNumItems(); ++i)
+        {
+            if (modeBox.getItemId(i) != static_cast<int>(PluginEditorStateIndex::playingPlayPaths))
+            {
+                body += juce::String(i) + ": switch to " + modeBox.getItemText(i) + "\n";
+            }
+        }
+        body += juce::String("up/left/w/a: switch to previous mode\n") +
+                "down/right/s/d: switch to next mode\n\n" +
+                "Ctrl + o: open preset\n" +
+                "Ctrl + s: save current state as preset";
         break;
 
     default:
         return;
     }
 
-    juce::NativeMessageBox::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, header, body, this);
+    body += juce::String("\n\n") + 
+            "ImageINe was created by Aaron David Lux for his bachelor's thesis at the Friedrich Schiller Universitaet in Jena in 2022/2023. The thesis also includes a feedback survey for this program.\n" +
+            "Feedback survey: [WIP]\n" + 
+            "ImageINe discord server: [WIP]";
+
+    //juce::NativeMessageBox::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, header, body, this);
     juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, header, body, "I see!", this);
 }
 

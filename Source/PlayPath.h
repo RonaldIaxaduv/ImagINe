@@ -48,6 +48,8 @@ public:
     void triggerButtonStateChanged();
     void triggerDrawableButtonStateChanged();
 
+    bool getIsPlaying();
+
     void startPlaying();
     void stopPlaying();
 

@@ -108,9 +108,13 @@ void PlayPathState_Playable::buttonStateChanged()
     case juce::Button::ButtonState::buttonDown:
         //toggle path off or on
         if (path.getToggleState() == true)
+        {
             path.stopPlaying();
+        }
         else
+        {
             path.startPlaying();
+        }
         break;
 
     default:

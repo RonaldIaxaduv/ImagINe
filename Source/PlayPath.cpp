@@ -319,6 +319,11 @@ void PlayPath::triggerDrawableButtonStateChanged()
     juce::DrawableButton::buttonStateChanged();
 }
 
+bool PlayPath::getIsPlaying()
+{
+    return isPlaying;
+}
+
 void PlayPath::startPlaying()
 {
     if (!isPlaying)

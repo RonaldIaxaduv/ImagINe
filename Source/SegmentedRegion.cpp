@@ -590,6 +590,10 @@ void SegmentedRegion::setIsPlaying_Click(bool shouldBePlaying)
 {
     isPlaying_click = shouldBePlaying;
 }
+bool SegmentedRegion::getIsPlaying_Click()
+{
+    return isPlaying_click;
+}
 bool SegmentedRegion::shouldBePlaying()
 {
     return isPlaying_click || isPlaying_courier || isPlaying_midi;

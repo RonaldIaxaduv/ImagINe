@@ -25,6 +25,8 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
 
+    bool keyPressed(const juce::KeyPress& key) override;
+
     enum class PluginEditorStateIndex : int
     {
         null = 0,
@@ -34,7 +36,9 @@ public:
         playingRegions,
         drawingPlayPath,
         editingPlayPaths,
-        playingPlayPaths
+        playingPlayPaths,
+
+        StateIndexCount
     };
 
     void transitionToState(PluginEditorStateIndex stateToTransitionTo);
