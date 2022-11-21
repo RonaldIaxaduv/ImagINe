@@ -82,7 +82,6 @@ public:
     void refreshEditor();
 
     void setIsPlaying_Click(bool shouldBePlaying);
-    bool getIsPlaying_Click();
     bool shouldBePlaying();
     void startPlaying(bool toggleButtonState = true);
     void stopPlaying(bool toggleButtonState = true);

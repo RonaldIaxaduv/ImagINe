@@ -133,6 +133,15 @@ public:
         currentState->modulatorHasUpdated(); //should be sliiiightly quicker than the line above, because for the outdated state, this function is empty. and since this function will be called several times during the outdated state except if there's only 1 modulator, it'll be more efficient. and if there's only 1 modulator, not a lot of CPU is used anyway.
     }
 
+    /// <summary>
+    /// If the parameter is currently outdated, it will recalculate the modulated value and set the passed variable to the new modulated value. If it's up-to-date, the passed variable will remain unchanged.
+    /// </summary>
+    /// <param name="valueToModulate">The variable that will be adjusted if the parameter is outdated</param>
+    void modulateValueIfUpdated(T* valueToModulate) //used primarily for modulating the current LFO phase and audio playback position
+    {
+        currentState->modulateValueIfUpdated(valueToModulate);
+    }
+
     void transitionToState(ModulatableParameterStateIndex stateToTransitionTo)
     {
         //states cannot be skipped here, so in contrast to the state implementation of RegionLfo or the DAHDSR envelope and such, no while-loop is needed here
@@ -208,6 +217,7 @@ public:
         transitionToState(ModulatableParameterStateIndex::upToDate);
     }
 };
+
 
 
 

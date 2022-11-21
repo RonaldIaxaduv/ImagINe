@@ -41,14 +41,14 @@ public:
         modulationChoice.addItem("Pitch (inverted)", static_cast<int>(LfoModulatableParameter::pitch_inverted));
         //modulationChoice.addItem("Panning", static_cast<int>(LfoModulatableParameter::panning));
         //modulationChoice.addItem("Panning (inverted)", static_cast<int>(LfoModulatableParameter::panning_inverted));
-        modulationChoice.addItem("Playback Position", static_cast<int>(LfoModulatableParameter::playbackPosition));
-        modulationChoice.addItem("Playback Position (inverted)", static_cast<int>(LfoModulatableParameter::playbackPosition_inverted));
+        modulationChoice.addItem("Playback Position", static_cast<int>(LfoModulatableParameter::playbackPositionInterval));
+        modulationChoice.addItem("Playback Position (inverted)", static_cast<int>(LfoModulatableParameter::playbackPositionInterval_inverted));
         modulationChoice.addSeparator();
         modulationChoice.addSectionHeading("LFO");
         modulationChoice.addItem("LFO Rate", static_cast<int>(LfoModulatableParameter::lfoRate));
         modulationChoice.addItem("LFO Rate (inverted)", static_cast<int>(LfoModulatableParameter::lfoRate_inverted));
-        modulationChoice.addItem("LFO Phase", static_cast<int>(LfoModulatableParameter::lfoPhase));
-        modulationChoice.addItem("LFO Phase (inverted)", static_cast<int>(LfoModulatableParameter::lfoPhase_inverted));
+        modulationChoice.addItem("LFO Phase", static_cast<int>(LfoModulatableParameter::lfoPhaseInterval));
+        modulationChoice.addItem("LFO Phase (inverted)", static_cast<int>(LfoModulatableParameter::lfoPhaseInterval_inverted));
         modulationChoice.addItem("LFO Update Interval", static_cast<int>(LfoModulatableParameter::lfoUpdateInterval));
         modulationChoice.addItem("LFO Update Interval (inverted)", static_cast<int>(LfoModulatableParameter::lfoUpdateInterval_inverted));
         //modulationChoice.addSeparator();
@@ -164,8 +164,8 @@ public:
             case static_cast<int>(LfoModulatableParameter::pitch_inverted):
                 return "You are currently modulating region " + juce::String(regionID) + "'s pitch, i.e. its pitch rises the longer the LFO line is (or shorter if inverted). This is an additive parameter.";
 
-            case static_cast<int>(LfoModulatableParameter::playbackPosition):
-            case static_cast<int>(LfoModulatableParameter::playbackPosition_inverted):
+            case static_cast<int>(LfoModulatableParameter::playbackPositionInterval):
+            case static_cast<int>(LfoModulatableParameter::playbackPositionInterval_inverted):
                 return "You are currently modulating region " + juce::String(regionID) + "'s playback position. This is done by shifting the current position in the audio file by a certain amount (up to the length of the file), i.e. the longer the LFO is, the more the position will be shifted (or less if inverted). This is a multiplicative parameter.";
 
 
@@ -173,8 +173,8 @@ public:
             case static_cast<int>(LfoModulatableParameter::lfoRate_inverted):
                 return "You are currently modulating the speed of region " + juce::String(regionID) + "'s LFO, i.e. the longer this LFO's line is, the faster that other LFO becomes (or slower if inverted). This is an additive parameter.";
 
-            case static_cast<int>(LfoModulatableParameter::lfoPhase):
-            case static_cast<int>(LfoModulatableParameter::lfoPhase_inverted):
+            case static_cast<int>(LfoModulatableParameter::lfoPhaseInterval):
+            case static_cast<int>(LfoModulatableParameter::lfoPhaseInterval_inverted):
                 return "You are currently modulating the phase of region " + juce::String(regionID) + "'s LFO. This is done by multiplying the current position of the LFO with a factor between 0 and 1, i.e. the section that the line crosses becomes larger the longer this LFO's line is (or shorter if inverted). This is a multiplicative parameter.";
 
             case static_cast<int>(LfoModulatableParameter::lfoUpdateInterval):

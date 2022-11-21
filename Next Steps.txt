@@ -481,9 +481,27 @@
 	- half up: 0 in first half of the octave, 1 in the second half
 	- half down: -1 in first half(?), 0 in second half	(alternatively 0 and 11)
 - implement more parameters
+	-> to add any new parameter:
+		- add new LfoModulatableParameter value
+		- add new parameter instance to the affected class
+		- add serialisation/deserialisation for the parameter's base values, if needed
+		- add getter method for that parameter in the AudioEngine
+		- add switch case for adding a modulation to the new parameter in RegionLfo
+		- add editing options for the parameter in the respective editor
+			- edit base value, if needed
+			- add entry in combobox for modulation selection
+			- add tooltip for item selection with the parameter selected for modulation
 	- current LFO phase (rename current implementation "LFO phase multiplier")
+		^- actually, call it "LFO interval" and "playback interval". that way, they're more intuitive.
 		- is there a way to calculate this modded value efficiently without if cases?
 		- draw the current minimum and maximum phase onto the region similar to the current phase -> better visual feedback
+	^- gotta differentiate between current phase and starting phase!
+		- starting phase: value within [0,1) (actually [0,360), but normalising it makes it more understandable). the end phase is determined by the phase multiplier: currentPhase starts at startingPhase and ends at ((startingPhase + 1.0) * phaseMult) mod 1.0, so implementing startingPhase would be rather simple using an additive parameter with a base value that's settable in the region editor
+		- current phase: value between startingPhase and endPhase (where endPhase may also be smaller than starting phase). there are 2 ways to do it, but both come with complications:
+			1) the unmodulated current phase of the LFO is the base value and the parameter is additive. in this case, the base value would change during every single sample, causing a potentially significant overhead in calculations. furthermore, the result would be underwhelming since it's not the actual current phase that would get set but only the current phase *in relation* to some other phases.
+			2) the parameter actually changes the current "unmodulated" phase to a different value (within [0,1) representing the position within the current startingPhase and endPhase). the advantage of this would be that it works as one would expect intuitively, but the downside is that it cannot be done like this with the current parameter classes. the new class would have to use a method that passes a pointer to the current phase value, and if (handling if-cases using states!) the parameter is up to date, it simply wouldn't do anything to the value, but if it's out of date, it would additively calculate its new value and set the current phase to it. so making it a subclass of the additive parameter class would make sense i guess.
+			-> use approach 2)!
+	^- do the same for the playback position stuff (see below)
 	- current playback position (rename current implementation "current playback position multiplier")
 		- is there a way to calculate this modded value efficiently without if cases?
 	!- panning
@@ -491,6 +509,9 @@
 		- separate the mono signal from the side signals -> multiply the side signals by the current stereo width value (0...1) -> merge the mono and side signals back together
 	?- LFO value multiplication (ringmod)
 	?- LFO value addition
+	?- "sync"
+		-> trick: using ModulatableMultiplicativeParameter<int>, one can create a big logical AND, and using ModulatableAdditiveParameter<int>, one can create a big logical OR. now, if one takes the unipolar LFO values and rounds them to 0 or 1, one can create a type of sync: if all (or any) modulations result in 1 (-> true), reset the LFO/playback phase. like with current phase modulation, this would use the modulateValueIfUpdated method.
+			-> inversion would simply set each modulator's value to 1-value, effectively negating the boolean value
 	!- interpret the LFO wavetable as a waveshaping table, where the starting value is at the LFO's current phase
 		- this would (most likely) result in rather distorted sounds that change over time
 		- depth: dry/wet mix

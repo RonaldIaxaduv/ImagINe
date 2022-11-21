@@ -19,7 +19,7 @@ const float RegionLfo::defaultUpdateIntervalMs = 10.0f;
 RegionLfo::RegionLfo(int regionID) :
     Lfo(juce::AudioSampleBuffer(), [](float) {; }), //can only initialise waveTable through the base class's constructor...
     waveTableUnipolar(0, 0),
-    frequencyModParameter(0.0), phaseModParameter(1.0), updateIntervalParameter(1.0)
+    frequencyModParameter(0.0), phaseIntervalModParameter(1.0), updateIntervalParameter(1.0)
 {
     states[static_cast<int>(RegionLfoStateIndex::unprepared)] = static_cast<RegionLfoState*>(new RegionLfoState_Unprepared(*this));
     states[static_cast<int>(RegionLfoStateIndex::withoutWaveTable)] = static_cast<RegionLfoState*>(new RegionLfoState_WithoutWaveTable(*this));
@@ -73,7 +73,7 @@ RegionLfo::~RegionLfo()
     }
     unsubscribedModulators++;
 
-    auto phaseModulators = phaseModParameter.getModulators();
+    auto phaseModulators = phaseIntervalModParameter.getModulators();
     for (auto* it = phaseModulators.begin(); it != phaseModulators.end(); it++)
     {
         (*it)->removeRegionModulation(getRegionID());
@@ -272,9 +272,9 @@ ModulatableAdditiveParameter<double>* RegionLfo::getFrequencyModParameter()
 {
     return &frequencyModParameter;
 }
-ModulatableMultiplicativeParameter<double>* RegionLfo::getPhaseModParameter()
+ModulatableMultiplicativeParameter<double>* RegionLfo::getPhaseIntervalModParameter()
 {
-    return &phaseModParameter;
+    return &phaseIntervalModParameter;
 }
 ModulatableMultiplicativeParameter<double>* RegionLfo::getUpdateIntervalParameter()
 {
@@ -297,8 +297,8 @@ void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParamete
         switch (newModulatedParameterID) //this only needs to handle parameters associated with Voice members
         {
         case LfoModulatableParameter::volume:
-        case LfoModulatableParameter::playbackPosition:
-        case LfoModulatableParameter::lfoPhase:
+        case LfoModulatableParameter::playbackPositionInterval:
+        case LfoModulatableParameter::lfoPhaseInterval:
         case LfoModulatableParameter::lfoUpdateInterval:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
@@ -308,8 +308,8 @@ void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParamete
             break;
 
         case LfoModulatableParameter::volume_inverted:
-        case LfoModulatableParameter::playbackPosition_inverted:
-        case LfoModulatableParameter::lfoPhase_inverted:
+        case LfoModulatableParameter::playbackPositionInterval_inverted:
+        case LfoModulatableParameter::lfoPhaseInterval_inverted:
         case LfoModulatableParameter::lfoUpdateInterval_inverted:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
@@ -577,7 +577,7 @@ void RegionLfo::updateCurrentValues() //pre-calculates the current LFO values (u
     //latestModulatedPhase = static_cast<float>(phaseModParameter.getModulatedValue()); //update this variable to keep the LFO line drawn updated that's drawn over regions; normally, division by phaseModParameter.getBaseValue() would be necessary, but that value is fixed at 1.0
 
     //float effectiveTablePos = currentTablePos + static_cast<float>(waveTable.getNumSamples() - 1) * static_cast<float>(phaseModParameter.getModulatedValue());
-    float effectiveTablePos = currentTablePos * static_cast<float>(phaseModParameter.getModulatedValue());
+    float effectiveTablePos = currentTablePos * static_cast<float>(phaseIntervalModParameter.getModulatedValue());
     /*if (static_cast<int>(effectiveTablePos) >= waveTable.getNumSamples() - 1)
     {
         effectiveTablePos -= static_cast<float>(waveTable.getNumSamples() - 1);

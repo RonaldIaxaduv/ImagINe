@@ -307,8 +307,8 @@ bool AudioEngine::deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine)
                     affectedParams = getParameterOfRegion_Pitch(rIDs[j]);
                     break;
 
-                case LfoModulatableParameter::playbackPosition:
-                case LfoModulatableParameter::playbackPosition_inverted:
+                case LfoModulatableParameter::playbackPositionInterval:
+                case LfoModulatableParameter::playbackPositionInterval_inverted:
                     affectedParams = getParameterOfRegion_PlaybackPosition(rIDs[j]);
                     break;
 
@@ -317,8 +317,8 @@ bool AudioEngine::deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine)
                     affectedParams = getParameterOfRegion_LfoRate(rIDs[j]);
                     break;
 
-                case LfoModulatableParameter::lfoPhase:
-                case LfoModulatableParameter::lfoPhase_inverted:
+                case LfoModulatableParameter::lfoPhaseInterval:
+                case LfoModulatableParameter::lfoPhaseInterval_inverted:
                     affectedParams = getParameterOfRegion_LfoPhase(rIDs[j]);
                     break;
 
@@ -554,7 +554,7 @@ juce::Array<ModulatableParameter<double>*> AudioEngine::getParameterOfRegion_Lfo
     RegionLfo* lfo = getLfo(regionID);
     if (lfo != nullptr)
     {
-        parameters.add(lfo->getPhaseModParameter()); //only one LFO per region, so only one entry in parameters necessary
+        parameters.add(lfo->getPhaseIntervalModParameter()); //only one LFO per region, so only one entry in parameters necessary
     }
 
     return parameters;

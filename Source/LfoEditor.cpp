@@ -216,8 +216,8 @@ void LfoEditor::updateLfoParameter(int targetRegionID, bool shouldBeModulated, L
         associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_Pitch(targetRegionID));
         break;
 
-    case LfoModulatableParameter::playbackPosition:
-    case LfoModulatableParameter::playbackPosition_inverted:
+    case LfoModulatableParameter::playbackPositionInterval:
+    case LfoModulatableParameter::playbackPositionInterval_inverted:
         associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_PlaybackPosition(targetRegionID));
         break;
 
@@ -229,8 +229,8 @@ void LfoEditor::updateLfoParameter(int targetRegionID, bool shouldBeModulated, L
         associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_LfoRate(targetRegionID));
         break;
 
-    case LfoModulatableParameter::lfoPhase:
-    case LfoModulatableParameter::lfoPhase_inverted:
+    case LfoModulatableParameter::lfoPhaseInterval:
+    case LfoModulatableParameter::lfoPhaseInterval_inverted:
         associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_LfoPhase(targetRegionID));
         break;
 

@@ -20,17 +20,33 @@ enum class LfoModulatableParameter : int
     pitch_inverted,
     //panning,
     //panning_inverted,
-    playbackPosition,
-    playbackPosition_inverted,
+    playbackPositionInterval,
+    playbackPositionInterval_inverted,
 
     lfoRate,
     lfoRate_inverted,
     //lfoDepth,
     //lfoDepth_inverted,
-    lfoPhase,
-    lfoPhase_inverted,
+    lfoPhaseInterval,
+    lfoPhaseInterval_inverted,
     lfoUpdateInterval,
     lfoUpdateInterval_inverted,
+
+
+
+    //after here, the order of the parameters will be a little more chaotic.
+    //this is because, to ensure backwards compatibility with older save states, the numbering of the previous states must remain the same!
+    //though it would also be possible to keep a cleaner ordering by manually assigning a number to each state, doing it that way it more prone to errors.
+    //hence, keeping a cleaner order will be restricted to the combo boxes shown in the program.
+    playbackPositionStart,
+    playbackPositionStart_inverted,
+    playbackPositionCurrent,
+    playbackPositionCurrent_inverted,
+
+    lfoStartingPhase,
+    lfoStartingPhase_inverted,
+    lfoCurrentPhase,
+    lfoCurrentPhase_inverted,
 
     ModulatableParameterCount
 };

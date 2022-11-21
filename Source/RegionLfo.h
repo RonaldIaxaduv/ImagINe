@@ -54,7 +54,9 @@ public:
     int getNumModulatedParameterIDs();
 
     ModulatableAdditiveParameter<double>* getFrequencyModParameter();
-    ModulatableMultiplicativeParameter<double>* getPhaseModParameter();
+    ModulatableAdditiveParameter<double>* getStartingPhaseModParameter();
+    ModulatableMultiplicativeParameter<double>* getPhaseIntervalModParameter(); //WIP: rename to "getPhaseIntervalModParameter"
+    ModulatableAdditiveParameter<double>* getCurrentPhaseModParameter();
     ModulatableMultiplicativeParameter<double>* getUpdateIntervalParameter();
 
     void addRegionModulation(LfoModulatableParameter newModulatedParameterID, int newRegionID, const juce::Array<ModulatableParameter<double>*>& newParameters);
@@ -119,7 +121,7 @@ protected:
     ModulatableAdditiveParameter<double> frequencyModParameter; //replaces the frequency modulation members of LFO
     void evaluateFrequencyModulation() override;
 
-    ModulatableMultiplicativeParameter<double> phaseModParameter;
+    ModulatableMultiplicativeParameter<double> phaseIntervalModParameter;
     float latestModulatedPhase = 1.0f;
 
     ModulatableMultiplicativeParameter<double> updateIntervalParameter;
