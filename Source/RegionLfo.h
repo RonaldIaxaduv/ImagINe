@@ -120,8 +120,11 @@ protected:
     //other
     ModulatableAdditiveParameter<double> frequencyModParameter; //replaces the frequency modulation members of LFO
     void evaluateFrequencyModulation() override;
+    void evaluateTablePosModulation();
 
+    ModulatableAdditiveParameter<double> startingPhaseModParameter;
     ModulatableMultiplicativeParameter<double> phaseIntervalModParameter;
+    ModulatableAdditiveParameter<double> currentPhaseModParameter;
     float latestModulatedPhase = 1.0f;
 
     ModulatableMultiplicativeParameter<double> updateIntervalParameter;

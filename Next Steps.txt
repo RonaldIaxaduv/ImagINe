@@ -482,9 +482,12 @@
 	- half down: -1 in first half(?), 0 in second half	(alternatively 0 and 11)
 - implement more parameters
 	-> to add any new parameter:
-		- add new LfoModulatableParameter value
-		- add new parameter instance to the affected class
-		- add serialisation/deserialisation for the parameter's base values, if needed
+		# add new LfoModulatableParameter value
+		- implement the new parameter for the affected class
+			# add the parameter members
+			# add initialisers
+			# add handling of the parameters
+			- add serialisation/deserialisation for the parameter's base values, if needed
 		- add getter method for that parameter in the AudioEngine
 		- add switch case for adding a modulation to the new parameter in RegionLfo
 		- add editing options for the parameter in the respective editor

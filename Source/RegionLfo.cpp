@@ -19,7 +19,7 @@ const float RegionLfo::defaultUpdateIntervalMs = 10.0f;
 RegionLfo::RegionLfo(int regionID) :
     Lfo(juce::AudioSampleBuffer(), [](float) {; }), //can only initialise waveTable through the base class's constructor...
     waveTableUnipolar(0, 0),
-    frequencyModParameter(0.0), phaseIntervalModParameter(1.0), updateIntervalParameter(1.0)
+    frequencyModParameter(0.0), startingPhaseModParameter(0.0), phaseIntervalModParameter(1.0), currentPhaseModParameter(0.0), updateIntervalParameter(1.0)
 {
     states[static_cast<int>(RegionLfoStateIndex::unprepared)] = static_cast<RegionLfoState*>(new RegionLfoState_Unprepared(*this));
     states[static_cast<int>(RegionLfoStateIndex::withoutWaveTable)] = static_cast<RegionLfoState*>(new RegionLfoState_WithoutWaveTable(*this));
@@ -272,9 +272,17 @@ ModulatableAdditiveParameter<double>* RegionLfo::getFrequencyModParameter()
 {
     return &frequencyModParameter;
 }
+ModulatableAdditiveParameter<double>* RegionLfo::getStartingPhaseModParameter()
+{
+    return &startingPhaseModParameter;
+}
 ModulatableMultiplicativeParameter<double>* RegionLfo::getPhaseIntervalModParameter()
 {
     return &phaseIntervalModParameter;
+}
+ModulatableAdditiveParameter<double>* RegionLfo::getCurrentPhaseModParameter()
+{
+    return &currentPhaseModParameter;
 }
 ModulatableMultiplicativeParameter<double>* RegionLfo::getUpdateIntervalParameter()
 {
@@ -401,12 +409,7 @@ void RegionLfo::advanceUnsafeWithUpdate()
     //doesn't check whether the wavetable actually contains samples, saving one if case per sample
 
     evaluateFrequencyModulation();
-
-    currentTablePos += tablePosDelta;
-    if (static_cast<int>(currentTablePos) >= waveTable.getNumSamples() - 1) //-1 because the last sample is equal to the first
-    {
-        currentTablePos -= static_cast<float>(waveTable.getNumSamples() - 1);
-    }
+    evaluateTablePosModulation(); //increments currentTablePos if required
 
     updateCurrentValues();
     updateModulatedParameterUnsafe(); //saves one more if case compared to the normal update
@@ -417,12 +420,7 @@ void RegionLfo::advanceUnsafeWithoutUpdate()
     //doesn't check whether the wavetable actually contains samples, saving one if case per sample
 
     evaluateFrequencyModulation();
-
-    currentTablePos += tablePosDelta;
-    if (static_cast<int>(currentTablePos) >= waveTable.getNumSamples() - 1) //-1 because the last sample is equal to the first
-    {
-        currentTablePos -= static_cast<float>(waveTable.getNumSamples() - 1);
-    }
+    evaluateTablePosModulation(); //increments currentTablePos if required
 }
 
 void RegionLfo::setPhase(float relativeTablePos)
@@ -455,10 +453,12 @@ float RegionLfo::getLatestModulatedPhase()
 
 double RegionLfo::getCurrentValue_Unipolar()
 {
+    //calculated in advance in updateCurrentValues()
     return static_cast<double>(currentValueUnipolar); //static_cast<double>(depth * currentValueUnipolar);
 }
 double RegionLfo::getCurrentValue_Bipolar()
 {
+    //calculated in advance in updateCurrentValues()
     return static_cast<double>(currentValueBipolar); //static_cast<double>(depth * currentValueBipolar);
 }
 
@@ -571,18 +571,67 @@ void RegionLfo::evaluateFrequencyModulation()
     tablePosDelta = static_cast<float>(waveTable.getNumSamples()) * cyclesPerSample; //0.0f if waveTable empty
     tablePosDelta *= playbackMultApprox(frequencyModParameter.getModulatedValue()); //includes all frequency modulations; approximation -> faster (power functions would be madness efficiency-wise)
 }
+void RegionLfo::evaluateTablePosModulation()
+{
+    //double currentPhase = static_cast<double>(currentTablePos) / static_cast<double>(getNumSamplesUnsafe());
+    //currentPhaseModParameter.modulateValueIfUpdated(&currentPhase); //if any current phase modulator updated, currentTablePos will be set to the new value. otherwise, its value will remain the same
+    //currentPhase = std::fmod(currentPhase, 1.0); //keep within [0.0, 1.0)
+    //currentTablePos = currentPhase * (getNumSamplesUnsafe() - 1); //currentTablePos actually needs to be affected by the modulation to ensure that the LFO keeps running from the phase it was set to (it won't update every time, only whenever a modulator updated)
+    ////1 div, 1 mult, 1 mod
+
+    double modulatedTablePos = currentTablePos;
+    currentPhaseModParameter.modulateValueIfUpdated(&modulatedTablePos);
+    if (currentTablePos != modulatedTablePos)
+    {
+        currentTablePos = static_cast<float>(std::fmod(modulatedTablePos, 1.0)) * static_cast<float>(getNumSamplesUnsafe() - 1); //subtracting -1 should *theoretically* not be necessary here bc it will be multiplied with a value within [0,1), *but* due to rounding, it would be possible that it takes on an out-of-range value! it shouldn't make a noticable difference sound-wise.
+        //worst case: 1 if, 1 mod, 1 mult -> saving 1 div for 1 if -> float division is probably slower than an if(?)
+
+        //don't advance; stick to the target phase!
+    }
+    else
+    {
+        //no need to adjust currentTablePos (it didn't change).
+        //best case: nothing
+
+        //advance
+        currentTablePos += tablePosDelta;
+        if (static_cast<int>(currentTablePos) >= waveTable.getNumSamples() - 1) //-1 because the last sample is equal to the first
+        {
+            currentTablePos -= static_cast<float>(waveTable.getNumSamples() - 1);
+        }
+    }
+}
 
 void RegionLfo::updateCurrentValues() //pre-calculates the current LFO values (unipolar, bipolar) for quicker repeated access
 {
     //latestModulatedPhase = static_cast<float>(phaseModParameter.getModulatedValue()); //update this variable to keep the LFO line drawn updated that's drawn over regions; normally, division by phaseModParameter.getBaseValue() would be necessary, but that value is fixed at 1.0
 
     //float effectiveTablePos = currentTablePos + static_cast<float>(waveTable.getNumSamples() - 1) * static_cast<float>(phaseModParameter.getModulatedValue());
-    float effectiveTablePos = currentTablePos * static_cast<float>(phaseIntervalModParameter.getModulatedValue());
-    /*if (static_cast<int>(effectiveTablePos) >= waveTable.getNumSamples() - 1)
-    {
-        effectiveTablePos -= static_cast<float>(waveTable.getNumSamples() - 1);
-    }*/
-    latestModulatedPhase = effectiveTablePos / static_cast<float>(getNumSamplesUnsafe()); //update this variable to keep the LFO line drawn updated that's drawn over regions; normally, division by phaseModParameter.getBaseValue() would be necessary, but that value is fixed at 1.0
+    //float effectiveTablePos = currentTablePos * static_cast<float>(phaseIntervalModParameter.getModulatedValue());
+    ///*if (static_cast<int>(effectiveTablePos) >= waveTable.getNumSamples() - 1)
+    //{
+    //    effectiveTablePos -= static_cast<float>(waveTable.getNumSamples() - 1);
+    //}*/
+    //latestModulatedPhase = effectiveTablePos / static_cast<float>(getNumSamplesUnsafe()); //update this variable to keep the LFO line updated that's drawn over regions; normally, division by phaseModParameter.getBaseValue() would be necessary, but that value is fixed at 1.0
+
+    //note: modulation of the current phase has been applied in evaluateTablePosModulation already.
+     
+    //important goal: the phase interval squishing should not decrease the value of deltaTablePos! 
+    
+    ////idea 1:
+    //float effectiveTablePos = std::fmod(currentTablePos, getNumSamplesUnsafe() * phaseIntervalModParameter.getModulatedValue()); //needs to be modded instead of multiplied, because otherwise it would effectively decrease deltaTablePos (i.e. the frequency), which wouldn't be intuitive
+    //effectiveTablePos = std::fmod(effectiveTablePos + startingPhaseModParameter.getModulatedValue() * getNumSamplesUnsafe(), getNumSamplesUnsafe());
+    //latestModulatedPhase = effectiveTablePos / static_cast<float>(getNumSamplesUnsafe()); //update this variable to keep the LFO line drawn updated that's drawn over regions; normally, division by phaseModParameter.getBaseValue() would be necessary, but that value is fixed at 1.0
+    ////^- 2 mod, 2 mult, 1 div (oof...)
+
+    //idea 2:
+    double effectivePhase = static_cast<double>(currentTablePos / static_cast<float>(getNumSamplesUnsafe())); //convert currentTablePos to currentPhase
+    effectivePhase = std::fmod(effectivePhase, phaseIntervalModParameter.getModulatedValue()); //convert to new interval while preserving deltaTablePos (i.e. the frequency)!
+    effectivePhase = std::fmod(effectivePhase + startingPhaseModParameter.getModulatedValue(), 1.0); //shift the starting phase from 0 to the value stated by startingPhaseModParameter and wrap, so that the value stays within [0,1) (i.e. within wavetable later on)
+    latestModulatedPhase = effectivePhase; //remember modulated phase to keep the LFO line updated that's drawn over regions
+    float effectiveTablePos = static_cast<float>(effectivePhase) * static_cast<float>(getNumSamplesUnsafe() - 1); //convert phase back to index within wavetable (-1 at the end to ensure that floating-point rounding won't let the variable take on out-of-range values!)
+    //^- 2 mod, 1 mult, 1 div -> slightly better
+
 
     int sampleIndex1 = static_cast<int>(effectiveTablePos);
     int sampleIndex2 = sampleIndex1 + 1;
