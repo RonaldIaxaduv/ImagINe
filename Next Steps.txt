@@ -470,6 +470,9 @@
 	# should also include my name, a link to the survey, to the demo videos (on YT, presumably) and to the ImageINe discord server
 !# add more/better key bindings
 - show a warning prompt when trying to open a preset while not in the init state
+!- make sure that users can't break anything by playing with options in the region editor while no audio file has been set yet!
+!- bug: read access violation when removing a modulator (in ModulatableParameter)
+	-> the usual: suspend processing...
 - bug: updating the toggle parameter in the region editor while in playing mode doesn't affect the region when actually playing it. to update it, one must go back into editing mode and back to playing mode o.ô
 - bug: play paths are already interactable while in drawing mode -> handle them in the same way as regions in region drawing mode instead!
 !- display play path length (normed) in the play path editor!
@@ -482,30 +485,36 @@
 	- half down: -1 in first half(?), 0 in second half	(alternatively 0 and 11)
 - implement more parameters
 	-> to add any new parameter:
-		# add new LfoModulatableParameter value
+		- add new LfoModulatableParameter value
 		- implement the new parameter for the affected class
-			# add the parameter members
-			# add initialisers
-			# add handling of the parameters
+			- add the parameter members
+			- add initialisers
+			- add handling of the parameters
 			- add serialisation/deserialisation for the parameter's base values, if needed
 		- add getter method for that parameter in the AudioEngine
 		- add switch case for adding a modulation to the new parameter in RegionLfo
 		- add editing options for the parameter in the respective editor
 			- edit base value, if needed
+				- add public getter/setter methods for the parameter's base value
+				- add UI elements (incl. tooltips)
+				- adjust resized method
+				- adjust copyParameters method
+				- add randomisation methods and adjust the keyPressed and randomiseAllParameters methods to include the new randomisation
 			- add entry in combobox for modulation selection
 			- add tooltip for item selection with the parameter selected for modulation
-	- current LFO phase (rename current implementation "LFO phase multiplier")
-		^- actually, call it "LFO interval" and "playback interval". that way, they're more intuitive.
+			- adjust updateLfoParameter in LfoEditor to include the new parameter
+	# current LFO phase (rename current implementation "LFO phase multiplier")
+		^# actually, call it "LFO interval" and "playback interval". that way, they're more intuitive.
 		- is there a way to calculate this modded value efficiently without if cases?
 		- draw the current minimum and maximum phase onto the region similar to the current phase -> better visual feedback
-	^- gotta differentiate between current phase and starting phase!
-		- starting phase: value within [0,1) (actually [0,360), but normalising it makes it more understandable). the end phase is determined by the phase multiplier: currentPhase starts at startingPhase and ends at ((startingPhase + 1.0) * phaseMult) mod 1.0, so implementing startingPhase would be rather simple using an additive parameter with a base value that's settable in the region editor
-		- current phase: value between startingPhase and endPhase (where endPhase may also be smaller than starting phase). there are 2 ways to do it, but both come with complications:
+	^# gotta differentiate between current phase and starting phase!
+		# starting phase: value within [0,1) (actually [0,360), but normalising it makes it more understandable). the end phase is determined by the phase multiplier: currentPhase starts at startingPhase and ends at ((startingPhase + 1.0) * phaseMult) mod 1.0, so implementing startingPhase would be rather simple using an additive parameter with a base value that's settable in the region editor
+		# current phase: value between startingPhase and endPhase (where endPhase may also be smaller than starting phase). there are 2 ways to do it, but both come with complications:
 			1) the unmodulated current phase of the LFO is the base value and the parameter is additive. in this case, the base value would change during every single sample, causing a potentially significant overhead in calculations. furthermore, the result would be underwhelming since it's not the actual current phase that would get set but only the current phase *in relation* to some other phases.
 			2) the parameter actually changes the current "unmodulated" phase to a different value (within [0,1) representing the position within the current startingPhase and endPhase). the advantage of this would be that it works as one would expect intuitively, but the downside is that it cannot be done like this with the current parameter classes. the new class would have to use a method that passes a pointer to the current phase value, and if (handling if-cases using states!) the parameter is up to date, it simply wouldn't do anything to the value, but if it's out of date, it would additively calculate its new value and set the current phase to it. so making it a subclass of the additive parameter class would make sense i guess.
-			-> use approach 2)!
-	^- do the same for the playback position stuff (see below)
-	- current playback position (rename current implementation "current playback position multiplier")
+			#> use approach 2)!
+	^# do the same for the playback position stuff (see below)
+	# current playback position (rename current implementation "current playback position multiplier")
 		- is there a way to calculate this modded value efficiently without if cases?
 	!- panning
 	!- stereo width

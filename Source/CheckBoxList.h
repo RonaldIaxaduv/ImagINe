@@ -41,14 +41,22 @@ public:
         modulationChoice.addItem("Pitch (inverted)", static_cast<int>(LfoModulatableParameter::pitch_inverted));
         //modulationChoice.addItem("Panning", static_cast<int>(LfoModulatableParameter::panning));
         //modulationChoice.addItem("Panning (inverted)", static_cast<int>(LfoModulatableParameter::panning_inverted));
-        modulationChoice.addItem("Playback Position", static_cast<int>(LfoModulatableParameter::playbackPositionInterval));
-        modulationChoice.addItem("Playback Position (inverted)", static_cast<int>(LfoModulatableParameter::playbackPositionInterval_inverted));
+        modulationChoice.addItem("Playback Starting Position", static_cast<int>(LfoModulatableParameter::playbackPositionStart));
+        modulationChoice.addItem("Playback Starting Position (inverted)", static_cast<int>(LfoModulatableParameter::playbackPositionStart_inverted));
+        modulationChoice.addItem("Playback Interval", static_cast<int>(LfoModulatableParameter::playbackPositionInterval));
+        modulationChoice.addItem("Playback Interval (inverted)", static_cast<int>(LfoModulatableParameter::playbackPositionInterval_inverted));
+        modulationChoice.addItem("Playback Current Position", static_cast<int>(LfoModulatableParameter::playbackPositionCurrent));
+        modulationChoice.addItem("Playback Current Position (inverted)", static_cast<int>(LfoModulatableParameter::playbackPositionCurrent_inverted));
         modulationChoice.addSeparator();
         modulationChoice.addSectionHeading("LFO");
         modulationChoice.addItem("LFO Rate", static_cast<int>(LfoModulatableParameter::lfoRate));
         modulationChoice.addItem("LFO Rate (inverted)", static_cast<int>(LfoModulatableParameter::lfoRate_inverted));
-        modulationChoice.addItem("LFO Phase", static_cast<int>(LfoModulatableParameter::lfoPhaseInterval));
-        modulationChoice.addItem("LFO Phase (inverted)", static_cast<int>(LfoModulatableParameter::lfoPhaseInterval_inverted));
+        modulationChoice.addItem("LFO Starting Phase", static_cast<int>(LfoModulatableParameter::lfoStartingPhase));
+        modulationChoice.addItem("LFO Starting Phase (inverted)", static_cast<int>(LfoModulatableParameter::lfoStartingPhase_inverted));
+        modulationChoice.addItem("LFO Phase Interval", static_cast<int>(LfoModulatableParameter::lfoPhaseInterval));
+        modulationChoice.addItem("LFO Phase Interval (inverted)", static_cast<int>(LfoModulatableParameter::lfoPhaseInterval_inverted));
+        modulationChoice.addItem("LFO Current Phase", static_cast<int>(LfoModulatableParameter::lfoCurrentPhase));
+        modulationChoice.addItem("LFO Current Phase (inverted)", static_cast<int>(LfoModulatableParameter::lfoCurrentPhase_inverted));
         modulationChoice.addItem("LFO Update Interval", static_cast<int>(LfoModulatableParameter::lfoUpdateInterval));
         modulationChoice.addItem("LFO Update Interval (inverted)", static_cast<int>(LfoModulatableParameter::lfoUpdateInterval_inverted));
         //modulationChoice.addSeparator();
@@ -164,22 +172,43 @@ public:
             case static_cast<int>(LfoModulatableParameter::pitch_inverted):
                 return "You are currently modulating region " + juce::String(regionID) + "'s pitch, i.e. its pitch rises the longer the LFO line is (or shorter if inverted). This is an additive parameter.";
 
+            case static_cast<int>(LfoModulatableParameter::playbackPositionStart):
+            case static_cast<int>(LfoModulatableParameter::playbackPositionStart_inverted):
+                return "You are currently modulating region " + juce::String(regionID) + "'s playback starting position, i.e. the position that you will hear first when you play the region. The longer the LFO line is, the further back it pushes the start (or pulls it closer if inverted). This is an additive parameter.";
+
             case static_cast<int>(LfoModulatableParameter::playbackPositionInterval):
             case static_cast<int>(LfoModulatableParameter::playbackPositionInterval_inverted):
-                return "You are currently modulating region " + juce::String(regionID) + "'s playback position. This is done by shifting the current position in the audio file by a certain amount (up to the length of the file), i.e. the longer the LFO is, the more the position will be shifted (or less if inverted). This is a multiplicative parameter.";
+                return "You are currently modulating region " + juce::String(regionID) + "'s playback interval. This shortens the section of audio that will be played, resulting in longer sections the longer the LFO line is (or shorter if inverted). This is a multiplicative parameter.";
+
+            case static_cast<int>(LfoModulatableParameter::playbackPositionCurrent):
+            case static_cast<int>(LfoModulatableParameter::playbackPositionCurrent_inverted):
+                return "You are currently modulating region " + juce::String(regionID) + "'s current playback position. Whenever this region's LFO updates, it will force the target region's playback point to a certain position (from which it will keep on playing). When the LFO line is longer, the position to which it gets set is shifted further back (or forward if inverted). This is an additive parameter.";
+
+
 
 
             case static_cast<int>(LfoModulatableParameter::lfoRate):
             case static_cast<int>(LfoModulatableParameter::lfoRate_inverted):
                 return "You are currently modulating the speed of region " + juce::String(regionID) + "'s LFO, i.e. the longer this LFO's line is, the faster that other LFO becomes (or slower if inverted). This is an additive parameter.";
 
+            case static_cast<int>(LfoModulatableParameter::lfoStartingPhase):
+            case static_cast<int>(LfoModulatableParameter::lfoStartingPhase_inverted):
+                return "You are currently modulating the starting phase of region " + juce::String(regionID) + "'s LFO. The phase is essentially the angle at which the LFO line starts out, the original starting position being where the first point was drawn. When the LFO line is longer, the starting line gets shifted further back (or forward if inverted). This is an additive parameter.";
+
             case static_cast<int>(LfoModulatableParameter::lfoPhaseInterval):
             case static_cast<int>(LfoModulatableParameter::lfoPhaseInterval_inverted):
-                return "You are currently modulating the phase of region " + juce::String(regionID) + "'s LFO. This is done by multiplying the current position of the LFO with a factor between 0 and 1, i.e. the section that the line crosses becomes larger the longer this LFO's line is (or shorter if inverted). This is a multiplicative parameter.";
+                return "You are currently modulating the phase interval of region " + juce::String(regionID) + "'s LFO. This is done by multiplying the maximum angle, which the LFO could travel, with a factor between 0 and 1, i.e. the section that the line can travel becomes larger the longer this LFO's line is (or shorter if inverted). This is a multiplicative parameter.";
+
+            case static_cast<int>(LfoModulatableParameter::lfoCurrentPhase):
+            case static_cast<int>(LfoModulatableParameter::lfoCurrentPhase_inverted):
+                return "You are currently modulating the current phase of region " + juce::String(regionID) + "'s LFO. Whenever this region's LFO updates, it will force the target region's LFO to a certain phase (from which the other LFO will then keep moving). When the LFO line is longer, the position to which it gets set is shifted further back (or forward if inverted). This is an additive parameter.";
 
             case static_cast<int>(LfoModulatableParameter::lfoUpdateInterval):
             case static_cast<int>(LfoModulatableParameter::lfoUpdateInterval_inverted):
                 return "You are currently modulating the update rate of region " + juce::String(regionID) + "'s LFO, i.e. the longer this LFO's line is, the slower that other LFO's update rate becomes (or faster if inverted). This is a multiplicative parameter.";
+
+
+
 
             default:
                 return "You can modulate this region by selecting a parameter in the combo box on the right.";

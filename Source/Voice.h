@@ -84,13 +84,23 @@ public:
     void setBasePitchShift(double newPitchShift);
     double getBasePitchShift();
 
-    ModulatableMultiplicativeParameter<double>* getPlaybackPositionParameter();
-    void setBasePlaybackPosition(double newPlaybackPosition);
-    double getBasePlaybackPosition();
+    ModulatableAdditiveParameter<double>* getPlaybackPositionStartParameter();
+    void setBasePlaybackPositionStart(double newPlaybackPositionStart);
+    double getBasePlaybackPositionStart();
+
+    ModulatableMultiplicativeParameter<double>* getPlaybackPositionIntervalParameter();
+    void setBasePlaybackPositionInterval(double newPlaybackPositionInterval);
+    double getBasePlaybackPositionInterval();
+
+    ModulatableAdditiveParameter<double>* getPlaybackPositionCurrentParameter();
+    void setBasePlaybackPositionCurrent(double newPlaybackPositionCurrent);
+    double getBasePlaybackPositionCurrent();
 
     void updateBufferPosDelta();
     void updateBufferPosDelta_NotPlayable();
     void updateBufferPosDelta_Playable();
+
+    void evaluateBufferPosModulation();
 
     void setPitchQuantisationMethod(PitchQuantisationMethod newPitchQuantisationMethod);
     PitchQuantisationMethod getPitchQuantisationMethod();
@@ -134,7 +144,9 @@ private:
     double (Voice::* pitchQuantisationFuncPt)() = nullptr;
     int pitchQuantisationScale[12]; //for each semitone in an octave (-> input index), maps to a note on a scale
 
-    ModulatableMultiplicativeParameter<double> playbackPositionParameter;
+    ModulatableAdditiveParameter<double> playbackPositionStartParameter;
+    ModulatableMultiplicativeParameter<double> playbackPositionIntervalParameter;
+    ModulatableAdditiveParameter<double> playbackPositionCurrentParameter;
 
     SamplerOscillator* osc;
 

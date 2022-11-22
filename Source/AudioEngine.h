@@ -55,9 +55,13 @@ public:
 
     juce::Array<ModulatableParameter<double>*> getParameterOfRegion_Volume(int regionID);
     juce::Array<ModulatableParameter<double>*> getParameterOfRegion_Pitch(int regionID);
-    juce::Array<ModulatableParameter<double>*> getParameterOfRegion_PlaybackPosition(int regionID);
+    juce::Array<ModulatableParameter<double>*> getParameterOfRegion_PlaybackPositionStart(int regionID);
+    juce::Array<ModulatableParameter<double>*> getParameterOfRegion_PlaybackPositionInterval(int regionID);
+    juce::Array<ModulatableParameter<double>*> getParameterOfRegion_PlaybackPositionCurrent(int regionID);
     juce::Array<ModulatableParameter<double>*> getParameterOfRegion_LfoRate(int regionID);
-    juce::Array<ModulatableParameter<double>*> getParameterOfRegion_LfoPhase(int regionID);
+    juce::Array<ModulatableParameter<double>*> getParameterOfRegion_LfoStartingPhase(int regionID);
+    juce::Array<ModulatableParameter<double>*> getParameterOfRegion_LfoPhaseInterval(int regionID);
+    juce::Array<ModulatableParameter<double>*> getParameterOfRegion_LfoCurrentPhase(int regionID);
     juce::Array<ModulatableParameter<double>*> getParameterOfRegion_LfoUpdateInterval(int regionID);
 
     void prepareToPlay(int /*samplesPerBlockExpected*/, double sampleRate) override;

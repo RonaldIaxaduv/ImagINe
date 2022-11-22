@@ -1012,6 +1012,44 @@ bool SegmentableImage::hasAtLeastOneRegionWithAudio()
 
     return regionWithAudioFound;
 }
+void SegmentableImage::playAllRegions()
+{
+    for (auto itRegion = regions.begin(); itRegion != regions.end(); ++itRegion)
+    {
+        if (!(*itRegion)->getIsPlaying_Click())
+        {
+            (*itRegion)->setIsPlaying_Click(true); //counts as a click
+            (*itRegion)->startPlaying();
+        }
+    }
+}
+void SegmentableImage::stopAllRegions()
+{
+    for (auto itRegion = regions.begin(); itRegion != regions.end(); ++itRegion)
+    {
+        if ((*itRegion)->getIsPlaying_Click())
+        {
+            (*itRegion)->setIsPlaying_Click(false); //counts as a click
+            (*itRegion)->stopPlaying();
+        }
+    }
+}
+void SegmentableImage::toggleAllRegions()
+{
+    for (auto itRegion = regions.begin(); itRegion != regions.end(); ++itRegion)
+    {
+        if (!(*itRegion)->getIsPlaying_Click())
+        {
+            (*itRegion)->setIsPlaying_Click(true); //counts as a click
+            (*itRegion)->startPlaying();
+        }
+        else
+        {
+            (*itRegion)->setIsPlaying_Click(false); //counts as a click
+            (*itRegion)->stopPlaying();
+        }
+    }
+}
 
 int SegmentableImage::getNextPlayPathID()
 {
@@ -1024,6 +1062,44 @@ int SegmentableImage::getLastPlayPathID()
 bool SegmentableImage::hasAtLeastOnePlayPath()
 {
     return playPaths.size() > 0;
+}
+void SegmentableImage::playAllPlayPaths()
+{
+    for (auto itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
+    {
+        if (!(*itPath)->getIsPlaying())
+        {
+            (*itPath)->setToggleState(true, juce::NotificationType::dontSendNotification); //counts as a click
+            (*itPath)->startPlaying();
+        }
+    }
+}
+void SegmentableImage::stopAllPlayPaths()
+{
+    for (auto itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
+    {
+        if ((*itPath)->getIsPlaying())
+        {
+            (*itPath)->setToggleState(false, juce::NotificationType::dontSendNotification); //counts as a click
+            (*itPath)->stopPlaying();
+        }
+    }
+}
+void SegmentableImage::toggleAllPlayPaths()
+{
+    for (auto itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
+    {
+        if (!(*itPath)->getIsPlaying())
+        {
+            (*itPath)->setToggleState(true, juce::NotificationType::dontSendNotification); //counts as a click
+            (*itPath)->startPlaying();
+        }
+        else
+        {
+            (*itPath)->setToggleState(false, juce::NotificationType::dontSendNotification); //counts as a click
+            (*itPath)->stopPlaying();
+        }
+    }
 }
 
 

@@ -137,9 +137,10 @@ public:
     /// If the parameter is currently outdated, it will recalculate the modulated value and set the passed variable to the new modulated value. If it's up-to-date, the passed variable will remain unchanged.
     /// </summary>
     /// <param name="valueToModulate">The variable that will be adjusted if the parameter is outdated</param>
-    void modulateValueIfUpdated(T* valueToModulate) //used primarily for modulating the current LFO phase and audio playback position
+    /// <returns>True if the variable got updated, false if it remained the same.</returns>
+    bool modulateValueIfUpdated(T* valueToModulate) //used primarily for modulating the current LFO phase and audio playback position
     {
-        currentState->modulateValueIfUpdated(valueToModulate);
+        return currentState->modulateValueIfUpdated(valueToModulate);
     }
 
     void transitionToState(ModulatableParameterStateIndex stateToTransitionTo)

@@ -34,6 +34,32 @@ LfoEditor::LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo)
     addAndMakeVisible(lfoRateLabel);
     lfoRateLabel.attachToComponent(&lfoRateSlider, true);
 
+    //starting phase
+    lfoStartingPhaseSlider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
+    lfoStartingPhaseSlider.setRange(0.0, 0.999, 0.001); //for a 5-minute track, this would be a granularity of 0.3s -> should be good enough
+    //lfoStartingPhaseSlider.setSkewFactorFromMidPoint(0.5);
+    lfoStartingPhaseSlider.onValueChange = [this] { updateLfoStartingPhase(); };
+    lfoStartingPhaseSlider.setPopupMenuEnabled(true);
+    lfoStartingPhaseSlider.setTooltip("This slider changes the starting phase of the LFO, i.e. the angle at which the LFO line starts.");
+    addAndMakeVisible(lfoStartingPhaseSlider);
+
+    lfoStartingPhaseLabel.setText("LFO starting phase: ", juce::NotificationType::dontSendNotification);
+    addAndMakeVisible(lfoStartingPhaseLabel);
+    lfoStartingPhaseLabel.attachToComponent(&lfoStartingPhaseSlider, true);
+
+    //phase interval
+    lfoPhaseIntervalSlider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
+    lfoPhaseIntervalSlider.setRange(0.001, 1.0, 0.001); //MUST NOT BE ZERO!; for a 5-minute track, this would be a granularity of 0.3s -> should be good enough
+    //lfoPhaseIntervalSlider.setSkewFactorFromMidPoint(0.5);
+    lfoPhaseIntervalSlider.onValueChange = [this] { updateLfoPhaseInterval(); };
+    lfoPhaseIntervalSlider.setPopupMenuEnabled(true);
+    lfoPhaseIntervalSlider.setTooltip("This slider changes the phase interval, i.e. the range along which the LFO will travel. At value 1.0, it will go all the way around; at 0.5, it will only go halfway before resetting; when set to 0.0, the line will be completely static.");
+    addAndMakeVisible(lfoPhaseIntervalSlider);
+
+    lfoPhaseIntervalLabel.setText("LFO phase interval: ", juce::NotificationType::dontSendNotification);
+    addAndMakeVisible(lfoPhaseIntervalLabel);
+    lfoPhaseIntervalLabel.attachToComponent(&lfoPhaseIntervalSlider, true);
+
     //update interval
     lfoUpdateIntervalSlider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
     lfoUpdateIntervalSlider.setTextValueSuffix("ms");
@@ -76,6 +102,14 @@ void LfoEditor::resized()
     lfoRateSlider.setBounds(lfoRateArea.removeFromRight(2 * lfoRateArea.getWidth() / 3).reduced(1));
     lfoRateSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, lfoRateSlider.getWidth(), lfoRateSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
 
+    auto lfoStartingPhaseArea = area.removeFromTop(20);
+    lfoStartingPhaseSlider.setBounds(lfoStartingPhaseArea.removeFromRight(2 * lfoStartingPhaseArea.getWidth() / 3).reduced(1));
+    lfoStartingPhaseSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, lfoStartingPhaseSlider.getWidth(), lfoStartingPhaseSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
+
+    auto lfoPhaseIntervalArea = area.removeFromTop(20);
+    lfoPhaseIntervalSlider.setBounds(lfoPhaseIntervalArea.removeFromRight(2 * lfoPhaseIntervalArea.getWidth() / 3).reduced(1));
+    lfoPhaseIntervalSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, lfoStartingPhaseSlider.getWidth(), lfoStartingPhaseSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
+
     auto lfoUpdateIntervalArea = area.removeFromTop(20);
     lfoUpdateIntervalSlider.setBounds(lfoUpdateIntervalArea.removeFromRight(2 * lfoUpdateIntervalArea.getWidth() / 3).reduced(1));
     lfoUpdateIntervalSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, lfoUpdateIntervalSlider.getWidth(), lfoUpdateIntervalSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
@@ -95,6 +129,16 @@ bool LfoEditor::keyPressed(const juce::KeyPress& key)
             randomiseLfoRate();
             return true;
         }
+        else if (lfoStartingPhaseSlider.getBounds().contains(mousePos))
+        {
+            randomiseLfoStartingPhase();
+            return true;
+        }
+        else if (lfoPhaseIntervalSlider.getBounds().contains(mousePos))
+        {
+            randomiseLfoPhaseInterval();
+            return true;
+        }
         else if (lfoUpdateIntervalSlider.getBounds().contains(mousePos))
         {
             randomiseLfoUpdateInterval();
@@ -111,16 +155,12 @@ bool LfoEditor::keyPressed(const juce::KeyPress& key)
 
 void LfoEditor::copyParameters()
 {
-    //copy rate
     lfoRateSlider.setValue(associatedLfo->getBaseFrequency(), juce::NotificationType::dontSendNotification);
 
-    lfoUpdateIntervalSlider.setValue(associatedLfo->getUpdateInterval_Milliseconds(), juce::NotificationType::dontSendNotification);
+    lfoStartingPhaseSlider.setValue(associatedLfo->getBaseStartingPhase(), juce::NotificationType::dontSendNotification);
+    lfoPhaseIntervalSlider.setValue(associatedLfo->getBasePhaseInterval(), juce::NotificationType::dontSendNotification);
 
-    //copy modulated parameters
-    //if (static_cast<int>(associatedLfo->getModulatedParameterID()) > 0) //parameter IDs start with 1 (0 isn't included because of how selected item IDs work with ComboBoxes in juce)
-    //{
-    //    lfoParameterChoice.setSelectedId(static_cast<int>(associatedLfo->getModulatedParameterID()), juce::NotificationType::dontSendNotification);
-    //}
+    lfoUpdateIntervalSlider.setValue(associatedLfo->getUpdateInterval_Milliseconds(), juce::NotificationType::dontSendNotification);
 
     //copy currently affected voices and their modulated parameters
     lfoRegionsList.copyRegionModulations(associatedLfo->getAffectedRegionIDs(), associatedLfo->getModulatedParameterIDs());
@@ -156,6 +196,8 @@ void LfoEditor::changeListenerCallback(juce::ChangeBroadcaster* source)
 void LfoEditor::randomiseAllParameters()
 {
     randomiseLfoRate();
+    randomiseLfoStartingPhase();
+    randomiseLfoPhaseInterval();
     randomiseLfoUpdateInterval();
     lfoRegionsList.randomiseAllParameters();
 }
@@ -174,7 +216,44 @@ void LfoEditor::randomiseLfoRate()
     juce::Random& rng = juce::Random::getSystemRandom();
 
     //prefer values closer to 0 (by dividing the result randomly by a value within [1, 0.5*max])
-    lfoRateSlider.setValue((lfoRateSlider.getMinimum() + rng.nextDouble() * (lfoRateSlider.getMaximum() - lfoRateSlider.getMinimum())) / (1.0 + rng.nextDouble() * 0.5 * lfoRateSlider.getMaximum()), juce::NotificationType::sendNotification);
+    lfoRateSlider.setValue((lfoRateSlider.getMinimum() + rng.nextDouble() * (lfoRateSlider.getMaximum() - lfoRateSlider.getMinimum())) / (1.0 + rng.nextDouble() * 0.75 * lfoRateSlider.getMaximum()), juce::NotificationType::sendNotification);
+}
+
+void LfoEditor::updateLfoStartingPhase()
+{
+    associatedLfo->setBaseStartingPhase(lfoStartingPhaseSlider.getValue());
+    associatedLfo->resetPhase(); //better for visual feedback
+    static_cast<RegionEditor*>(getParentComponent())->getAssociatedRegion()->timerCallback(); //repaint LFO line
+}
+void LfoEditor::randomiseLfoStartingPhase()
+{
+    juce::Random& rng = juce::Random::getSystemRandom();
+
+    //completely random values within the range are fine
+    lfoStartingPhaseSlider.setValue(lfoStartingPhaseSlider.getMinimum() + rng.nextDouble() * (lfoStartingPhaseSlider.getMaximum() - lfoStartingPhaseSlider.getMinimum()), juce::NotificationType::sendNotification);
+    associatedLfo->resetPhase(); //better for visual feedback
+    static_cast<RegionEditor*>(getParentComponent())->getAssociatedRegion()->timerCallback(); //repaint LFO line
+}
+
+void LfoEditor::updateLfoPhaseInterval()
+{
+    associatedLfo->setBasePhaseInterval(lfoPhaseIntervalSlider.getValue());
+}
+void LfoEditor::randomiseLfoPhaseInterval()
+{
+    juce::Random& rng = juce::Random::getSystemRandom();
+
+    //prefer values closer to 1.0 (using sqrt)
+    if (rng.nextInt(3) < 2)
+    {
+        //66%: set to 1
+        lfoPhaseIntervalSlider.setValue(lfoPhaseIntervalSlider.getMaximum(), juce::NotificationType::sendNotification);
+    }
+    else
+    {
+        //33%: random value, but prefer values closer to 1.0 (by using fractional powers)
+        lfoPhaseIntervalSlider.setValue(std::pow(lfoPhaseIntervalSlider.getMinimum() + rng.nextDouble() * (lfoPhaseIntervalSlider.getMaximum() - lfoPhaseIntervalSlider.getMinimum()), 0.25), juce::NotificationType::sendNotification);
+    }
 }
 
 void LfoEditor::updateLfoUpdateInterval()
@@ -187,7 +266,7 @@ void LfoEditor::randomiseLfoUpdateInterval()
     juce::Random& rng = juce::Random::getSystemRandom();
 
     //choose a value depending on LFO frequency. the value should reflect a 1/16...2/1 rhythm = 2^(-4...2)
-    lfoUpdateIntervalSlider.setValue((1.0 / lfoRateSlider.getValue()) * std::pow(2, rng.nextInt(juce::Range<int>(-4, 3))));
+    lfoUpdateIntervalSlider.setValue((1.0 / lfoRateSlider.getValue()) * std::pow(2, rng.nextInt(juce::Range<int>(-4, 3))), juce::NotificationType::sendNotification);
 }
 
 void LfoEditor::updateLfoParameter(int targetRegionID, bool shouldBeModulated, LfoModulatableParameter modulatedParameter)
@@ -216,9 +295,19 @@ void LfoEditor::updateLfoParameter(int targetRegionID, bool shouldBeModulated, L
         associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_Pitch(targetRegionID));
         break;
 
+    case LfoModulatableParameter::playbackPositionStart:
+    case LfoModulatableParameter::playbackPositionStart_inverted:
+        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_PlaybackPositionStart(targetRegionID));
+        break;
+
     case LfoModulatableParameter::playbackPositionInterval:
     case LfoModulatableParameter::playbackPositionInterval_inverted:
-        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_PlaybackPosition(targetRegionID));
+        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_PlaybackPositionInterval(targetRegionID));
+        break;
+
+    case LfoModulatableParameter::playbackPositionCurrent:
+    case LfoModulatableParameter::playbackPositionCurrent_inverted:
+        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_PlaybackPositionCurrent(targetRegionID));
         break;
 
 
@@ -229,9 +318,19 @@ void LfoEditor::updateLfoParameter(int targetRegionID, bool shouldBeModulated, L
         associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_LfoRate(targetRegionID));
         break;
 
+    case LfoModulatableParameter::lfoStartingPhase:
+    case LfoModulatableParameter::lfoStartingPhase_inverted:
+        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_LfoStartingPhase(targetRegionID));
+        break;
+
     case LfoModulatableParameter::lfoPhaseInterval:
     case LfoModulatableParameter::lfoPhaseInterval_inverted:
-        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_LfoPhase(targetRegionID));
+        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_LfoPhaseInterval(targetRegionID));
+        break;
+
+    case LfoModulatableParameter::lfoCurrentPhase:
+    case LfoModulatableParameter::lfoCurrentPhase_inverted:
+        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_LfoCurrentPhase(targetRegionID));
         break;
 
     case LfoModulatableParameter::lfoUpdateInterval:

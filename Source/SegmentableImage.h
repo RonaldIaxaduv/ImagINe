@@ -83,11 +83,17 @@ public:
     juce::OwnedArray<SegmentedRegion> regions;
     bool hasAtLeastOneRegion();
     bool hasAtLeastOneRegionWithAudio();
+    void playAllRegions();
+    void stopAllRegions();
+    void toggleAllRegions();
 
     juce::OwnedArray<PlayPath> playPaths;
     int getNextPlayPathID();
     int getLastPlayPathID();
     bool hasAtLeastOnePlayPath();
+    void playAllPlayPaths();
+    void stopAllPlayPaths();
+    void toggleAllPlayPaths();
 
 private:
     SegmentableImageState* states[static_cast<int>(SegmentableImageStateIndex::StateIndexCount)];

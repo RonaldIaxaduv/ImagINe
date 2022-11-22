@@ -305,8 +305,12 @@ void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParamete
         switch (newModulatedParameterID) //this only needs to handle parameters associated with Voice members
         {
         case LfoModulatableParameter::volume:
+        case LfoModulatableParameter::playbackPositionStart:
         case LfoModulatableParameter::playbackPositionInterval:
+        case LfoModulatableParameter::playbackPositionCurrent:
+        case LfoModulatableParameter::lfoStartingPhase:
         case LfoModulatableParameter::lfoPhaseInterval:
+        case LfoModulatableParameter::lfoCurrentPhase:
         case LfoModulatableParameter::lfoUpdateInterval:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
@@ -316,8 +320,12 @@ void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParamete
             break;
 
         case LfoModulatableParameter::volume_inverted:
+        case LfoModulatableParameter::playbackPositionStart_inverted:
         case LfoModulatableParameter::playbackPositionInterval_inverted:
+        case LfoModulatableParameter::playbackPositionCurrent_inverted:
+        case LfoModulatableParameter::lfoStartingPhase_inverted:
         case LfoModulatableParameter::lfoPhaseInterval_inverted:
+        case LfoModulatableParameter::lfoCurrentPhase_inverted:
         case LfoModulatableParameter::lfoUpdateInterval_inverted:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
@@ -325,6 +333,8 @@ void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParamete
                 return static_cast<double>(lfo->getDepth()) * (1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar())); //interval: [1.0, 1.0-depth]
             };
             break;
+
+
 
 
         case LfoModulatableParameter::pitch:
@@ -342,6 +352,8 @@ void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParamete
                 return 12.0 * static_cast<double>(-lfo->getCurrentValue_Bipolar()) * static_cast<double>(lfo->getDepth()); //12.0: one octave
             };
             break;
+
+
 
 
         default:
@@ -437,11 +449,14 @@ void RegionLfo::resetPhase(bool updateParameters)
 }
 void RegionLfo::resetPhaseUnsafe_WithoutUpdate()
 {
-    currentTablePos = 0.0f;
+    //currentTablePos = 0.0f;
+    latestModulatedPhase = std::fmod(startingPhaseModParameter.getModulatedValue(), 1.0);
+    currentTablePos = latestModulatedPhase * static_cast<float>(getNumSamplesUnsafe() - 1);
 }
 void RegionLfo::resetPhaseUnsafe_WithUpdate()
 {
-    currentTablePos = 0.0f;
+    //currentTablePos = 0.0f;
+    currentTablePos = std::fmod(startingPhaseModParameter.getModulatedValue(), 1.0) * (getNumSamplesUnsafe() - 1);
     updateModulatedParameterUnsafe();
 }
 
@@ -449,6 +464,14 @@ float RegionLfo::getLatestModulatedPhase()
 {
     //return latestModulatedPhase * getPhase();
     return latestModulatedPhase;
+}
+float RegionLfo::getLatestModulatedStartingPhase()
+{
+    return latestModulatedStartingPhase;
+}
+float RegionLfo::getLatestModulatedPhaseInterval()
+{
+    return latestModulatedPhaseInterval;
 }
 
 double RegionLfo::getCurrentValue_Unipolar()
@@ -498,6 +521,23 @@ double RegionLfo::getMsUntilUpdate()
     return 1000.0 * static_cast<double>(samplesUntilUpdate) / sampleRate;
 }
 
+double RegionLfo::getBaseStartingPhase()
+{
+    return startingPhaseModParameter.getBaseValue();
+}
+void RegionLfo::setBaseStartingPhase(double newBaseStartingPhase)
+{
+    startingPhaseModParameter.setBaseValue(newBaseStartingPhase);
+}
+double RegionLfo::getBasePhaseInterval()
+{
+    return phaseIntervalModParameter.getBaseValue();
+}
+void RegionLfo::setBasePhaseInterval(double newBasePhaseInterval)
+{
+    phaseIntervalModParameter.setBaseValue(newBasePhaseInterval);
+}
+
 float RegionLfo::getDepth()
 {
     return depth;
@@ -518,6 +558,10 @@ bool RegionLfo::serialise(juce::XmlElement* xmlLfo)
     xmlLfo->setAttribute("depth", depth);
     xmlLfo->setAttribute("updateIntervalMs", updateIntervalMs);
     xmlLfo->setAttribute("baseFrequency", getBaseFrequency());
+
+    xmlLfo->setAttribute("phaseInterval_base", phaseIntervalModParameter.getBaseValue());
+    xmlLfo->setAttribute("startingPhase_base", startingPhaseModParameter.getBaseValue());
+    //current phase: fixed base value
 
     juce::XmlElement* xmlParameterIDs = xmlLfo->createNewChildElement("modulatedParameterIDs");
     xmlParameterIDs->setAttribute("size", modulatedParameterIDs.size());
@@ -552,6 +596,9 @@ bool RegionLfo::deserialise_main(juce::XmlElement* xmlLfo)
     setUpdateInterval_Milliseconds(xmlLfo->getDoubleAttribute("updateIntervalMs", defaultUpdateIntervalMs));
     setBaseFrequency(xmlLfo->getDoubleAttribute("baseFrequency", 0.2));
 
+    phaseIntervalModParameter.setBaseValue(xmlLfo->getDoubleAttribute("phaseInterval_base", 1.0));
+    startingPhaseModParameter.setBaseValue(xmlLfo->getDoubleAttribute("startingPhase_base", 0.0));
+
     DBG(juce::String(deserialisationSuccessful ? "LFO has been deserialised (except for mods)." : "LFO could not be deserialised (main)."));
     return deserialisationSuccessful;
 }
@@ -580,24 +627,23 @@ void RegionLfo::evaluateTablePosModulation()
     ////1 div, 1 mult, 1 mod
 
     double modulatedTablePos = currentTablePos;
-    currentPhaseModParameter.modulateValueIfUpdated(&modulatedTablePos);
-    if (currentTablePos != modulatedTablePos)
+    if (currentPhaseModParameter.modulateValueIfUpdated(&modulatedTablePos)) //true if it updated the value
     {
         currentTablePos = static_cast<float>(std::fmod(modulatedTablePos, 1.0)) * static_cast<float>(getNumSamplesUnsafe() - 1); //subtracting -1 should *theoretically* not be necessary here bc it will be multiplied with a value within [0,1), *but* due to rounding, it would be possible that it takes on an out-of-range value! it shouldn't make a noticable difference sound-wise.
-        //worst case: 1 if, 1 mod, 1 mult -> saving 1 div for 1 if -> float division is probably slower than an if(?)
+        //worst case: 1 if, 1 mod, 1 mult (-> saving 1 div for 1 if -> float division is probably slower than an if(?))
 
         //don't advance; stick to the target phase!
     }
     else
     {
         //no need to adjust currentTablePos (it didn't change).
-        //best case: nothing
+        //best case: 1 if
 
         //advance
         currentTablePos += tablePosDelta;
-        if (static_cast<int>(currentTablePos) >= waveTable.getNumSamples() - 1) //-1 because the last sample is equal to the first
+        if (currentTablePos >= latestModulatedPhaseInterval * static_cast<float>(waveTable.getNumSamples() - 1)) //-1 because the last sample is equal to the first; multiplied with the phase interval because otherwise, there will be doubling!
         {
-            currentTablePos -= static_cast<float>(waveTable.getNumSamples() - 1);
+            currentTablePos -= latestModulatedPhaseInterval * static_cast<float>(waveTable.getNumSamples() - 1);
         }
     }
 }
@@ -624,10 +670,12 @@ void RegionLfo::updateCurrentValues() //pre-calculates the current LFO values (u
     //latestModulatedPhase = effectiveTablePos / static_cast<float>(getNumSamplesUnsafe()); //update this variable to keep the LFO line drawn updated that's drawn over regions; normally, division by phaseModParameter.getBaseValue() would be necessary, but that value is fixed at 1.0
     ////^- 2 mod, 2 mult, 1 div (oof...)
 
-    //idea 2:
+    //idea 2: effectivePhase = (((currentTablePos/numSamples) mod phaseInterval) + startingPhase) mod 1.0
+    latestModulatedStartingPhase = startingPhaseModParameter.getModulatedValue();
+    latestModulatedPhaseInterval = phaseIntervalModParameter.getModulatedValue();
     double effectivePhase = static_cast<double>(currentTablePos / static_cast<float>(getNumSamplesUnsafe())); //convert currentTablePos to currentPhase
-    effectivePhase = std::fmod(effectivePhase, phaseIntervalModParameter.getModulatedValue()); //convert to new interval while preserving deltaTablePos (i.e. the frequency)!
-    effectivePhase = std::fmod(effectivePhase + startingPhaseModParameter.getModulatedValue(), 1.0); //shift the starting phase from 0 to the value stated by startingPhaseModParameter and wrap, so that the value stays within [0,1) (i.e. within wavetable later on)
+    effectivePhase = std::fmod(effectivePhase, latestModulatedPhaseInterval); //convert to new interval while preserving deltaTablePos (i.e. the frequency)!
+    effectivePhase = std::fmod(effectivePhase + latestModulatedStartingPhase, 1.0); //shift the starting phase from 0 to the value stated by startingPhaseModParameter and wrap, so that the value stays within [0,1) (i.e. within wavetable later on)
     latestModulatedPhase = effectivePhase; //remember modulated phase to keep the LFO line updated that's drawn over regions
     float effectiveTablePos = static_cast<float>(effectivePhase) * static_cast<float>(getNumSamplesUnsafe() - 1); //convert phase back to index within wavetable (-1 at the end to ensure that floating-point rounding won't let the variable take on out-of-range values!)
     //^- 2 mod, 1 mult, 1 div -> slightly better

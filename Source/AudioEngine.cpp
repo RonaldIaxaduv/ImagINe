@@ -309,7 +309,7 @@ bool AudioEngine::deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine)
 
                 case LfoModulatableParameter::playbackPositionInterval:
                 case LfoModulatableParameter::playbackPositionInterval_inverted:
-                    affectedParams = getParameterOfRegion_PlaybackPosition(rIDs[j]);
+                    affectedParams = getParameterOfRegion_PlaybackPositionInterval(rIDs[j]);
                     break;
 
                 case LfoModulatableParameter::lfoRate:
@@ -319,7 +319,7 @@ bool AudioEngine::deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine)
 
                 case LfoModulatableParameter::lfoPhaseInterval:
                 case LfoModulatableParameter::lfoPhaseInterval_inverted:
-                    affectedParams = getParameterOfRegion_LfoPhase(rIDs[j]);
+                    affectedParams = getParameterOfRegion_LfoPhaseInterval(rIDs[j]);
                     break;
 
                 case LfoModulatableParameter::lfoUpdateInterval:
@@ -523,14 +523,38 @@ juce::Array<ModulatableParameter<double>*> AudioEngine::getParameterOfRegion_Pit
 
     return parameters;
 }
-juce::Array<ModulatableParameter<double>*> AudioEngine::getParameterOfRegion_PlaybackPosition(int regionID)
+juce::Array<ModulatableParameter<double>*> AudioEngine::getParameterOfRegion_PlaybackPositionStart(int regionID)
 {
     juce::Array<Voice*> voices = getVoicesWithID(regionID);
     juce::Array<ModulatableParameter<double>*> parameters;
 
     for (auto* it = voices.begin(); it != voices.end(); it++)
     {
-        parameters.add((*it)->getPlaybackPositionParameter());
+        parameters.add((*it)->getPlaybackPositionStartParameter());
+    }
+
+    return parameters;
+}
+juce::Array<ModulatableParameter<double>*> AudioEngine::getParameterOfRegion_PlaybackPositionInterval(int regionID)
+{
+    juce::Array<Voice*> voices = getVoicesWithID(regionID);
+    juce::Array<ModulatableParameter<double>*> parameters;
+
+    for (auto* it = voices.begin(); it != voices.end(); it++)
+    {
+        parameters.add((*it)->getPlaybackPositionIntervalParameter());
+    }
+
+    return parameters;
+}
+juce::Array<ModulatableParameter<double>*> AudioEngine::getParameterOfRegion_PlaybackPositionCurrent(int regionID)
+{
+    juce::Array<Voice*> voices = getVoicesWithID(regionID);
+    juce::Array<ModulatableParameter<double>*> parameters;
+
+    for (auto* it = voices.begin(); it != voices.end(); it++)
+    {
+        parameters.add((*it)->getPlaybackPositionCurrentParameter());
     }
 
     return parameters;
@@ -547,7 +571,19 @@ juce::Array<ModulatableParameter<double>*> AudioEngine::getParameterOfRegion_Lfo
 
     return parameters;
 }
-juce::Array<ModulatableParameter<double>*> AudioEngine::getParameterOfRegion_LfoPhase(int regionID)
+juce::Array<ModulatableParameter<double>*> AudioEngine::getParameterOfRegion_LfoStartingPhase(int regionID)
+{
+    juce::Array<ModulatableParameter<double>*> parameters;
+
+    RegionLfo* lfo = getLfo(regionID);
+    if (lfo != nullptr)
+    {
+        parameters.add(lfo->getStartingPhaseModParameter()); //only one LFO per region, so only one entry in parameters necessary
+    }
+
+    return parameters;
+}
+juce::Array<ModulatableParameter<double>*> AudioEngine::getParameterOfRegion_LfoPhaseInterval(int regionID)
 {
     juce::Array<ModulatableParameter<double>*> parameters;
 
@@ -555,6 +591,18 @@ juce::Array<ModulatableParameter<double>*> AudioEngine::getParameterOfRegion_Lfo
     if (lfo != nullptr)
     {
         parameters.add(lfo->getPhaseIntervalModParameter()); //only one LFO per region, so only one entry in parameters necessary
+    }
+
+    return parameters;
+}
+juce::Array<ModulatableParameter<double>*> AudioEngine::getParameterOfRegion_LfoCurrentPhase(int regionID)
+{
+    juce::Array<ModulatableParameter<double>*> parameters;
+
+    RegionLfo* lfo = getLfo(regionID);
+    if (lfo != nullptr)
+    {
+        parameters.add(lfo->getCurrentPhaseModParameter()); //only one LFO per region, so only one entry in parameters necessary
     }
 
     return parameters;

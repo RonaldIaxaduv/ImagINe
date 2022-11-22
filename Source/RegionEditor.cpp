@@ -124,6 +124,32 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     addChildComponent(pitchLabel);
     pitchLabel.attachToComponent(&pitchSlider, true);
 
+    //playback position start
+    playbackPositionStartSlider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
+    playbackPositionStartSlider.setRange(0.0, 0.999, 0.001); //for a 5-minute audio file, this granularity amounts to 0.3s -> should be enough
+    playbackPositionStartSlider.onValueChange = [this] { updatePlaybackPositionStart(); };
+    playbackPositionStartSlider.setValue(0.0, juce::NotificationType::dontSendNotification);
+    playbackPositionStartSlider.setPopupMenuEnabled(true);
+    playbackPositionStartSlider.setTooltip("This slider offsets the starting point of your audio file. At 0.0, it uses the original starting position, at 0.5 it starts at the halfway point, et cetera.");
+    addChildComponent(playbackPositionStartSlider);
+
+    playbackPositionStartLabel.setText("Playback Starting Position: ", juce::NotificationType::dontSendNotification);
+    addChildComponent(playbackPositionStartLabel);
+    playbackPositionStartLabel.attachToComponent(&playbackPositionStartSlider, true);
+
+    //playback position interval
+    playbackPositionIntervalSlider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
+    playbackPositionIntervalSlider.setRange(0.001, 1.0, 0.001); //MUST NOT BE ZERO!; for a 5-minute audio file, this granularity amounts to 0.3s -> should be enough
+    playbackPositionIntervalSlider.onValueChange = [this] { updatePlaybackPositionInterval(); };
+    playbackPositionIntervalSlider.setValue(0.0, juce::NotificationType::dontSendNotification);
+    playbackPositionIntervalSlider.setPopupMenuEnabled(true);
+    playbackPositionIntervalSlider.setTooltip("This slider sets the length of your audio file. At 1.0, it uses the original file length, at 0.5 it only plays half, et cetera. This can be especially interesting if you also shift the playback starting position (above).");
+    addChildComponent(playbackPositionIntervalSlider);
+
+    playbackPositionIntervalLabel.setText("Playback Interval: ", juce::NotificationType::dontSendNotification);
+    addChildComponent(playbackPositionIntervalLabel);
+    playbackPositionIntervalLabel.attachToComponent(&playbackPositionIntervalSlider, true);
+
     pitchQuantisationChoice.addItem("Continuous (no quantisation)", static_cast<int>(PitchQuantisationMethod::continuous) + 1); //always adding 1 because 0 is not a valid ID (reserved for other purposes)
     pitchQuantisationChoice.addItem("Semitones", static_cast<int>(PitchQuantisationMethod::semitones) + 1);
     pitchQuantisationChoice.addItem("Scale: Major", static_cast<int>(PitchQuantisationMethod::scale_major) + 1);
@@ -282,6 +308,14 @@ void RegionEditor::resized()
     auto pitchQuantisationArea = area.removeFromTop(20);
     pitchQuantisationChoice.setBounds(pitchQuantisationArea.removeFromRight(2 * pitchQuantisationArea.getWidth() / 3).reduced(2));
 
+    auto playbackPosStartArea = area.removeFromTop(20);
+    playbackPositionStartSlider.setBounds(playbackPosStartArea.removeFromRight(2 * playbackPosStartArea.getWidth() / 3).reduced(1));
+    playbackPositionStartSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, playbackPositionStartSlider.getWidth(), playbackPositionStartSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
+
+    auto playbackPosIntervalArea = area.removeFromTop(20);
+    playbackPositionIntervalSlider.setBounds(playbackPosIntervalArea.removeFromRight(2 * playbackPosIntervalArea.getWidth() / 3).reduced(1));
+    playbackPositionIntervalSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, playbackPositionStartSlider.getWidth(), playbackPositionStartSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
+
     auto midiArea = area.removeFromTop(20);
     midiChannelChoice.setBounds(midiArea.removeFromRight(2 * midiArea.getWidth() / 3).reduced(2));
     midiArea = area.removeFromTop(20);
@@ -321,6 +355,16 @@ bool RegionEditor::keyPressed(const juce::KeyPress& key/*, Component* originatin
         else if (pitchQuantisationChoice.getBounds().contains(mousePos))
         {
             randomisePitchQuantisation();
+            return true;
+        }
+        else if (playbackPositionStartSlider.getBounds().contains(mousePos))
+        {
+            randomisePlaybackPositionStart();
+            return true;
+        }
+        else if (playbackPositionIntervalSlider.getBounds().contains(mousePos))
+        {
+            randomisePlaybackPositionInterval();
             return true;
         }
         else if (lfoEditor.getBounds().contains(mousePos))
@@ -369,6 +413,12 @@ void RegionEditor::setChildVisibility(bool shouldBeVisible)
     pitchQuantisationLabel.setVisible(shouldBeVisible);
     pitchQuantisationChoice.setVisible(shouldBeVisible);
 
+    playbackPositionStartLabel.setVisible(shouldBeVisible);
+    playbackPositionStartSlider.setVisible(shouldBeVisible);
+
+    playbackPositionIntervalLabel.setVisible(shouldBeVisible);
+    playbackPositionIntervalSlider.setVisible(shouldBeVisible);
+
     midiChannelChoice.setVisible(shouldBeVisible);
     midiChannelLabel.setVisible(shouldBeVisible);
     midiNoteChoice.setVisible(shouldBeVisible);
@@ -400,9 +450,13 @@ void RegionEditor::copyRegionParameters()
         Voice* voice = voices[0]; //all voices have the same parameters, so it's enough to always look at the first element
 
         volumeSlider.setValue(juce::Decibels::gainToDecibels<double>(voice->getBaseLevel(), -60.0), juce::NotificationType::dontSendNotification);
+        
         pitchSlider.setValue(voice->getBasePitchShift(), juce::NotificationType::dontSendNotification);
         pitchQuantisationChoice.setEnabled(true);
-        pitchQuantisationChoice.setSelectedId(static_cast<int>(voice->getPitchQuantisationMethod()) + 1);
+        pitchQuantisationChoice.setSelectedId(static_cast<int>(voice->getPitchQuantisationMethod()) + 1, juce::NotificationType::dontSendNotification);
+
+        playbackPositionStartSlider.setValue(voice->getBasePlaybackPositionStart(), juce::NotificationType::dontSendNotification);
+        playbackPositionIntervalSlider.setValue(voice->getBasePlaybackPositionInterval(), juce::NotificationType::dontSendNotification);
     }
     else
     {
@@ -521,8 +575,10 @@ void RegionEditor::updateAllVoiceSettings() //used after a voice has been first 
 {
     updateVolume();
     updatePitch();
-    updatePlaybackPosition();
+    updatePlaybackPositionStart();
+    updatePlaybackPositionInterval();
 }
+
 void RegionEditor::updateVolume()
 {
     juce::Array<Voice*> voices = associatedRegion->getAudioEngine()->getVoicesWithID(associatedRegion->getID());
@@ -539,6 +595,7 @@ void RegionEditor::randomiseVolume()
     //prefer values closer to 0 (by dividing the result randomly by a value within [1, 6] -> average value of -7,7dB)
     volumeSlider.setValue((volumeSlider.getMinimum() + rng.nextDouble() * (volumeSlider.getMaximum() - volumeSlider.getMinimum())) / (1.0 + 5 * rng.nextDouble()), juce::NotificationType::sendNotification);
 }
+
 void RegionEditor::updatePitch()
 {
     juce::Array<Voice*> voices = associatedRegion->getAudioEngine()->getVoicesWithID(associatedRegion->getID());
@@ -569,13 +626,56 @@ void RegionEditor::randomisePitchQuantisation()
         pitchQuantisationChoice.setSelectedItemIndex(rng.nextInt(juce::Range<int>(1, pitchQuantisationChoice.getNumItems())), juce::NotificationType::sendNotification);
     }
 }
-void RegionEditor::updatePlaybackPosition()
+
+void RegionEditor::updatePlaybackPositionStart()
 {
     juce::Array<Voice*> voices = associatedRegion->getAudioEngine()->getVoicesWithID(associatedRegion->getID());
 
     for (auto* it = voices.begin(); it != voices.end(); it++)
     {
-        //(*it)->setBasePlaybackPosition(playbackPositionSlider.getValue());
+        (*it)->setBasePlaybackPositionStart(playbackPositionStartSlider.getValue());
+    }
+}
+void RegionEditor::randomisePlaybackPositionStart()
+{
+    juce::Random& rng = juce::Random::getSystemRandom();
+
+    //prefer values closer to 0
+    if (rng.nextInt(5) < 4)
+    {
+        //80% chance: remain 0
+        playbackPositionStartSlider.setValue(0.0, juce::NotificationType::sendNotification);
+    }
+    else
+    {
+        //20% chance: randomise freely
+        playbackPositionStartSlider.setValue((playbackPositionStartSlider.getMinimum() + rng.nextDouble() * (playbackPositionStartSlider.getMaximum() - playbackPositionStartSlider.getMinimum())), juce::NotificationType::sendNotification);
+    }
+}
+
+void RegionEditor::updatePlaybackPositionInterval()
+{
+    juce::Array<Voice*> voices = associatedRegion->getAudioEngine()->getVoicesWithID(associatedRegion->getID());
+
+    for (auto* it = voices.begin(); it != voices.end(); it++)
+    {
+        (*it)->setBasePlaybackPositionInterval(playbackPositionIntervalSlider.getValue());
+    }
+}
+void RegionEditor::randomisePlaybackPositionInterval()
+{
+    juce::Random& rng = juce::Random::getSystemRandom();
+
+    //prefer values closer to 0
+    if (rng.nextInt(4) < 3)
+    {
+        //75% chance: remain 1
+        playbackPositionIntervalSlider.setValue(1.0, juce::NotificationType::sendNotification);
+    }
+    else
+    {
+        //25% chance: randomise freely
+        playbackPositionIntervalSlider.setValue((playbackPositionIntervalSlider.getMinimum() + rng.nextDouble() * (playbackPositionIntervalSlider.getMaximum() - playbackPositionIntervalSlider.getMinimum())), juce::NotificationType::sendNotification);
     }
 }
 
@@ -591,6 +691,9 @@ void RegionEditor::randomiseAllParameters()
     randomiseVolume();
     randomisePitch();
     randomisePitchQuantisation();
+
+    randomisePlaybackPositionStart();
+    randomisePlaybackPositionInterval();
 
     //MIDI channel/note: no randomisation.
 

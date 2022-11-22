@@ -31,7 +31,7 @@ public:
     virtual void modulatorHasUpdated() = 0;
     virtual void ensureModulatorIsUpToDate() = 0;
 
-    virtual void modulateValueIfUpdated(T* valueToModulate) = 0;
+    virtual bool modulateValueIfUpdated(T* valueToModulate) = 0;
 
 protected:
     ModulatableParameter<T>& parameter;
@@ -67,11 +67,12 @@ public:
         //automatically switches to upToDate afterwards
     }
 
-    void modulateValueIfUpdated(T* valueToModulate) override
+    bool modulateValueIfUpdated(T* valueToModulate) override
     {
         //set value to the current modulated value
         parameter.calculateModulatedValue(); //the parameter is guaranteed to be out of date when this method is called
         *valueToModulate = parameter.currentModulatedValue; //-> valueToModulate is only changed whenever the parameter is outdated
+        return true;
     }
 };
 
@@ -102,8 +103,9 @@ public:
         //previous value is still up-to-date -> do nothing
     }
 
-    void modulateValueIfUpdated(T* valueToModulate) override
+    bool modulateValueIfUpdated(T* valueToModulate) override
     {
         //do nothing to the value
+        return false;
     }
 };

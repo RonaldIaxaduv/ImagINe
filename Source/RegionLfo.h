@@ -74,6 +74,8 @@ public:
     void resetPhaseUnsafe_WithoutUpdate();
     void resetPhaseUnsafe_WithUpdate();
     float getLatestModulatedPhase();
+    float getLatestModulatedStartingPhase();
+    float getLatestModulatedPhaseInterval();
 
     void updateCurrentValues();
 
@@ -86,6 +88,11 @@ public:
     float getUpdateInterval_Milliseconds();
     void prepareUpdateInterval();
     double getMsUntilUpdate();
+
+    double getBaseStartingPhase();
+    void setBaseStartingPhase(double newBaseStartingPhase);
+    double getBasePhaseInterval();
+    void setBasePhaseInterval(double newBasePhaseInterval);
 
     float getDepth();
     void setDepth(float newDepth);
@@ -126,6 +133,8 @@ protected:
     ModulatableMultiplicativeParameter<double> phaseIntervalModParameter;
     ModulatableAdditiveParameter<double> currentPhaseModParameter;
     float latestModulatedPhase = 1.0f;
+    float latestModulatedStartingPhase = 0.0f;
+    float latestModulatedPhaseInterval = 1.0f;
 
     ModulatableMultiplicativeParameter<double> updateIntervalParameter;
 

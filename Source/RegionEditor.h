@@ -50,12 +50,19 @@ private:
     void updateToggleable();
 
     void updateAllVoiceSettings();
+  
     void updateVolume();
     void randomiseVolume();
+    
     void updatePitch();
     void randomisePitch();
     void randomisePitchQuantisation();
-    void updatePlaybackPosition();
+
+    void updatePlaybackPositionStart();
+    void randomisePlaybackPositionStart();
+
+    void updatePlaybackPositionInterval();
+    void randomisePlaybackPositionInterval();
 
     void randomiseAllParameters();
 
@@ -81,6 +88,12 @@ private:
     juce::Slider pitchSlider;
     juce::Label pitchQuantisationLabel;
     juce::ComboBox pitchQuantisationChoice;
+
+    juce::Label playbackPositionStartLabel;
+    juce::Slider playbackPositionStartSlider;
+
+    juce::Label playbackPositionIntervalLabel;
+    juce::Slider playbackPositionIntervalSlider;
 
     juce::Label midiChannelLabel;
     juce::ComboBox midiChannelChoice;

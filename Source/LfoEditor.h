@@ -42,6 +42,12 @@ private:
     juce::Label lfoRateLabel;
     juce::Slider lfoRateSlider;
 
+    juce::Label lfoStartingPhaseLabel;
+    juce::Slider lfoStartingPhaseSlider;
+
+    juce::Label lfoPhaseIntervalLabel;
+    juce::Slider lfoPhaseIntervalSlider;
+
     juce::Label lfoUpdateIntervalLabel;
     juce::Slider lfoUpdateIntervalSlider;
 
@@ -49,6 +55,12 @@ private:
 
     void updateLfoRate();
     void randomiseLfoRate();
+
+    void updateLfoStartingPhase();
+    void randomiseLfoStartingPhase();
+
+    void updateLfoPhaseInterval();
+    void randomiseLfoPhaseInterval();
 
     void updateLfoUpdateInterval();
     void randomiseLfoUpdateInterval();
