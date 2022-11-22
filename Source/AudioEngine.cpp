@@ -214,7 +214,7 @@ bool AudioEngine::deserialiseLFOs_main(juce::XmlElement* xmlAudioEngine)
 
     jassert(size == lfos.size()); //LFOs should already be initialised at this point, because the SegmentedRegion objects are deserialised first
 
-    for (int i = 0; deserialisationSuccessful && i <= regionIdCounter; ++i)
+    for (int i = 0; deserialisationSuccessful && i < size; ++i)
     {
         juce::XmlElement* xmlLfo = xmlAudioEngine->getChildByName("LFO_" + juce::String(lfos[i]->getRegionID()));
 
@@ -241,7 +241,7 @@ bool AudioEngine::deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine)
     jassert(lfos_size == lfos.size()); //LFOs should already be initialised at this point, because the SegmentedRegion objects are deserialised first
     deserialisationSuccessful = (lfos_size == lfos.size());
 
-    for (int i = 0; deserialisationSuccessful && i <= regionIdCounter; ++i)
+    for (int i = 0; deserialisationSuccessful && i < lfos_size; ++i)
     {
         juce::XmlElement* xmlLfo = xmlAudioEngine->getChildByName("LFO_" + juce::String(lfos[i]->getRegionID()));
 

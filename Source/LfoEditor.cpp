@@ -74,6 +74,37 @@ LfoEditor::LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo)
     addAndMakeVisible(lfoUpdateIntervalLabel);
     lfoUpdateIntervalLabel.attachToComponent(&lfoUpdateIntervalSlider, true);
 
+    lfoUpdateQuantisationChoice.addItem("Continuous (no quantisation)", static_cast<int>(UpdateRateQuantisationMethod::continuous) + 1); //always adding 1 because 0 is not a valid ID (reserved for other purposes)
+    lfoUpdateQuantisationChoice.addItem("1/1T", static_cast<int>(UpdateRateQuantisationMethod::full_triole) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/2.", static_cast<int>(UpdateRateQuantisationMethod::half_dotted) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/2", static_cast<int>(UpdateRateQuantisationMethod::half) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/2T", static_cast<int>(UpdateRateQuantisationMethod::half_triole) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/4.", static_cast<int>(UpdateRateQuantisationMethod::quarter_dotted) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/4", static_cast<int>(UpdateRateQuantisationMethod::quarter) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/4T", static_cast<int>(UpdateRateQuantisationMethod::quarter_triole) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/8.", static_cast<int>(UpdateRateQuantisationMethod::eighth_dotted) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/8", static_cast<int>(UpdateRateQuantisationMethod::eighth) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/8T", static_cast<int>(UpdateRateQuantisationMethod::eighth_triole) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/16.", static_cast<int>(UpdateRateQuantisationMethod::sixteenth_dotted) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/16", static_cast<int>(UpdateRateQuantisationMethod::sixteenth) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/16T", static_cast<int>(UpdateRateQuantisationMethod::sixteenth_triole) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/32.", static_cast<int>(UpdateRateQuantisationMethod::thirtysecond_dotted) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/32", static_cast<int>(UpdateRateQuantisationMethod::thirtysecond) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/32T", static_cast<int>(UpdateRateQuantisationMethod::thirtysecond_triole) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/64.", static_cast<int>(UpdateRateQuantisationMethod::sixtyfourth_dotted) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/64", static_cast<int>(UpdateRateQuantisationMethod::sixtyfourth) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/64T", static_cast<int>(UpdateRateQuantisationMethod::sixtyfourth_triole) + 1);
+    lfoUpdateQuantisationChoice.onChange = [this]
+    {
+        updateLfoUpdateQuantisation();
+    };
+    lfoUpdateQuantisationChoice.setTooltip("If you want updates to only occur in a certain relation to the base value, you can choose so here. This does not affect the update rate slider itself, only update rate modulation. Its main use is to create musical rhythms.");
+    addAndMakeVisible(lfoUpdateQuantisationChoice);
+
+    lfoUpdateQuantisationLabel.setText("Update Rate Quantisation: ", juce::NotificationType::dontSendNotification);
+    addAndMakeVisible(lfoUpdateQuantisationLabel);
+    lfoUpdateQuantisationLabel.attachToComponent(&lfoUpdateQuantisationChoice, true);
+
     //modulation list
     updateAvailableVoices();
     addAndMakeVisible(lfoRegionsList);
@@ -114,6 +145,9 @@ void LfoEditor::resized()
     lfoUpdateIntervalSlider.setBounds(lfoUpdateIntervalArea.removeFromRight(2 * lfoUpdateIntervalArea.getWidth() / 3).reduced(1));
     lfoUpdateIntervalSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, lfoUpdateIntervalSlider.getWidth(), lfoUpdateIntervalSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
 
+    auto lfoUpdateQuantisationArea = area.removeFromTop(20);
+    lfoUpdateQuantisationChoice.setBounds(lfoUpdateQuantisationArea.removeFromRight(2 * lfoUpdateQuantisationArea.getWidth() / 3).reduced(1));
+
     lfoRegionsList.setBounds(area.reduced(1));
 }
 
@@ -144,6 +178,11 @@ bool LfoEditor::keyPressed(const juce::KeyPress& key)
             randomiseLfoUpdateInterval();
             return true;
         }
+        else if (lfoUpdateQuantisationChoice.getBounds().contains(mousePos))
+        {
+            randomiseLfoUpdateQuantisation();
+            return true;
+        }
         else if (lfoRegionsList.getBounds().contains(mousePos))
         {
             return lfoRegionsList.keyPressed(key);
@@ -161,6 +200,7 @@ void LfoEditor::copyParameters()
     lfoPhaseIntervalSlider.setValue(associatedLfo->getBasePhaseInterval(), juce::NotificationType::dontSendNotification);
 
     lfoUpdateIntervalSlider.setValue(associatedLfo->getUpdateInterval_Milliseconds(), juce::NotificationType::dontSendNotification);
+    lfoUpdateQuantisationChoice.setSelectedId(static_cast<int>(associatedLfo->getUpdateRateQuantisationMethod()) + 1);
 
     //copy currently affected voices and their modulated parameters
     lfoRegionsList.copyRegionModulations(associatedLfo->getAffectedRegionIDs(), associatedLfo->getModulatedParameterIDs());
@@ -199,6 +239,7 @@ void LfoEditor::randomiseAllParameters()
     randomiseLfoStartingPhase();
     randomiseLfoPhaseInterval();
     randomiseLfoUpdateInterval();
+    randomiseLfoUpdateQuantisation();
     lfoRegionsList.randomiseAllParameters();
 }
 
@@ -265,8 +306,39 @@ void LfoEditor::randomiseLfoUpdateInterval()
 {
     juce::Random& rng = juce::Random::getSystemRandom();
 
-    //choose a value depending on LFO frequency. the value should reflect a 1/16...2/1 rhythm = 2^(-4...2)
-    lfoUpdateIntervalSlider.setValue((1.0 / lfoRateSlider.getValue()) * std::pow(2, rng.nextInt(juce::Range<int>(-4, 3))), juce::NotificationType::sendNotification);
+    ////choose a value depending on LFO frequency. the value should reflect a 1/16...2/1 rhythm = 2^(-4...2)
+    //lfoUpdateIntervalSlider.setValue((1.0 / lfoRateSlider.getValue()) * std::pow(2, rng.nextInt(juce::Range<int>(-4, 3))), juce::NotificationType::sendNotification);
+
+    //either prefer a value close to 0 or any value
+    if (rng.nextInt(2) < 1)
+    {
+        //50% chance: value close to 0
+        lfoUpdateIntervalSlider.setValue((lfoUpdateIntervalSlider.getMinimum() + rng.nextDouble() * (lfoUpdateIntervalSlider.getMaximum() - lfoUpdateIntervalSlider.getMinimum())) / (1.0 + rng.nextDouble() * 9.0), juce::NotificationType::sendNotification);
+    }
+    else
+    {
+        //50% chance: any value
+        lfoUpdateIntervalSlider.setValue(lfoUpdateIntervalSlider.getMinimum() + rng.nextDouble() * (lfoUpdateIntervalSlider.getMaximum() - lfoUpdateIntervalSlider.getMinimum()), juce::NotificationType::sendNotification);
+    }
+}
+
+void LfoEditor::updateLfoUpdateQuantisation()
+{
+    associatedLfo->setUpdateRateQuantisationMethod(static_cast<UpdateRateQuantisationMethod>(lfoUpdateQuantisationChoice.getSelectedId() - 1));
+}
+void LfoEditor::randomiseLfoUpdateQuantisation()
+{
+    juce::Random& rng = juce::Random::getSystemRandom();
+
+    //50% chance to be continuous. otherwise, choose a random entry
+    if (rng.nextFloat() < 0.5f)
+    {
+        lfoUpdateQuantisationChoice.setSelectedItemIndex(0, juce::NotificationType::sendNotification);
+    }
+    else
+    {
+        lfoUpdateQuantisationChoice.setSelectedItemIndex(rng.nextInt(juce::Range<int>(1, lfoUpdateQuantisationChoice.getNumItems())), juce::NotificationType::sendNotification);
+    }
 }
 
 void LfoEditor::updateLfoParameter(int targetRegionID, bool shouldBeModulated, LfoModulatableParameter modulatedParameter)

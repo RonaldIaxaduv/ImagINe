@@ -24,6 +24,8 @@ class RegionLfoState_WithoutModulatedParameters;
 class RegionLfoState_Muted;
 class RegionLfoState_Active;
 
+#include "UpdateRateQuantisationMethod.h"
+
 #include "ModulatableParameter.h"
 
 
@@ -89,6 +91,12 @@ public:
     void prepareUpdateInterval();
     double getMsUntilUpdate();
 
+    void setUpdateRateQuantisationMethod(UpdateRateQuantisationMethod newUpdateRateQuantisationMethod);
+    UpdateRateQuantisationMethod getUpdateRateQuantisationMethod();
+
+    double getQuantisedUpdateRate_continuous();
+    double getQuantisedUpdateRate_fraction();
+
     double getBaseStartingPhase();
     void setBaseStartingPhase(double newBaseStartingPhase);
     double getBasePhaseInterval();
@@ -143,6 +151,12 @@ protected:
     int updateInterval = 0; //the LFO doesn't update with every sample. instead, a certain time interval (in samples) needs to pass until another update happens. higher values should generally decrease CPU usage.
     float updateIntervalMs = defaultUpdateIntervalMs; //update interval in milliseconds
     static const float defaultUpdateIntervalMs;
+
+    UpdateRateQuantisationMethod currentUpdateRateQuantisationMethod = UpdateRateQuantisationMethod::continuous;
+    double (RegionLfo::* updateRateQuantisationFuncPt)() = nullptr;
+    double updateRateQuantisationFactor = 1.0;
+    double updateRateQuantisationFactor_denom = 1.0; //= 1 / updateRateQuantisationFactor (pre-calculated for less CPU usage). convention: updateRateQuantisationFactor >= updateRateQuantisationFactor_denom.
+    void calculateUpdateRateQuantisationFactor(double quantisationValue);
 
     void updateModulatedParameter() override;
     void updateModulatedParameterUnsafe();

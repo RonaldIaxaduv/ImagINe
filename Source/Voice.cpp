@@ -72,14 +72,28 @@ Voice::~Voice()
     }
     unsubscribedModulators++;
 
-    auto playbackPositionModulators = playbackPositionIntervalParameter.getModulators();
-    for (auto* it = playbackPositionModulators.begin(); it != playbackPositionModulators.end(); it++)
+    auto playbackPositionStartModulators = playbackPositionStartParameter.getModulators();
+    for (auto* it = playbackPositionStartModulators.begin(); it != playbackPositionStartModulators.end(); it++)
     {
         (*it)->removeRegionModulation(getID());
     }
     unsubscribedModulators++;
 
-    jassert(unsubscribedModulators == 3);
+    auto playbackPositionIntervalModulators = playbackPositionIntervalParameter.getModulators();
+    for (auto* it = playbackPositionIntervalModulators.begin(); it != playbackPositionIntervalModulators.end(); it++)
+    {
+        (*it)->removeRegionModulation(getID());
+    }
+    unsubscribedModulators++;
+
+    auto playbackPositionCurrentModulators = playbackPositionCurrentParameter.getModulators();
+    for (auto* it = playbackPositionCurrentModulators.begin(); it != playbackPositionCurrentModulators.end(); it++)
+    {
+        (*it)->removeRegionModulation(getID());
+    }
+    unsubscribedModulators++;
+
+    jassert(unsubscribedModulators == 5);
 
     //release osc
     delete osc;
@@ -257,12 +271,6 @@ void Voice::renderNextBlock_wave(juce::AudioSampleBuffer& outputBuffer, int samp
     //evaluate modulated values
     updateBufferPosDelta(); //determines pitch shift
     evaluateBufferPosModulation(); //advances currentBufferPos if required
-
-    //double effectiveBufferPos = currentBufferPos + static_cast<double>(osc->fileBuffer.getNumSamples() - 1) * playbackPositionIntervalParameter.getModulatedValue();
-    //if (static_cast<int>(effectiveBufferPos) >= osc->fileBuffer.getNumSamples())
-    //{
-    //    effectiveBufferPos -= static_cast<double>(osc->fileBuffer.getNumSamples());
-    //}
     
     double effectivePhase = static_cast<double>(currentBufferPos / static_cast<float>(osc->fileBuffer.getNumSamples())); //convert currentTablePos to currentPhase
     effectivePhase = std::fmod(effectivePhase, playbackPositionIntervalParameter.getModulatedValue()); //convert to new interval while preserving deltaTablePos (i.e. the frequency)!
@@ -302,12 +310,6 @@ void Voice::renderNextBlock_waveAndLfo(juce::AudioSampleBuffer& outputBuffer, in
     //evaluate modulated values
     updateBufferPosDelta(); //determines pitch shift
     evaluateBufferPosModulation(); //advances currentBufferPos if required
-
-    //double effectiveBufferPos = currentBufferPos + static_cast<double>(osc->fileBuffer.getNumSamples() - 1) * playbackPositionIntervalParameter.getModulatedValue();
-    //if (static_cast<int>(effectiveBufferPos) >= osc->fileBuffer.getNumSamples())
-    //{
-    //    effectiveBufferPos -= static_cast<double>(osc->fileBuffer.getNumSamples());
-    //}
 
     double effectivePhase = static_cast<double>(currentBufferPos / static_cast<float>(osc->fileBuffer.getNumSamples())); //convert currentTablePos to currentPhase
     effectivePhase = std::fmod(effectivePhase, playbackPositionIntervalParameter.getModulatedValue()); //convert to new interval while preserving deltaTablePos (i.e. the frequency)!
@@ -541,12 +543,6 @@ void Voice::updateBufferPosDelta_Playable()
 
 void Voice::evaluateBufferPosModulation()
 {
-    //currentBufferPos += bufferPosDelta;
-    //if (currentBufferPos >= osc->fileBuffer.getNumSamples())
-    //{
-    //    currentBufferPos -= osc->fileBuffer.getNumSamples();
-    //}
-
     double modulatedBufferPos = currentBufferPos;
     if (playbackPositionCurrentParameter.modulateValueIfUpdated(&modulatedBufferPos)) //true if it updated the value
     {

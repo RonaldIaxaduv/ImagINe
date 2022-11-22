@@ -19,7 +19,9 @@ const float RegionLfo::defaultUpdateIntervalMs = 10.0f;
 RegionLfo::RegionLfo(int regionID) :
     Lfo(juce::AudioSampleBuffer(), [](float) {; }), //can only initialise waveTable through the base class's constructor...
     waveTableUnipolar(0, 0),
-    frequencyModParameter(0.0), startingPhaseModParameter(0.0), phaseIntervalModParameter(1.0), currentPhaseModParameter(0.0), updateIntervalParameter(1.0)
+    frequencyModParameter(0.0),
+    startingPhaseModParameter(0.0), phaseIntervalModParameter(1.0), currentPhaseModParameter(0.0),
+    updateIntervalParameter(1.0)
 {
     states[static_cast<int>(RegionLfoStateIndex::unprepared)] = static_cast<RegionLfoState*>(new RegionLfoState_Unprepared(*this));
     states[static_cast<int>(RegionLfoStateIndex::withoutWaveTable)] = static_cast<RegionLfoState*>(new RegionLfoState_WithoutWaveTable(*this));
@@ -32,6 +34,8 @@ RegionLfo::RegionLfo(int regionID) :
 
     currentStateIndex = initialStateIndex;
     currentState = states[static_cast<int>(currentStateIndex)];
+
+    updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_continuous; //default: no quantisation (cheapest)
 
     this->regionID = regionID;
 }
@@ -73,8 +77,22 @@ RegionLfo::~RegionLfo()
     }
     unsubscribedModulators++;
 
-    auto phaseModulators = phaseIntervalModParameter.getModulators();
-    for (auto* it = phaseModulators.begin(); it != phaseModulators.end(); it++)
+    auto startingPhaseModulators = startingPhaseModParameter.getModulators();
+    for (auto* it = startingPhaseModulators.begin(); it != startingPhaseModulators.end(); it++)
+    {
+        (*it)->removeRegionModulation(getRegionID());
+    }
+    unsubscribedModulators++;
+
+    auto phaseIntervalModulators = phaseIntervalModParameter.getModulators();
+    for (auto* it = phaseIntervalModulators.begin(); it != phaseIntervalModulators.end(); it++)
+    {
+        (*it)->removeRegionModulation(getRegionID());
+    }
+    unsubscribedModulators++;
+
+    auto currentPhaseModulators = currentPhaseModParameter.getModulators();
+    for (auto* it = currentPhaseModulators.begin(); it != currentPhaseModulators.end(); it++)
     {
         (*it)->removeRegionModulation(getRegionID());
     }
@@ -87,7 +105,7 @@ RegionLfo::~RegionLfo()
     }
     unsubscribedModulators++;
 
-    jassert(unsubscribedModulators == 3);
+    jassert(unsubscribedModulators == 5);
 
     //release states
     currentState = nullptr;
@@ -487,7 +505,7 @@ double RegionLfo::getCurrentValue_Bipolar()
 
 void RegionLfo::resetSamplesUntilUpdate()
 {
-    samplesUntilUpdate = updateInterval * updateIntervalParameter.getModulatedValue();
+    samplesUntilUpdate = updateInterval * (*this.*updateRateQuantisationFuncPt)();
 }
 void RegionLfo::setUpdateInterval_Milliseconds(float newUpdateIntervalMs)
 {
@@ -519,6 +537,126 @@ void RegionLfo::prepareUpdateInterval()
 double RegionLfo::getMsUntilUpdate()
 {
     return 1000.0 * static_cast<double>(samplesUntilUpdate) / sampleRate;
+}
+
+void RegionLfo::setUpdateRateQuantisationMethod(UpdateRateQuantisationMethod newUpdateRateQuantisationMethod)
+{
+    switch (newUpdateRateQuantisationMethod)
+    {
+    case UpdateRateQuantisationMethod::continuous:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_continuous;
+        break;
+
+    case UpdateRateQuantisationMethod::full:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor(1.0);
+        break;
+    case UpdateRateQuantisationMethod::full_dotted:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor(1.5 * 1.0);
+        break;
+    case UpdateRateQuantisationMethod::full_triole:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor((2.0/3.0) * 1.0);
+        break;
+
+    case UpdateRateQuantisationMethod::half:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor(2.0);
+        break;
+    case UpdateRateQuantisationMethod::half_dotted:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor(1.5 * 2.0);
+        break;
+    case UpdateRateQuantisationMethod::half_triole:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor((2.0/3.0) * 2.0);
+        break;
+
+    case UpdateRateQuantisationMethod::quarter:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor(4.0);
+        break;
+    case UpdateRateQuantisationMethod::quarter_dotted:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor(1.5 * 4.0);
+        break;
+    case UpdateRateQuantisationMethod::quarter_triole:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor((2.0/3.0) * 4.0);
+        break;
+
+    case UpdateRateQuantisationMethod::eighth:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor(8.0);
+        break;
+    case UpdateRateQuantisationMethod::eighth_dotted:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor(1.5 * 8.0);
+        break;
+    case UpdateRateQuantisationMethod::eighth_triole:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor((2.0/3.0) * 8.0);
+        break;
+
+    case UpdateRateQuantisationMethod::sixteenth:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor(16.0);
+        break;
+    case UpdateRateQuantisationMethod::sixteenth_dotted:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor(1.5 * 16.0);
+        break;
+    case UpdateRateQuantisationMethod::sixteenth_triole:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor((2.0/3.0) * 16.0);
+        break;
+
+    case UpdateRateQuantisationMethod::thirtysecond:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor(32.0);
+        break;
+    case UpdateRateQuantisationMethod::thirtysecond_dotted:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor(1.5 * 32.0);
+        break;
+    case UpdateRateQuantisationMethod::thirtysecond_triole:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor((2.0/3.0) * 32.0);
+        break;
+
+    case UpdateRateQuantisationMethod::sixtyfourth:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor(64.0);
+        break;
+    case UpdateRateQuantisationMethod::sixtyfourth_dotted:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor(1.5 * 64.0);
+        break;
+    case UpdateRateQuantisationMethod::sixtyfourth_triole:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor((2.0/3.0) * 64.0);
+        break;
+
+    default:
+        throw std::exception("Unknown or unhandled value of UpdateRateQuantisationMethod.");
+    }
+
+    currentUpdateRateQuantisationMethod = newUpdateRateQuantisationMethod;
+}
+UpdateRateQuantisationMethod RegionLfo::getUpdateRateQuantisationMethod()
+{
+    return currentUpdateRateQuantisationMethod;
+}
+
+double RegionLfo::getQuantisedUpdateRate_continuous()
+{
+    return updateIntervalParameter.getModulatedValue(); ////no special processing needed
+}
+double RegionLfo::getQuantisedUpdateRate_fraction()
+{
+    double modVal = updateIntervalParameter.getModulatedValue();
+    return std::floor(modVal * updateRateQuantisationFactor) * updateRateQuantisationFactor_denom; //quantise to an integer multiple of updateRateQuantisationFactor_denom * modVal
 }
 
 double RegionLfo::getBaseStartingPhase()
@@ -557,6 +695,7 @@ bool RegionLfo::serialise(juce::XmlElement* xmlLfo)
     xmlLfo->setAttribute("currentTablePos", currentTablePos);
     xmlLfo->setAttribute("depth", depth);
     xmlLfo->setAttribute("updateIntervalMs", updateIntervalMs);
+    xmlLfo->setAttribute("currentUpdateRateQuantisationMethod", static_cast<int>(currentUpdateRateQuantisationMethod));
     xmlLfo->setAttribute("baseFrequency", getBaseFrequency());
 
     xmlLfo->setAttribute("phaseInterval_base", phaseIntervalModParameter.getBaseValue());
@@ -594,6 +733,7 @@ bool RegionLfo::deserialise_main(juce::XmlElement* xmlLfo)
     currentTablePos = xmlLfo->getDoubleAttribute("currentTablePos", 0.0);
     depth = xmlLfo->getDoubleAttribute("depth", 0.0);
     setUpdateInterval_Milliseconds(xmlLfo->getDoubleAttribute("updateIntervalMs", defaultUpdateIntervalMs));
+    setUpdateRateQuantisationMethod(static_cast<UpdateRateQuantisationMethod>(xmlLfo->getIntAttribute("currentUpdateRateQuantisationMethod", static_cast<int>(UpdateRateQuantisationMethod::continuous))));
     setBaseFrequency(xmlLfo->getDoubleAttribute("baseFrequency", 0.2));
 
     phaseIntervalModParameter.setBaseValue(xmlLfo->getDoubleAttribute("phaseInterval_base", 1.0));
@@ -650,16 +790,6 @@ void RegionLfo::evaluateTablePosModulation()
 
 void RegionLfo::updateCurrentValues() //pre-calculates the current LFO values (unipolar, bipolar) for quicker repeated access
 {
-    //latestModulatedPhase = static_cast<float>(phaseModParameter.getModulatedValue()); //update this variable to keep the LFO line drawn updated that's drawn over regions; normally, division by phaseModParameter.getBaseValue() would be necessary, but that value is fixed at 1.0
-
-    //float effectiveTablePos = currentTablePos + static_cast<float>(waveTable.getNumSamples() - 1) * static_cast<float>(phaseModParameter.getModulatedValue());
-    //float effectiveTablePos = currentTablePos * static_cast<float>(phaseIntervalModParameter.getModulatedValue());
-    ///*if (static_cast<int>(effectiveTablePos) >= waveTable.getNumSamples() - 1)
-    //{
-    //    effectiveTablePos -= static_cast<float>(waveTable.getNumSamples() - 1);
-    //}*/
-    //latestModulatedPhase = effectiveTablePos / static_cast<float>(getNumSamplesUnsafe()); //update this variable to keep the LFO line updated that's drawn over regions; normally, division by phaseModParameter.getBaseValue() would be necessary, but that value is fixed at 1.0
-
     //note: modulation of the current phase has been applied in evaluateTablePosModulation already.
      
     //important goal: the phase interval squishing should not decrease the value of deltaTablePos! 
@@ -690,6 +820,12 @@ void RegionLfo::updateCurrentValues() //pre-calculates the current LFO values (u
 
     auto* samplesBipolar = waveTable.getReadPointer(0);
     currentValueBipolar = samplesBipolar[sampleIndex1] + frac * (samplesBipolar[sampleIndex2] - samplesBipolar[sampleIndex1]); //interpolate between samples (good especially at slower freqs)
+}
+
+void RegionLfo::calculateUpdateRateQuantisationFactor(double quantisationValue)
+{
+    updateRateQuantisationFactor = quantisationValue;
+    updateRateQuantisationFactor_denom = 1.0 / quantisationValue;
 }
 
 void RegionLfo::updateModulatedParameter()

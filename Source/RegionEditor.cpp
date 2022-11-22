@@ -124,6 +124,27 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     addChildComponent(pitchLabel);
     pitchLabel.attachToComponent(&pitchSlider, true);
 
+    pitchQuantisationChoice.addItem("Continuous (no quantisation)", static_cast<int>(PitchQuantisationMethod::continuous) + 1); //always adding 1 because 0 is not a valid ID (reserved for other purposes)
+    pitchQuantisationChoice.addItem("Semitones", static_cast<int>(PitchQuantisationMethod::semitones) + 1);
+    pitchQuantisationChoice.addItem("Scale: Major", static_cast<int>(PitchQuantisationMethod::scale_major) + 1);
+    pitchQuantisationChoice.addItem("Scale: Minor", static_cast<int>(PitchQuantisationMethod::scale_minor) + 1);
+    pitchQuantisationChoice.addItem("Scale: Octaves", static_cast<int>(PitchQuantisationMethod::scale_octaves) + 1);
+    pitchQuantisationChoice.onChange = [this]
+    {
+        auto voices = associatedRegion->getAudioEngine()->getVoicesWithID(associatedRegion->getID());
+
+        for (auto it = voices.begin(); it != voices.end(); it++)
+        {
+            (*it)->setPitchQuantisationMethod(static_cast<PitchQuantisationMethod>(pitchQuantisationChoice.getSelectedId() - 1)); //set the new pitch quantisation method for all associated voices
+        }
+    };
+    pitchQuantisationChoice.setTooltip("If you want pitch shifts to only hit notes on a certain scale, you can choose so here. This does not affect the pitch slider, only pitch modulation.");
+    addChildComponent(pitchQuantisationChoice);
+
+    pitchQuantisationLabel.setText("Pitch Quantisation: ", juce::NotificationType::dontSendNotification);
+    addChildComponent(pitchQuantisationLabel);
+    pitchQuantisationLabel.attachToComponent(&pitchQuantisationChoice, true);
+
     //playback position start
     playbackPositionStartSlider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
     playbackPositionStartSlider.setRange(0.0, 0.999, 0.001); //for a 5-minute audio file, this granularity amounts to 0.3s -> should be enough
@@ -149,27 +170,6 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     playbackPositionIntervalLabel.setText("Playback Interval: ", juce::NotificationType::dontSendNotification);
     addChildComponent(playbackPositionIntervalLabel);
     playbackPositionIntervalLabel.attachToComponent(&playbackPositionIntervalSlider, true);
-
-    pitchQuantisationChoice.addItem("Continuous (no quantisation)", static_cast<int>(PitchQuantisationMethod::continuous) + 1); //always adding 1 because 0 is not a valid ID (reserved for other purposes)
-    pitchQuantisationChoice.addItem("Semitones", static_cast<int>(PitchQuantisationMethod::semitones) + 1);
-    pitchQuantisationChoice.addItem("Scale: Major", static_cast<int>(PitchQuantisationMethod::scale_major) + 1);
-    pitchQuantisationChoice.addItem("Scale: Minor", static_cast<int>(PitchQuantisationMethod::scale_minor) + 1);
-    pitchQuantisationChoice.addItem("Scale: Octaves", static_cast<int>(PitchQuantisationMethod::scale_octaves) + 1);
-    pitchQuantisationChoice.onChange = [this]
-    {
-        auto voices = associatedRegion->getAudioEngine()->getVoicesWithID(associatedRegion->getID());
-
-        for (auto it = voices.begin(); it != voices.end(); it++)
-        {
-            (*it)->setPitchQuantisationMethod(static_cast<PitchQuantisationMethod>(pitchQuantisationChoice.getSelectedId() - 1)); //set the new pitch quantisation method for all associated voices
-        }
-    };
-    pitchQuantisationChoice.setTooltip("If you want pitch shifts to only hit notes on a certain scale, you can choose so here. This does not affect the pitch slider, only pitch modulation.");
-    addChildComponent(pitchQuantisationChoice);
-
-    pitchQuantisationLabel.setText("Pitch Quantisation: ", juce::NotificationType::dontSendNotification);
-    addChildComponent(pitchQuantisationLabel);
-    pitchQuantisationLabel.attachToComponent(&pitchQuantisationChoice, true);
 
     //MIDI listening
     midiChannelChoice.addItem("None", -1); 

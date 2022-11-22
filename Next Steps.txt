@@ -469,10 +469,15 @@
 	# can be easily implemented using NativeMessageBox (or whatever it was called)!
 	# should also include my name, a link to the survey, to the demo videos (on YT, presumably) and to the ImageINe discord server
 !# add more/better key bindings
+!- HOOOOLD ON A GOD DAMNED SEC. why didn't i think of quantising the update interval (just like i did with the pitch)??? it shouldn't be too hard to quantise it to powers of 2, for example, which would be PERFECT for rhythms!
+	-> e.g. 1/4 quantisation: urate_quant = floor((urate_modfull / urate_base) / 0.25) / 4 * urate = floor((urate_modfull / urate_base) * 4) * 0.25 * urate_base
+!- scale the components in the editors percentually with the window's size, so that resizing them actually makes sense from a space conservation standpoint...
 - show a warning prompt when trying to open a preset while not in the init state
 !- make sure that users can't break anything by playing with options in the region editor while no audio file has been set yet!
-!- bug: read access violation when removing a modulator (in ModulatableParameter)
-	-> the usual: suspend processing...
+!/(?) bug: read access violation when removing a modulator (in ModulatableParameter)
+	/> the usual: suspend processing...
+	#?> actually, this was probably because the new parameters weren't unsubbing their modulators in the class's destructor!
+?- i'm getting a feeling that the current play position modulation causes some audio fragments at certain values atm. it might be that the laptop is just too slow though, not sure. better check tho!
 - bug: updating the toggle parameter in the region editor while in playing mode doesn't affect the region when actually playing it. to update it, one must go back into editing mode and back to playing mode o.ô
 - bug: play paths are already interactable while in drawing mode -> handle them in the same way as regions in region drawing mode instead!
 !- display play path length (normed) in the play path editor!
@@ -483,6 +488,7 @@
 - implement more scales (esp. pentatonic scales and various modes)
 	- half up: 0 in first half of the octave, 1 in the second half
 	- half down: -1 in first half(?), 0 in second half	(alternatively 0 and 11)
+	- reversed major/minor/semis: like the normal version, but instead of going from 0 to 12, they go from 12 to 0 -> saw-like steps through the different octaves
 - implement more parameters
 	-> to add any new parameter:
 		- add new LfoModulatableParameter value
@@ -490,7 +496,9 @@
 			- add the parameter members
 			- add initialisers
 			- add handling of the parameters
+			- unsubscribe all modulators from the parameter in the destructor of the class
 			- add serialisation/deserialisation for the parameter's base values, if needed
+				-> consider incrementing the current serialisation version!
 		- add getter method for that parameter in the AudioEngine
 		- add switch case for adding a modulation to the new parameter in RegionLfo
 		- add editing options for the parameter in the respective editor
@@ -503,6 +511,7 @@
 			- add entry in combobox for modulation selection
 			- add tooltip for item selection with the parameter selected for modulation
 			- adjust updateLfoParameter in LfoEditor to include the new parameter
+		- consider incrementing the current program version
 	# current LFO phase (rename current implementation "LFO phase multiplier")
 		^# actually, call it "LFO interval" and "playback interval". that way, they're more intuitive.
 		- is there a way to calculate this modded value efficiently without if cases?

@@ -50,6 +50,8 @@ private:
 
     juce::Label lfoUpdateIntervalLabel;
     juce::Slider lfoUpdateIntervalSlider;
+    juce::Label lfoUpdateQuantisationLabel;
+    juce::ComboBox lfoUpdateQuantisationChoice;
 
     CheckBoxList lfoRegionsList;
 
@@ -64,6 +66,9 @@ private:
 
     void updateLfoUpdateInterval();
     void randomiseLfoUpdateInterval();
+
+    void updateLfoUpdateQuantisation();
+    void randomiseLfoUpdateQuantisation();
 
     void updateLfoParameter(int targetRegionID, bool shouldBeModulated, LfoModulatableParameter modulatedParameter);
 
