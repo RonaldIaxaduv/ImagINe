@@ -174,22 +174,10 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     //MIDI listening
     midiChannelChoice.addItem("None", -1); 
     midiChannelChoice.addItem("Any", 1); //this and all following IDs will be decreased by 1 when passed to the region
-    midiChannelChoice.addItem("1", 2);
-    midiChannelChoice.addItem("2", 3);
-    midiChannelChoice.addItem("3", 4);
-    midiChannelChoice.addItem("4", 5);
-    midiChannelChoice.addItem("5", 6);
-    midiChannelChoice.addItem("6", 7);
-    midiChannelChoice.addItem("7", 8);
-    midiChannelChoice.addItem("8", 9);
-    midiChannelChoice.addItem("9", 10);
-    midiChannelChoice.addItem("10", 11);
-    midiChannelChoice.addItem("11", 12);
-    midiChannelChoice.addItem("12", 13);
-    midiChannelChoice.addItem("13", 14);
-    midiChannelChoice.addItem("14", 15);
-    midiChannelChoice.addItem("15", 16);
-    midiChannelChoice.addItem("16", 17);
+    for (int i = 1; i <= 16; ++i)
+    {
+        midiChannelChoice.addItem(juce::String(i), i + 1);
+    }
     midiChannelChoice.onChange = [this]
     {
         if (midiChannelChoice.getSelectedId() < 0)
@@ -280,49 +268,52 @@ void RegionEditor::paint(juce::Graphics& g)
 void RegionEditor::resized()
 {
     auto area = getLocalBounds();
+    int hUnit = juce::jmin(50, juce::jmax(5, static_cast<int>(static_cast<float>(getHeight()) * 0.75 / 21.0))); //unit of height required to squeeze all elements into 75% of the window's area (the remaining 25% are used for the modulation table)
 
-    area.removeFromTop(20);
-    selectFileButton.setBounds(area.removeFromTop(20).reduced(1));
+    area.removeFromTop(hUnit);
+    selectFileButton.setBounds(area.removeFromTop(hUnit).reduced(2));
 
-    area.removeFromTop(20); //make space for the LFO depth label
+    area.removeFromTop(hUnit); //make space for the LFO depth label
 
-    auto focusArea = area.removeFromTop(20);
+    auto focusArea = area.removeFromTop(hUnit);
     focusArea.removeFromLeft(focusArea.getWidth() / 3);
     focusPositionX.setBounds(focusArea.removeFromLeft(focusArea.getWidth() / 2).reduced(1));
     focusPositionY.setBounds(focusArea.reduced(1));
     focusPositionX.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxLeft, false, focusPositionX.getWidth(), focusPositionX.getHeight());
     focusPositionY.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxRight, false, focusPositionY.getWidth(), focusPositionY.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
 
-    toggleModeButton.setBounds(area.removeFromTop(20).reduced(1));
+    toggleModeButton.setBounds(area.removeFromTop(hUnit).reduced(1));
 
-    dahdsrEditor.setBounds(area.removeFromTop(80).reduced(1));
+    dahdsrEditor.setUnitOfHeight(hUnit);
+    dahdsrEditor.setBounds(area.removeFromTop(hUnit * 4).reduced(1));
 
-    auto volumeArea = area.removeFromTop(20);
+    auto volumeArea = area.removeFromTop(hUnit);
     volumeSlider.setBounds(volumeArea.removeFromRight(2 * volumeArea.getWidth() / 3).reduced(1));
     volumeSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, volumeSlider.getWidth(), volumeSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
 
-    auto pitchArea = area.removeFromTop(20);
+    auto pitchArea = area.removeFromTop(hUnit);
     pitchSlider.setBounds(pitchArea.removeFromRight(2 * pitchArea.getWidth() / 3).reduced(1));
     pitchSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, pitchSlider.getWidth(), pitchSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
 
-    auto pitchQuantisationArea = area.removeFromTop(20);
+    auto pitchQuantisationArea = area.removeFromTop(hUnit);
     pitchQuantisationChoice.setBounds(pitchQuantisationArea.removeFromRight(2 * pitchQuantisationArea.getWidth() / 3).reduced(2));
 
-    auto playbackPosStartArea = area.removeFromTop(20);
+    auto playbackPosStartArea = area.removeFromTop(hUnit);
     playbackPositionStartSlider.setBounds(playbackPosStartArea.removeFromRight(2 * playbackPosStartArea.getWidth() / 3).reduced(1));
     playbackPositionStartSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, playbackPositionStartSlider.getWidth(), playbackPositionStartSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
 
-    auto playbackPosIntervalArea = area.removeFromTop(20);
+    auto playbackPosIntervalArea = area.removeFromTop(hUnit);
     playbackPositionIntervalSlider.setBounds(playbackPosIntervalArea.removeFromRight(2 * playbackPosIntervalArea.getWidth() / 3).reduced(1));
     playbackPositionIntervalSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, playbackPositionStartSlider.getWidth(), playbackPositionStartSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
 
-    auto midiArea = area.removeFromTop(20);
+    auto midiArea = area.removeFromTop(hUnit);
     midiChannelChoice.setBounds(midiArea.removeFromRight(2 * midiArea.getWidth() / 3).reduced(2));
-    midiArea = area.removeFromTop(20);
+    midiArea = area.removeFromTop(hUnit);
     midiNoteChoice.setBounds(midiArea.removeFromRight(2 * midiArea.getWidth() / 3).reduced(2));
 
-    randomiseButton.setBounds(area.removeFromBottom(20).reduced(1));
+    randomiseButton.setBounds(area.removeFromBottom(hUnit).reduced(1));
 
+    lfoEditor.setUnitOfHeight(hUnit);
     lfoEditor.setBounds(area.reduced(1)); //fill rest with lfoEditor
 }
 
@@ -466,13 +457,13 @@ void RegionEditor::copyRegionParameters()
     int midiChannel = associatedRegion->getMidiChannel();
     if (midiChannel < 0)
     {
-        midiChannelChoice.setSelectedId(-1);
+        midiChannelChoice.setSelectedId(-1, juce::NotificationType::dontSendNotification);
     }
     else
     {
-        midiChannelChoice.setSelectedId(midiChannel + 1);
+        midiChannelChoice.setSelectedId(midiChannel + 1, juce::NotificationType::dontSendNotification);
     }
-    midiNoteChoice.setSelectedId(associatedRegion->getMidiNote());
+    midiNoteChoice.setSelectedId(associatedRegion->getMidiNote(), juce::NotificationType::dontSendNotification);
 
     lfoEditor.updateAvailableVoices();
     lfoEditor.copyParameters();

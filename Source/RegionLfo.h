@@ -65,6 +65,7 @@ public:
     void removeRegionModulation(int regionID);
 
     int getRegionID();
+    void setRegionID(int newRegionID);
 
     void advance() override;
     void advanceUnsafeWithUpdate();

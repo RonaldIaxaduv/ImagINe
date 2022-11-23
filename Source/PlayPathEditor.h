@@ -13,7 +13,7 @@
 #include "PlayPath.h"
 class PlayPath;
 
-class PlayPathEditor final : public juce::Component
+class PlayPathEditor final : public juce::Component, juce::ChangeListener
 {
 public:
     PlayPathEditor(PlayPath* path);
@@ -24,11 +24,24 @@ public:
 
     bool keyPressed(const juce::KeyPress& key) override;
 
+    void changeListenerCallback(juce:: ChangeBroadcaster* source) override;
+
 private:
     PlayPath* associatedPath;
 
     juce::Label courierIntervalLabel;
     juce::Slider courierIntervalSlider;
+
+    juce::Label upColourLabel;
+    juce::ColourSelector upColourSelector;
+
+    juce::Label downColourLabel;
+    juce::ColourSelector downColourSelector;
+
+    juce::Label midiChannelLabel;
+    juce::ComboBox midiChannelChoice;
+    juce::Label midiNoteLabel;
+    juce::ComboBox midiNoteChoice;
 
     juce::TextButton randomiseButton;
 
@@ -37,6 +50,12 @@ private:
 
     void updateCourierInterval();
     void randomiseCourierInterval();
+
+    void updateUpColour();
+    void randomiseUpColour();
+
+    void updateDownColour();
+    void randomiseDownColour();
 
     void randomiseAllParameters();
 

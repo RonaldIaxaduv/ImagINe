@@ -30,7 +30,7 @@ SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangl
     regionEditorWindow = nullptr;
 
     this->audioEngine = audioEngine;
-    ID = audioEngine->addNewRegion(fillColour, this); //also generates the region's LFO and all its Voice instances
+    ID = audioEngine->addNewRegion(fillColour, this); //also generates the region's LFO and all its Voice instances.
     associatedLfo = audioEngine->getLfo(ID);
     associatedVoices = audioEngine->getVoicesWithID(ID);
 
@@ -419,6 +419,11 @@ void SegmentedRegion::transitionToState(SegmentedRegionStateIndex stateToTransit
 void SegmentedRegion::setShouldBeToggleable(bool newShouldBeToggleable)
 {
     shouldBeToggleable = newShouldBeToggleable;
+
+    if (currentStateIndex == SegmentedRegionStateIndex::playable)
+    {
+        setClickingTogglesState(shouldBeToggleable); //selected exclusively for the playable state, also automatically sets isToggleable
+    }
 }
 bool SegmentedRegion::getShouldBeToggleable()
 {
@@ -551,6 +556,20 @@ int SegmentedRegion::getID()
 {
     return ID;
 }
+bool SegmentedRegion::tryChangeID(int newID)
+{
+    if (audioEngine->tryChangeRegionID(ID, newID))
+    {
+        //the new ID wasn't already taken and the IDs of the LFO and all voices have been adjusted
+        ID = newID;
+        return true;
+    }
+    else
+    {
+        DBG("The ID could not be changed.");
+        return false;
+    }
+}
 
 juce::Point<float> SegmentedRegion::getFocusPoint()
 {
@@ -612,21 +631,21 @@ void SegmentedRegion::startPlaying(bool toggleButtonState)
         //audioEngine->getSynth()->getVoice(voiceIndex)->startNote(0, 1.0f, audioEngine->getSynth()->getSound(0).get(), 64);
 
         //try to set the button's toggle state to "down" (needs to be done cross-thread for MIDI messages because they do not run on the same thread as couriers and clicks)
-        if (juce::MessageManager::getInstance()->isThisTheMessageThread())
+        if (toggleButtonState)
         {
-            if (toggleButtonState)
+            if (juce::MessageManager::getInstance()->isThisTheMessageThread())
             {
                 setToggleState(true, juce::NotificationType::dontSendNotification);
+                //setState(juce::Button::ButtonState::buttonDown);
             }
-            //setState(juce::Button::ButtonState::buttonDown);
-        }
-        else
-        {
-            juce::MessageManager::getInstance()->callFunctionOnMessageThread([](void* data)
-                {
-                    static_cast<SegmentedRegion*>(data)->setToggleState(true, juce::NotificationType::dontSendNotification);
-                    return static_cast<void*>(nullptr);
-                }, this);
+            else
+            {
+                juce::MessageManager::getInstance()->callFunctionOnMessageThread([](void* data)
+                    {
+                        static_cast<SegmentedRegion*>(data)->setToggleState(true, juce::NotificationType::dontSendNotification);
+                        return static_cast<void*>(nullptr);
+                    }, this);
+            }
         }
 
         startTimer(timerIntervalMs); //animates the LFO line
@@ -644,21 +663,21 @@ void SegmentedRegion::stopPlaying(bool toggleButtonState)
         isPlaying = false;
 
         //try to set the button's toggle state to "up" (needs to be done cross-thread for MIDI messages because they do not run on the same thread as couriers and clicks)
-        if (juce::MessageManager::getInstance()->isThisTheMessageThread())
+        if (toggleButtonState)
         {
-            if (toggleButtonState)
+            if (juce::MessageManager::getInstance()->isThisTheMessageThread())
             {
                 setToggleState(false, juce::NotificationType::dontSendNotification);
+                //setState(juce::Button::ButtonState::buttonNormal);
             }
-            //setState(juce::Button::ButtonState::buttonNormal);
-        }
-        else
-        {
-            juce::MessageManager::getInstance()->callFunctionOnMessageThread([](void* data)
-                {
-                    static_cast<SegmentedRegion*>(data)->setToggleState(false, juce::NotificationType::dontSendNotification);
-                    return static_cast<void*>(nullptr);
-                }, this);
+            else
+            {
+                juce::MessageManager::getInstance()->callFunctionOnMessageThread([](void* data)
+                    {
+                        static_cast<SegmentedRegion*>(data)->setToggleState(false, juce::NotificationType::dontSendNotification);
+                        return static_cast<void*>(nullptr);
+                    }, this);
+            }
         }
 
         //stopTimer(); //stopped in the drawing method since the LFO will have to keep being drawn for a little longer because of release time
@@ -697,12 +716,14 @@ void SegmentedRegion::handleNoteOn(juce::MidiKeyboardState* source, int midiChan
     //        if (noteNumber == midiNoteNumber)
     //        {
     //            //note number matches with the one that the region responds to
-    //            if (isToggleable() && getToggleState() == true)
+    //            if (shouldBeToggleable && isPlaying_midi)
     //            {
+    //                isPlaying_midi = false;
     //                stopPlaying();
     //            }
     //            else
     //            {
+    //                isPlaying_midi = true;
     //                startPlaying();
     //            }
     //        }
@@ -713,7 +734,7 @@ void SegmentedRegion::handleNoteOn(juce::MidiKeyboardState* source, int midiChan
     if ((this->midiChannel >= 0 && noteNumber >= 0) && (this->midiChannel == 0 || (this->midiChannel == midiChannel)) && (noteNumber == midiNoteNumber))
     {
         //region is set up to receive MIDI, and the incoming MIDI corresponds to that which the region recognises
-        if (shouldBeToggleable && isPlaying)
+        if (shouldBeToggleable && isPlaying_midi)
         {
             //setToggleState(!getToggleState(), juce::NotificationType::sendNotificationAsync); //WIP: this would be cleaner, but requires a message manager (throws as assert)
             isPlaying_midi = false;
@@ -746,6 +767,7 @@ void SegmentedRegion::handleNoteOff(juce::MidiKeyboardState* source, int midiCha
     //            
     //            if (!isToggleable())
     //            {
+    //                isPlaying_midi = false;
     //                stopPlaying();
     //            }
     //        }
@@ -889,100 +911,102 @@ bool SegmentedRegion::deserialise(juce::XmlElement* xmlRegion, juce::Array<juce:
     DBG("deserialising SegmentedRegion...");
     bool deserialisationSuccessful = true;
 
-    ID = xmlRegion->getIntAttribute("ID", -1);
-    shouldBeToggleable = xmlRegion->getBoolAttribute("shouldBeToggleable", false);
-    p.clear();
-    p.restoreFromString(xmlRegion->getStringAttribute("path", ""));
-    fillColour = juce::Colour::fromString(xmlRegion->getStringAttribute("fillColour", juce::Colours::black.toString()));
-
-    midiChannel = xmlRegion->getIntAttribute("midiChannel", -1);
-    noteNumber = xmlRegion->getIntAttribute("noteNumber", -1);
-
-    juce::XmlElement* xmlRelativeBounds = xmlRegion->getChildByName("relativeBounds");
-    if (xmlRelativeBounds != nullptr)
-    {
-        relativeBounds.setBounds(xmlRelativeBounds->getDoubleAttribute("x", 0.0),
-                                 xmlRelativeBounds->getDoubleAttribute("y", 0.0),
-                                 xmlRelativeBounds->getDoubleAttribute("width", 0.0),
-                                 xmlRelativeBounds->getDoubleAttribute("height", 0.0)
-        );
-    }
-    else
-    {
-        DBG("no relativeBounds data found.");
-        relativeBounds.setBounds(0.0, 0.0, 0.0, 0.0);
-        deserialisationSuccessful = false;
-    }
-
+    deserialisationSuccessful = tryChangeID(xmlRegion->getIntAttribute("ID", -1));
     if (deserialisationSuccessful)
     {
-        juce::XmlElement* xmlFocus = xmlRegion->getChildByName("focus");
-        if (xmlFocus != nullptr)
+        shouldBeToggleable = xmlRegion->getBoolAttribute("shouldBeToggleable", false);
+        p.clear();
+        p.restoreFromString(xmlRegion->getStringAttribute("path", ""));
+        fillColour = juce::Colour::fromString(xmlRegion->getStringAttribute("fillColour", juce::Colours::black.toString()));
+
+        midiChannel = xmlRegion->getIntAttribute("midiChannel", -1);
+        noteNumber = xmlRegion->getIntAttribute("noteNumber", -1);
+
+        juce::XmlElement* xmlRelativeBounds = xmlRegion->getChildByName("relativeBounds");
+        if (xmlRelativeBounds != nullptr)
         {
-            focus.setXY(xmlFocus->getDoubleAttribute("x", 0.5),
-                xmlFocus->getDoubleAttribute("y", 0.5)
+            relativeBounds.setBounds(xmlRelativeBounds->getDoubleAttribute("x", 0.0),
+                xmlRelativeBounds->getDoubleAttribute("y", 0.0),
+                xmlRelativeBounds->getDoubleAttribute("width", 0.0),
+                xmlRelativeBounds->getDoubleAttribute("height", 0.0)
             );
         }
         else
         {
-            DBG("no focus data found.");
-            focus.setXY(0.5, 0.5);
-            //deserialisationSuccessful = false; //not problematic
+            DBG("no relativeBounds data found.");
+            relativeBounds.setBounds(0.0, 0.0, 0.0, 0.0);
+            deserialisationSuccessful = false;
         }
 
         if (deserialisationSuccessful)
         {
-            audioFileName = xmlRegion->getStringAttribute("audioFileName", "");
-            origSampleRate = xmlRegion->getDoubleAttribute("origSampleRate", 0.0);
-
-            //apply polyphony (buffers will be updated later)
-            int polyphony = xmlRegion->getIntAttribute("polyphony", 1);
-            if (associatedVoices.size() != polyphony)
+            juce::XmlElement* xmlFocus = xmlRegion->getChildByName("focus");
+            if (xmlFocus != nullptr)
             {
-                audioEngine->removeVoicesWithID(getID());
-                audioEngine->initialiseVoicesForRegion(getID(), polyphony); //initialises the given amount of voices for this region
-                associatedVoices = audioEngine->getVoicesWithID(getID()); //update associated voices
-            }
-
-            //restore buffer from attachedData
-            int bufferMemoryIndex = xmlRegion->getIntAttribute("bufferMemory_index", -1);
-            if (bufferMemoryIndex >= 0 && bufferMemoryIndex < attachedData->size())
-            {
-                //buffer data contained in attachedData -> get block and restore
-                juce::MemoryBlock bufferMemory = (*attachedData)[bufferMemoryIndex];
-                juce::MemoryInputStream bufferStream(bufferMemory, false); //by using this stream, the samples can be read in a certain endian, ensuring portability. little endian will be used.
-
-                //get the size and number of the channels so that they can be read correctly
-                int numChannels = bufferStream.readInt();
-                int numSamples = bufferStream.readInt();
-                juce::AudioSampleBuffer tempBuffer(numChannels, numSamples);
-
-                //copy the content of the buffer - unfortunately, the channels can't be written as a whole, so it has to be done sample-by-sample...
-                for (int ch = 0; ch < numChannels; ++ch)
-                {
-                    //bufferMemory.append(buffer.getReadPointer(ch), static_cast<size_t>(numSamples) * sizeof(float)); //while this would be able to copy a full channel, it wouldn't ensure a specific endian, causing portability issues!
-                    auto* samples = tempBuffer.getWritePointer(ch);
-
-                    for (int s = 0; s < numSamples; ++s)
-                    {
-                        samples[s] = bufferStream.readFloat();
-                    }
-                }
-
-                setBuffer(tempBuffer, audioFileName, origSampleRate); //correctly updates associated voices, too
+                focus.setXY(xmlFocus->getDoubleAttribute("x", 0.5),
+                    xmlFocus->getDoubleAttribute("y", 0.5)
+                );
             }
             else
             {
-                //buffer data not contained in attachedData (buffer was probably empty)
+                DBG("no focus data found.");
+                focus.setXY(0.5, 0.5);
+                //deserialisationSuccessful = false; //not problematic
+            }
 
-                DBG("buffer not contained in attachedData. this might be because the buffer was simply empty.");
-                audioFileName = "";
-                origSampleRate = 0.0;
-                setBuffer(juce::AudioSampleBuffer(), "", 0.0); //sets buffer to be empty. correctly updates associated voices, too
+            if (deserialisationSuccessful)
+            {
+                audioFileName = xmlRegion->getStringAttribute("audioFileName", "");
+                origSampleRate = xmlRegion->getDoubleAttribute("origSampleRate", 0.0);
+
+                //apply polyphony (buffers will be updated later)
+                int polyphony = xmlRegion->getIntAttribute("polyphony", 1);
+                if (associatedVoices.size() != polyphony)
+                {
+                    audioEngine->removeVoicesWithID(getID());
+                    audioEngine->initialiseVoicesForRegion(getID(), polyphony); //initialises the given amount of voices for this region
+                    associatedVoices = audioEngine->getVoicesWithID(getID()); //update associated voices
+                }
+
+                //restore buffer from attachedData
+                int bufferMemoryIndex = xmlRegion->getIntAttribute("bufferMemory_index", -1);
+                if (bufferMemoryIndex >= 0 && bufferMemoryIndex < attachedData->size())
+                {
+                    //buffer data contained in attachedData -> get block and restore
+                    juce::MemoryBlock bufferMemory = (*attachedData)[bufferMemoryIndex];
+                    juce::MemoryInputStream bufferStream(bufferMemory, false); //by using this stream, the samples can be read in a certain endian, ensuring portability. little endian will be used.
+
+                    //get the size and number of the channels so that they can be read correctly
+                    int numChannels = bufferStream.readInt();
+                    int numSamples = bufferStream.readInt();
+                    juce::AudioSampleBuffer tempBuffer(numChannels, numSamples);
+
+                    //copy the content of the buffer - unfortunately, the channels can't be written as a whole, so it has to be done sample-by-sample...
+                    for (int ch = 0; ch < numChannels; ++ch)
+                    {
+                        //bufferMemory.append(buffer.getReadPointer(ch), static_cast<size_t>(numSamples) * sizeof(float)); //while this would be able to copy a full channel, it wouldn't ensure a specific endian, causing portability issues!
+                        auto* samples = tempBuffer.getWritePointer(ch);
+
+                        for (int s = 0; s < numSamples; ++s)
+                        {
+                            samples[s] = bufferStream.readFloat();
+                        }
+                    }
+
+                    setBuffer(tempBuffer, audioFileName, origSampleRate); //correctly updates associated voices, too
+                }
+                else
+                {
+                    //buffer data not contained in attachedData (buffer was probably empty)
+
+                    DBG("buffer not contained in attachedData. this might be because the buffer was simply empty.");
+                    audioFileName = "";
+                    origSampleRate = 0.0;
+                    setBuffer(juce::AudioSampleBuffer(), "", 0.0); //sets buffer to be empty. correctly updates associated voices, too
+                }
             }
         }
     }
-
 
 
 

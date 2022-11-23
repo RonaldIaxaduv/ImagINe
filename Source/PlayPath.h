@@ -20,7 +20,7 @@ class PlayPathEditorWindow;
 
 #include "SegmentedRegion.h"
 
-class PlayPath final : public juce::DrawableButton, public juce::TooltipClient
+class PlayPath final : public juce::DrawableButton, public juce::MidiKeyboardState::Listener, public juce::TooltipClient
 {
 public:
     PlayPath(int ID, const juce::Path& path, const juce::Rectangle<float>& relativeBounds, const juce::Rectangle<int>& parentBounds, juce::Colour fillColour);
@@ -48,15 +48,19 @@ public:
     void triggerButtonStateChanged();
     void triggerDrawableButtonStateChanged();
 
-    bool getIsPlaying();
-
-    void startPlaying();
-    void stopPlaying();
+    void setIsPlaying_Click(bool shouldBePlaying);
+    bool getIsPlaying_Click();
+    bool shouldBePlaying();
+    void startPlaying(bool toggleButtonState = true);
+    void stopPlaying(bool toggleButtonState = true);
 
     int getID();
 
     juce::Colour getFillColour();
     void setFillColour(juce::Colour newFillColour);
+
+    juce::Colour getFillColourOn();
+    void setFillColourOn(juce::Colour newFillColourOn);
 
     float getCourierInterval_seconds();
     void setCourierInterval_seconds(float newCourierIntervalSeconds);
@@ -65,6 +69,13 @@ public:
     void recalculateAllIntersectingRegions();
     void removeIntersectingRegion(int regionID);
     void evaluateCourierPosition(PlayPathCourier* courier, juce::Range<float> previousPosition, juce::Range<float> newPosition);
+
+    int getMidiChannel();
+    void setMidiChannel(int newMidiChannel);
+    int getMidiNote();
+    void setMidiNote(int newNoteNumber);
+    void handleNoteOn(juce::MidiKeyboardState* source, int midiChannel, int midiNoteNumber, float velocity) override;
+    void handleNoteOff(juce::MidiKeyboardState* source, int midiChannel, int midiNoteNumber, float velocity) override;
 
     bool serialise(juce::XmlElement* xmlPlayPath);
     bool deserialise(juce::XmlElement* xmlPlayPath);
@@ -87,6 +98,7 @@ private:
     float courierIntervalSeconds = 5.0f;
 
     juce::Colour fillColour;
+    juce::Colour fillColourOn; //colour when playing
     static const float outlineThickness;
     juce::DrawablePath normalImage; //normal image when not toggleable or toggled off
     juce::DrawablePath overImage; //image when hovering over the button when not toggleable or toggled off
@@ -98,7 +110,12 @@ private:
     juce::DrawablePath disabledImageOn; //image when disabled when toggleable and toggled on
     void initialiseImages();
 
-    bool isPlaying = false;
+    bool isPlaying = false; //states whether the play path is playing. equals (isPlaying_click || isPlaying_midi).
+    bool isPlaying_click = false; //states whether the user has attempted to play the play path by clicking it.
+    bool isPlaying_midi = false; //states whether the MIDI note associated with this play path is pressed, causing the play path to play.
+
+    int midiChannel = -1; //-1 = none, 0 = any, 1...16 = [channel]
+    int noteNumber = -1; //-1 = none, 0...127 = [note]
 
     juce::OwnedArray<PlayPathCourier> couriers;
 

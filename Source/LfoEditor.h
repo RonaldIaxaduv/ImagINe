@@ -16,13 +16,15 @@
 #include "RegionLfo.h"
 #include "LfoModulatableParameter.h"
 
-class LfoEditor : public juce::Component, public juce::ChangeListener, public juce::SettableTooltipClient
+class LfoEditor final : public juce::Component, public juce::ChangeListener, public juce::SettableTooltipClient
 {
 public:
     LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo);
     ~LfoEditor() override;
 
     void paint(juce::Graphics& g) override;
+    
+    void setUnitOfHeight(int newHUnit);
     void resized() override;
 
     bool keyPressed(const juce::KeyPress& key) override;
@@ -38,6 +40,8 @@ public:
 private:
     AudioEngine* audioEngine;
     RegionLfo* associatedLfo;
+
+    int hUnit = 20;
 
     juce::Label lfoRateLabel;
     juce::Slider lfoRateSlider;

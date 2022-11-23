@@ -16,7 +16,7 @@
 //==============================================================================
 /*
 */
-class DahdsrEnvelopeEditor  : public juce::Component, public juce::SettableTooltipClient
+class DahdsrEnvelopeEditor final : public juce::Component, public juce::SettableTooltipClient
 {
 public:
     DahdsrEnvelopeEditor(juce::Array<DahdsrEnvelope*> associatedEnvelopes)
@@ -205,10 +205,17 @@ public:
         randomiseSustainSlider();
     }
 
+    void setUnitOfHeight(int newHUnit)
+    {
+        hUnit = newHUnit;
+    }
+
 private:
     const double sliderMinimumLevel = -60.0;
     const double sliderMaximumLevel = 6.0;
     const double sliderMaximumTime = 60.0;
+
+    int hUnit = 20;
 
     juce::Array<DahdsrEnvelope*> associatedEnvelopes;
 

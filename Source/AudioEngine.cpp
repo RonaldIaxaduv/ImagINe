@@ -134,6 +134,9 @@ bool AudioEngine::deserialise(juce::XmlElement* xml, juce::Array<juce::MemoryBlo
     DBG("deserialising AudioEngine...");
     bool deserialisationSuccessful = true;
 
+    //reset previous state of audio engine
+    resetAll();
+
     juce::XmlElement* xmlAudioEngine = xml->getChildByName("AudioEngine");
 
     if (xmlAudioEngine != nullptr)
@@ -170,6 +173,12 @@ bool AudioEngine::deserialise(juce::XmlElement* xml, juce::Array<juce::MemoryBlo
     {
         DBG("no AudioEngine data found.");
         deserialisationSuccessful = false;
+    }
+
+    if (!deserialisationSuccessful)
+    {
+        //reset state of audio engine
+        resetAll();
     }
 
     DBG(juce::String(deserialisationSuccessful ? "AudioEngine has been deserialised." : "AudioEngine could not be deserialised."));
@@ -307,8 +316,18 @@ bool AudioEngine::deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine)
                     affectedParams = getParameterOfRegion_Pitch(rIDs[j]);
                     break;
 
+                case LfoModulatableParameter::playbackPositionStart:
+                case LfoModulatableParameter::playbackPositionStart_inverted:
+                    affectedParams = getParameterOfRegion_PlaybackPositionInterval(rIDs[j]);
+                    break;
+
                 case LfoModulatableParameter::playbackPositionInterval:
                 case LfoModulatableParameter::playbackPositionInterval_inverted:
+                    affectedParams = getParameterOfRegion_PlaybackPositionInterval(rIDs[j]);
+                    break;
+
+                case LfoModulatableParameter::playbackPositionCurrent:
+                case LfoModulatableParameter::playbackPositionCurrent_inverted:
                     affectedParams = getParameterOfRegion_PlaybackPositionInterval(rIDs[j]);
                     break;
 
@@ -317,8 +336,18 @@ bool AudioEngine::deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine)
                     affectedParams = getParameterOfRegion_LfoRate(rIDs[j]);
                     break;
 
+                case LfoModulatableParameter::lfoStartingPhase:
+                case LfoModulatableParameter::lfoStartingPhase_inverted:
+                    affectedParams = getParameterOfRegion_LfoPhaseInterval(rIDs[j]);
+                    break;
+
                 case LfoModulatableParameter::lfoPhaseInterval:
                 case LfoModulatableParameter::lfoPhaseInterval_inverted:
+                    affectedParams = getParameterOfRegion_LfoPhaseInterval(rIDs[j]);
+                    break;
+
+                case LfoModulatableParameter::lfoCurrentPhase:
+                case LfoModulatableParameter::lfoCurrentPhase_inverted:
                     affectedParams = getParameterOfRegion_LfoPhaseInterval(rIDs[j]);
                     break;
 
@@ -328,7 +357,8 @@ bool AudioEngine::deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine)
                     break;
 
                 default:
-                    throw std::exception("Unknown or unimplemented region modulation");
+                    DBG("Unknown or unimplemented region modulation");
+                    return false;
                 }
 
                 //apply modulation
@@ -410,7 +440,7 @@ int AudioEngine::addNewRegion(const juce::Colour& regionColour, juce::MidiKeyboa
     initialiseVoicesForRegion(newRegionID);
 
     //register MIDI listener
-    keyboardState.addListener(listenerRegion);
+    addMidiListener(listenerRegion);
 
     return newRegionID;
 }
@@ -421,7 +451,67 @@ void AudioEngine::resetRegionIDs()
 }
 void AudioEngine::removeRegion(juce::MidiKeyboardState::Listener* listenerRegion)
 {
-    keyboardState.removeListener(listenerRegion);
+    removeMidiListener(listenerRegion);
+}
+bool AudioEngine::tryChangeRegionID(int regionID, int newRegionID)
+{
+    //check whether the new ID is valid
+    if (newRegionID < 0)
+    {
+        return false;
+    }
+    else if (newRegionID == regionID)
+    {
+        //already done
+        return true;
+    }
+
+    //check whether the new ID isn't already taken by another region
+    for (auto itLfo = lfos.begin(); itLfo != lfos.end(); ++itLfo)
+    {
+        //every existing region has an LFO, so if there is an LFO belonging to a region with the new ID, a region with that ID exists
+        if ((*itLfo)->getRegionID() == newRegionID)
+        {
+            //found a region with the new ID -> new ID already exists -> abort
+            return false;
+        }
+    }
+    //new ID isn't already taken
+
+    //adjust the ID of the LFO of the affected region
+    for (auto itLfo = lfos.begin(); itLfo != lfos.end(); ++itLfo)
+    {
+        if ((*itLfo)->getRegionID() == regionID)
+        {
+            //found the LFO of the affected region
+            (*itLfo)->setRegionID(newRegionID);
+            break; //only one LFO per region
+        }
+    }
+
+    //adjust the ID of all voices of the affected region
+    for (int i = 0; i < synth.getNumVoices(); ++i)
+    {
+        Voice* v = static_cast<Voice*>(synth.getVoice(i));
+
+        if (v->getID() == regionID)
+        {
+            v->setID(newRegionID);
+        }
+    }
+
+    return true; //the region will proceed to change its own ID after this
+}
+
+void AudioEngine::addMidiListener(juce::MidiKeyboardState::Listener* newMidiListener)
+{
+    //register MIDI listener
+    keyboardState.addListener(newMidiListener);
+}
+void AudioEngine::removeMidiListener(juce::MidiKeyboardState::Listener* midiListener)
+{
+    //register MIDI listener
+    keyboardState.removeListener(midiListener);
 }
 
 juce::Colour AudioEngine::getRegionColour(int regionID)
@@ -780,4 +870,16 @@ void AudioEngine::removeLfo(int regionID) //removes the LFO of the region with t
 
     //lfos.remove(lfoIndex, true); //removed and deleted
     lfos.remove(lfoIndex, true);
+}
+
+
+
+
+void AudioEngine::resetAll()
+{
+    associatedImage->transitionToState(SegmentableImageStateIndex::empty);
+    regionColours.clear();
+    synth.clearVoices();
+    lfos.clear(true);
+    regionIdCounter = -1;
 }

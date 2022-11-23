@@ -272,8 +272,6 @@ public:
             if (rowNumber < getNumRows())
             {
                 auto item = items[rowNumber];
-
-
                 return item;
             }
         }
@@ -284,7 +282,6 @@ public:
             if (rowNumber < getNumRows())
             {
                 auto item = items[rowNumber];
-
                 return item;
             }
             else
@@ -446,6 +443,11 @@ public:
             //set to a random parameter (excluding "no modulation")
             item->setModulatedParameterID(static_cast<LfoModulatableParameter>(rng.nextInt(juce::Range<int>(1, static_cast<int>(LfoModulatableParameter::ModulatableParameterCount)))));
         }
+    }
+
+    void setUnitOfHeight(int newHUnit)
+    {
+        list.setRowHeight(newHUnit);
     }
 
     //juce::String getTooltip() override

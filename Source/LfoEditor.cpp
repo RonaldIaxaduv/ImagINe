@@ -125,29 +125,34 @@ void LfoEditor::paint(juce::Graphics& g)
     g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));   // clear the background
 }
 
+void LfoEditor::setUnitOfHeight(int newHUnit)
+{
+    hUnit = newHUnit;
+}
 void LfoEditor::resized()
 {
     auto area = getLocalBounds();
 
-    auto lfoRateArea = area.removeFromTop(20);
+    auto lfoRateArea = area.removeFromTop(hUnit);
     lfoRateSlider.setBounds(lfoRateArea.removeFromRight(2 * lfoRateArea.getWidth() / 3).reduced(1));
     lfoRateSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, lfoRateSlider.getWidth(), lfoRateSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
 
-    auto lfoStartingPhaseArea = area.removeFromTop(20);
+    auto lfoStartingPhaseArea = area.removeFromTop(hUnit);
     lfoStartingPhaseSlider.setBounds(lfoStartingPhaseArea.removeFromRight(2 * lfoStartingPhaseArea.getWidth() / 3).reduced(1));
     lfoStartingPhaseSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, lfoStartingPhaseSlider.getWidth(), lfoStartingPhaseSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
 
-    auto lfoPhaseIntervalArea = area.removeFromTop(20);
+    auto lfoPhaseIntervalArea = area.removeFromTop(hUnit);
     lfoPhaseIntervalSlider.setBounds(lfoPhaseIntervalArea.removeFromRight(2 * lfoPhaseIntervalArea.getWidth() / 3).reduced(1));
     lfoPhaseIntervalSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, lfoStartingPhaseSlider.getWidth(), lfoStartingPhaseSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
 
-    auto lfoUpdateIntervalArea = area.removeFromTop(20);
+    auto lfoUpdateIntervalArea = area.removeFromTop(hUnit);
     lfoUpdateIntervalSlider.setBounds(lfoUpdateIntervalArea.removeFromRight(2 * lfoUpdateIntervalArea.getWidth() / 3).reduced(1));
     lfoUpdateIntervalSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, lfoUpdateIntervalSlider.getWidth(), lfoUpdateIntervalSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
 
-    auto lfoUpdateQuantisationArea = area.removeFromTop(20);
+    auto lfoUpdateQuantisationArea = area.removeFromTop(hUnit);
     lfoUpdateQuantisationChoice.setBounds(lfoUpdateQuantisationArea.removeFromRight(2 * lfoUpdateQuantisationArea.getWidth() / 3).reduced(1));
 
+    lfoRegionsList.setUnitOfHeight(hUnit);
     lfoRegionsList.setBounds(area.reduced(1));
 }
 

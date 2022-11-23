@@ -193,14 +193,13 @@ void SegmentableImage::transitionToState(SegmentableImageStateIndex stateToTrans
             {
                 (*it)->setAlwaysOnTop(false);
                 (*it)->transitionToState(PlayPathStateIndex::notInteractable);
-                //(*it)->setInterceptsMouseClicks(false, false); //doesn't work
                 (*it)->setEnabled(false);
             }
             for (auto it = regions.begin(); it != regions.end(); ++it)
             {
                 (*it)->setAlwaysOnTop(true);
-                (*it)->setEnabled(true);
                 (*it)->transitionToState(SegmentedRegionStateIndex::notInteractable);
+                (*it)->setEnabled(false); //necessary so that the user can draw behind the regions
             }
             nonInstantStateFound = true;
             DBG("segmentable image drawing region");
@@ -263,8 +262,8 @@ void SegmentableImage::transitionToState(SegmentableImageStateIndex stateToTrans
             for (auto it = playPaths.begin(); it != playPaths.end(); ++it)
             {
                 (*it)->setAlwaysOnTop(true);
-                (*it)->setEnabled(true);
                 (*it)->transitionToState(PlayPathStateIndex::notInteractable);
+                (*it)->setEnabled(false); //necessary so that the user can draw behind the play paths
             }
             nonInstantStateFound = true;
             DBG("segmentable image drawing play paths");
@@ -733,6 +732,7 @@ void SegmentableImage::clearPlayPaths()
     for (auto itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
     {
         removeChildComponent(*itPath);
+        audioEngine->removeMidiListener(*itPath);
     }
     playPaths.clear(true);
     playPathIdCounter = -1;
@@ -752,6 +752,7 @@ void SegmentableImage::removePlayPath(int pathID)
         {
             //path found -> remove
             removeChildComponent(*itPath);
+            audioEngine->removeMidiListener(*itPath);
             playPaths.remove(i);
             break; //IDs are unique
         }
@@ -883,14 +884,14 @@ bool SegmentableImage::deserialise(juce::XmlElement* xmlParent, juce::Array<juce
             int size = xmlSegmentableImage->getIntAttribute("regions_size", 0);
             for (int i = 0; deserialisationSuccessful && i < size; ++i)
             {
-                //generate new region
-                SegmentedRegion* newRegion = new SegmentedRegion(juce::Path(), juce::Rectangle<float>(), getBounds(), juce::Colours::black, audioEngine);
-                addRegion(newRegion);
-                newRegion->triggerDrawableButtonStateChanged();
-
                 juce::XmlElement* xmlRegion = xmlSegmentableImage->getChildByName("SegmentedRegion_" + juce::String(i));
                 if (xmlRegion != nullptr)
                 {
+                    //generate new region
+                    SegmentedRegion* newRegion = new SegmentedRegion(juce::Path(), juce::Rectangle<float>(), getBounds(), juce::Colours::black, audioEngine);
+                    addRegion(newRegion);
+                    newRegion->triggerDrawableButtonStateChanged();
+
                     //load data to that region
                     deserialisationSuccessful = newRegion->deserialise(xmlRegion, attachedData);
                 }
@@ -1067,9 +1068,9 @@ void SegmentableImage::playAllPlayPaths()
 {
     for (auto itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
     {
-        if (!(*itPath)->getIsPlaying())
+        if (!(*itPath)->getIsPlaying_Click())
         {
-            (*itPath)->setToggleState(true, juce::NotificationType::dontSendNotification); //counts as a click
+            (*itPath)->setIsPlaying_Click(true); //counts as a click
             (*itPath)->startPlaying();
         }
     }
@@ -1078,9 +1079,9 @@ void SegmentableImage::stopAllPlayPaths()
 {
     for (auto itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
     {
-        if ((*itPath)->getIsPlaying())
+        if ((*itPath)->getIsPlaying_Click())
         {
-            (*itPath)->setToggleState(false, juce::NotificationType::dontSendNotification); //counts as a click
+            (*itPath)->setIsPlaying_Click(false); //counts as a click
             (*itPath)->stopPlaying();
         }
     }
@@ -1089,14 +1090,14 @@ void SegmentableImage::toggleAllPlayPaths()
 {
     for (auto itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
     {
-        if (!(*itPath)->getIsPlaying())
+        if (!(*itPath)->getIsPlaying_Click())
         {
-            (*itPath)->setToggleState(true, juce::NotificationType::dontSendNotification); //counts as a click
+            (*itPath)->setIsPlaying_Click(true); //counts as a click
             (*itPath)->startPlaying();
         }
         else
         {
-            (*itPath)->setToggleState(false, juce::NotificationType::dontSendNotification); //counts as a click
+            (*itPath)->setIsPlaying_Click(false); //counts as a click
             (*itPath)->stopPlaying();
         }
     }
@@ -1176,6 +1177,11 @@ void SegmentableImage::addRegion(SegmentedRegion* newRegion)
         break;
     }
 
+    if (currentStateIndex == SegmentableImageStateIndex::drawingRegion)
+    {
+        newRegion->setEnabled(false); //necessary so that the user can draw behind the region
+    }
+
     addAndMakeVisible(newRegion);
 }
 void SegmentableImage::repaintAllRegions()
@@ -1190,6 +1196,7 @@ void SegmentableImage::repaintAllRegions()
 void SegmentableImage::addPlayPath(PlayPath* newPlayPath)
 {
     playPaths.add(newPlayPath);
+    audioEngine->addMidiListener(newPlayPath);
 
     newPlayPath->setAlwaysOnTop(true);
     switch (currentStateIndex)
@@ -1205,6 +1212,11 @@ void SegmentableImage::addPlayPath(PlayPath* newPlayPath)
     default:
         newPlayPath->transitionToState(PlayPathStateIndex::notInteractable);
         break;
+    }
+
+    if (currentStateIndex == SegmentableImageStateIndex::drawingPlayPath)
+    {
+        newPlayPath->setEnabled(false); //necessary so that the user can draw behind the play path
     }
 
     addAndMakeVisible(newPlayPath);

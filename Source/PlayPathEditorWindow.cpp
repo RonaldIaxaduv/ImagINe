@@ -24,7 +24,7 @@ PlayPathEditorWindow::PlayPathEditorWindow(juce::String name, PlayPath* path)
 #else
     setResizable(true, true);
     setResizeLimits(100, 200, 4096, 2160); //max resolution: 4k
-    centreWithSize(400, 200);
+    centreWithSize(400, 350);
 #endif
 
     setVisible(true);

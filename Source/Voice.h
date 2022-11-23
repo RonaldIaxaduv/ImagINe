@@ -116,6 +116,7 @@ public:
     void setLfo(RegionLfo* newAssociatedLfo);
 
     int getID();
+    void setID(int newID);
 
     DahdsrEnvelope* getEnvelope();
 

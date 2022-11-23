@@ -399,6 +399,9 @@
 # bug: the drawing line of the SegmentableImage is behind its child components
 !- check docs.juce.com/master/tutorial_app_plugin_packaging.html
 
+
+
+
 - demo presets
 - testing sessions with ant/leon/sam
 - survey (incl. privacy policy)
@@ -406,6 +409,9 @@
 	- could show off the presets for a 1min introduction video at the start of the survey and add tutorial videos later when the users received the program
 - discord server
 - add links to the survey and the discord server to the information box within ImageINe
+
+
+
 
 !- remove the fixed directory paths from the code (loading image, loading audio)
 ?# maybe make regions playable in play path playing mode
@@ -462,24 +468,37 @@
 		-> only affects the DAHDSR editor's sliders (see previous bug) and the checkboxlist
 			#> oh, there's a method getTooltipForRow of the ListBoxModel class
 # add a warning prompt for when the user tries to switch away from drawing mode while there are points on the image
-- allow the user to choose a play path colour
-	- actually make them be able to choose both a normal colour and a down colour! that way, it's easier to retain a good contrast than by code, probably. by default, just set the down colour to the normal colour darkened by 0.2 or so.
-- add MIDI note bindings to play paths?
+# allow the user to choose a play path colour
+	# actually make them be able to choose both a normal colour and a down colour! that way, it's easier to retain a good contrast than by code, probably. by default, just set the down colour to the normal colour darkened by 0.2 or so.
+# add MIDI note bindings to play paths?
 !# add some kind of information button that displays key mappings for each mode (e.g. using backspace to delete points while in drawing mode)
 	# can be easily implemented using NativeMessageBox (or whatever it was called)!
 	# should also include my name, a link to the survey, to the demo videos (on YT, presumably) and to the ImageINe discord server
 !# add more/better key bindings
-!- HOOOOLD ON A GOD DAMNED SEC. why didn't i think of quantising the update interval (just like i did with the pitch)??? it shouldn't be too hard to quantise it to powers of 2, for example, which would be PERFECT for rhythms!
+!# HOOOOLD ON A GOD DAMNED SEC. why didn't i think of quantising the update interval (just like i did with the pitch)??? it shouldn't be too hard to quantise it to powers of 2, for example, which would be PERFECT for rhythms!
 	-> e.g. 1/4 quantisation: urate_quant = floor((urate_modfull / urate_base) / 0.25) / 4 * urate = floor((urate_modfull / urate_base) * 4) * 0.25 * urate_base
-!- scale the components in the editors percentually with the window's size, so that resizing them actually makes sense from a space conservation standpoint...
+!- update quantisation: 1/1 = continuous, actually... remove it immediately - right now, it won't do much damage, luckily.
+!# scale the components in the editors percentually with the window's size, so that resizing them actually makes sense from a space conservation standpoint...
+!# bug: apparently, sometimes, too many LFOs get serialised even when not all of them are needed
+	/ probably a bug with deleting regions?
+	!-> it happens when the highest region ID is larger than the number of regions in the save file, so it's actually very important to fix this!
+-? don't display the "preset has been loaded" window - even if the loading fails, it would show (because the result can't be checked with the given method...)
+!# make sure that users can't break anything by playing with options in the region editor while no audio file has been set yet!
+	-> seems good
 - show a warning prompt when trying to open a preset while not in the init state
-!- make sure that users can't break anything by playing with options in the region editor while no audio file has been set yet!
+?- bug: sometimes, the key bindings for switching the editor mode don't work
+	- might be the laptop being slow
+	- ohh it might also be because the editor windows grab the keyboard focus?
+!# gotta reset the state of the AudioEngine before deserialising it! -> if there's an editor, need to tell it that SegmentableImage has been deleted and needs to be replaced!
 !/(?) bug: read access violation when removing a modulator (in ModulatableParameter)
 	/> the usual: suspend processing...
 	#?> actually, this was probably because the new parameters weren't unsubbing their modulators in the class's destructor!
 ?- i'm getting a feeling that the current play position modulation causes some audio fragments at certain values atm. it might be that the laptop is just too slow though, not sure. better check tho!
-- bug: updating the toggle parameter in the region editor while in playing mode doesn't affect the region when actually playing it. to update it, one must go back into editing mode and back to playing mode o.ô
-- bug: play paths are already interactable while in drawing mode -> handle them in the same way as regions in region drawing mode instead!
+	-> a good way to test this would be to find a program state that sounds laggy, switch to a release version and check whether it sounds laggy there, too
+# bug: updating the toggle parameter in the region editor while in playing mode doesn't affect the region when actually playing it. to update it, one must go back into editing mode and back to playing mode o.ô
+# bug: play paths are already interactable while in drawing mode -> handle them in the same way as regions in region drawing mode instead!
+	-> arghhhh it's because of some involuntary setback again... easy fix though, thankfully
+?- maybe make the phase modulation parameters into a new class that calculates modulo 1.0 at the end - in that case, one fmod calculation could be replaced with one if case, which should arguably be faster
 !- display play path length (normed) in the play path editor!
 	-> this is very useful to coordiante the different play paths
 - add a panic button (stops all regions (does NOT allow for tailoff!) and play paths)
@@ -501,6 +520,7 @@
 				-> consider incrementing the current serialisation version!
 		- add getter method for that parameter in the AudioEngine
 		- add switch case for adding a modulation to the new parameter in RegionLfo
+		- add switch case to deserialiseLFOs_mods method in AudioEngine
 		- add editing options for the parameter in the respective editor
 			- edit base value, if needed
 				- add public getter/setter methods for the parameter's base value
@@ -536,6 +556,10 @@
 	!- interpret the LFO wavetable as a waveshaping table, where the starting value is at the LFO's current phase
 		- this would (most likely) result in rather distorted sounds that change over time
 		- depth: dry/wet mix
+
+
+
+
 !- OH. MY. GOD. why didn't i see this earlier? THERE'S THREADS WITH A PROGRESS WINDOW!
 	-> https://docs.juce.com/master/classThreadWithProgressWindow.html
 - add a button next to the LFO phase editor to switch its units to ms instead of Hz
@@ -559,6 +583,7 @@
 	- dunno why this happens... the handle doesn't show anymore, so the command seems to go through, so why does it still allow dragging?
 	- weirdly enough, this doesn't happen for the play path editing/playing mode o.ô
 	#> in fact, it doesn't happen anymore in general o.ô well, that's odd, but alright. 
+- minor bug: play paths are displayed with their ON colour after they've been newly created. it updates as soon as the user interacts with the path though.
 ?- it might be necessary to optimise the serialisation process at some point (ugh...)
 	-> context: some DAWs call getStateInformation A LOT (e.g. when only 1 parameter handle is turned), i.e. saving all image/audio files in that method but be hell
 		-> BUT since ImageINe doesn't use any parameters currently, it might be safe
@@ -636,12 +661,12 @@
 		- maybe overwrite this somehow? how will the synth know which sound to play?
 			!- maybe make it so the sound can only play one specific MIDI note, and the region plays that specific note
 				- this has the added benefit that implementing MIDI support for the instrument will be easier - just make that MIDI note adjustable in the region editor!
+	?- when the current playback position gets updated through modulation, make it release the current voice and start another(?) to make the transition much smoother
 - option to set an LFO's rate to that of its associated region's sound
 - button to reset an LFO's phase
 - add an option to reset a region's LFO phase and/or playback position when its voice stops playing
 ?- add an option to only register an LFO's modulations while its region is playing. i.e. if a region starts playing, its LFO registers itself to all parameters that it's supposed to modulate, and when it stops playing, it unsubscribes from all the parameters again
 	- one thing that could be done with this: a region A with phase mult 0 modulating another region B's pitch -> one can play A to temporarily change the pitch of B, e.g. to achieve a different harmony
-- perhaps modulate a region's LFO depth with its AHDSR modulator (whether or not it's possible to modulate LFO depth otherwise)
 - make it necessary to provide a product key
 	- see https://docs.juce.com/master/tutorial_online_unlock_status.html
 	  ^- apparently, there's a way to make this work offline, too!
@@ -658,6 +683,11 @@ possible features to add later:
 	- this would be an amazing quality of life change, but idk how easy this would be... i know that the DAW's BPM should be contained in some MIDI signals, but idk where or when or how to evaluate them to achieve synchronisation
 	- did smth similar in Langton's Ant Sequencer, and it's not quiiiite so easy to do, sadly
 !- make it possible to modulate more than 1 value of every region
+- in the same update as -^ make it possible to modulate parameters using the DAHDSR envelope
+	- consider adding one or two more envelopes
+	- implementation: add a new class ParameterModulator, move all the modulation-related stuff from RegionLfo to there and make both RegionLfo and DahdsrEnvelope into ParameterModulators
+	- consider adding an update rate to DAHDSR envelopes, too. while the sections that have a constant value are super lightweight, the ones that evolve would currently update with every sample!
+- in the same update as -^ make it possible to modulate DAHDSR envelope parameters
 - take sidechain input as audio input for regions (writes audio continuously to a small buffer to enable pitch modulation etc.)
 - add further (optional) effects like filters, distortion or reverb
 	-> this won't be all too straightforward sadly... many of these effects require processing that isn't sample-by-sample, i.e. this kind of processing would either have to be separate from all other processing, or the entire way processing currently works would have to be rewritten
@@ -678,3 +708,6 @@ possible features to add later:
 - smooth transitions for when a region's playback position changes
 - implement AccessibilityHandler to set help texts, descriptions and titles for all objects that can be read with screenreaders
 ?- make it possible to modulate a DAW's parameters (perhaps ImageINe's own) using the region LFOs
+- modulate a region's LFO depth using a(/the voices') DAHDSR modulator
+	-> would be pretty simple to implement (excluding UI): add a DAHDSR to RegionLfo and start/reset it in Voice whenever the Voice's DAHDSR is also started/reset (should be fine even with polyphony imo)
+	-> idea for a quicker implementation: set the LFO's DAHDSR parameters to the same values as the voices' DAHDSR, except that the levels should be capped at 0dB (since that translates to 1.0!)

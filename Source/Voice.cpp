@@ -690,6 +690,10 @@ int Voice::getID()
 {
     return ID;
 }
+void Voice::setID(int newID)
+{
+    ID = newID;
+}
 
 DahdsrEnvelope* Voice::getEnvelope()
 {

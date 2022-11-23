@@ -72,6 +72,7 @@ public:
     void renderLfoWaveform();
 
     int getID();
+    bool tryChangeID(int newID);
 
     juce::Point<float> getFocusPoint();
     void setFocusPoint(juce::Point<float> newFocusPoint);

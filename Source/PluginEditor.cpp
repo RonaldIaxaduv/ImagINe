@@ -462,7 +462,6 @@ void ImageINeDemoAudioProcessorEditor::restorePreviousModeBoxSelection()
 
 
 
-
 void ImageINeDemoAudioProcessorEditor::showOpenImageDialogue()
 {
     //image.setImage(juce::ImageFileFormat::loadFrom(juce::File("C:\\Users\\Aaron\\Desktop\\Programmierung\\GitHub\\ImageSegmentationTester\\Test Images\\Re_Legion_big+.jpg")));

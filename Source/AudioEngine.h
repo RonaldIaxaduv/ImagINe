@@ -43,6 +43,10 @@ public:
     int addNewRegion(const juce::Colour& regionColour, juce::MidiKeyboardState::Listener* listenerRegion);
     void resetRegionIDs();
     void removeRegion(juce::MidiKeyboardState::Listener* listenerRegion);
+    bool tryChangeRegionID(int regionID, int newRegionID);
+
+    void addMidiListener(juce::MidiKeyboardState::Listener* newMidiListener);
+    void removeMidiListener(juce::MidiKeyboardState::Listener* midiListener);
 
     juce::Colour getRegionColour(int regionID);
     void changeRegionColour(int regionID, juce::Colour newColour);
@@ -105,6 +109,8 @@ private:
     bool deserialiseLFOs_main(juce::XmlElement* xmlAudioEngine);
     bool deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine);
     bool deserialiseVoices(juce::XmlElement* xmlAudioEngine);
+
+    void resetAll();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioEngine)
 };

@@ -429,6 +429,10 @@ int RegionLfo::getRegionID()
 {
     return regionID;
 }
+void RegionLfo::setRegionID(int newRegionID)
+{
+    regionID = newRegionID;
+}
 
 void RegionLfo::advance()
 {
