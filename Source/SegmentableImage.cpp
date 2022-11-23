@@ -1103,6 +1103,27 @@ void SegmentableImage::toggleAllPlayPaths()
     }
 }
 
+void SegmentableImage::panic()
+{
+    //force stop all regions and play paths!
+
+    for (auto itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
+    {
+        if ((*itPath)->getIsPlaying_Click())
+        {
+            (*itPath)->panic();
+        }
+    }
+
+    for (auto itRegion = regions.begin(); itRegion != regions.end(); ++itRegion)
+    {
+        if ((*itRegion)->getIsPlaying_Click())
+        {
+            (*itRegion)->panic();
+        }
+    }
+}
+
 
 
 

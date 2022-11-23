@@ -82,6 +82,16 @@ ImageINeDemoAudioProcessorEditor::ImageINeDemoAudioProcessorEditor (ImageINeDemo
     modeBox.setTooltip("Here you can select the current mode of the program. To go beyond Init, you first have to load an image. Afterwards, you can freely switch between states. Note especially that any editors remain open when switching to play mode, and any regions and play paths keep playing when switching to another play or editing mode!");
     addAndMakeVisible(modeBox);
 
+    //panic button
+    panicButton.setButtonText("PANIC!");
+    panicButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colours::red);
+    panicButton.setColour(juce::TextButton::ColourIds::buttonOnColourId, juce::Colours::darkred);
+    panicButton.setColour(juce::TextButton::ColourIds::textColourOffId, juce::Colours::lightgrey);
+    panicButton.setColour(juce::TextButton::ColourIds::textColourOnId, juce::Colours::lightgrey);
+    panicButton.onClick = [this] { panic(); };
+    panicButton.setTooltip("Clicking this button will immediately stop all regions and play paths without any release times. This is useful in case you accidentally run into some noisy program configuration et cetera.");
+    addAndMakeVisible(panicButton);
+
     //segmentable image
     image.setImagePlacement(juce::RectanglePlacement::stretchToFit);
     addAndMakeVisible(image);
@@ -136,6 +146,7 @@ void ImageINeDemoAudioProcessorEditor::resized()
     case PluginEditorStateIndex::init:
         modeArea = area.removeFromTop(20);
         modeArea.removeFromLeft(50);
+        panicButton.setBounds(modeArea.removeFromRight(60).reduced(1));
         modeBox.setBounds(modeArea.reduced(1));
 
         //openImageButton.setBounds(area.removeFromTop(20).reduced(2, 2));
@@ -154,6 +165,7 @@ void ImageINeDemoAudioProcessorEditor::resized()
     case PluginEditorStateIndex::playingPlayPaths:
         modeArea = area.removeFromTop(20);
         modeArea.removeFromLeft(50);
+        panicButton.setBounds(modeArea.removeFromRight(60).reduced(1));
         modeBox.setBounds(modeArea.reduced(1));
         break;
 
@@ -807,6 +819,11 @@ void ImageINeDemoAudioProcessorEditor::updateState()
             transitionToState(static_cast<PluginEditorStateIndex>(modeBox.getSelectedId()));
         }
     }
+}
+
+void ImageINeDemoAudioProcessorEditor::panic()
+{
+    image.panic();
 }
 
 void ImageINeDemoAudioProcessorEditor::setMidiInput(int index)

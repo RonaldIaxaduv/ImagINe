@@ -87,6 +87,7 @@ public:
     bool shouldBePlaying();
     void startPlaying(bool toggleButtonState = true);
     void stopPlaying(bool toggleButtonState = true);
+    void panic();
 
     int getMidiChannel();
     void setMidiChannel(int newMidiChannel);

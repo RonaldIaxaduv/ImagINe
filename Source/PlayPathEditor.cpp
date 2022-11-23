@@ -16,6 +16,10 @@ PlayPathEditor::PlayPathEditor(PlayPath* path) :
 {
     associatedPath = path;
 
+    //path length
+    pathLengthLabel.setText("Path Length:", juce::NotificationType::dontSendNotification);
+    addAndMakeVisible(pathLengthLabel);
+
     //interval
     courierIntervalSlider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
     courierIntervalSlider.setTextValueSuffix("s");
@@ -136,7 +140,9 @@ void PlayPathEditor::paint(juce::Graphics& g)
 void PlayPathEditor::resized()
 {
     auto area = getLocalBounds();
-    int hUnit = juce::jmin(50, juce::jmax(5, static_cast<int>(static_cast<float>(getHeight()) / 11.0))); //unit of height required to squeeze all elements into the window's area
+    int hUnit = juce::jmin(50, juce::jmax(5, static_cast<int>(static_cast<float>(getHeight()) / 12.0))); //unit of height required to squeeze all elements into the window's area
+
+    pathLengthLabel.setBounds(area.removeFromTop(hUnit));
 
     auto courierIntervalArea = area.removeFromTop(hUnit);
     courierIntervalSlider.setBounds(courierIntervalArea.removeFromRight(2 * courierIntervalArea.getWidth() / 3).reduced(1));
@@ -202,6 +208,8 @@ void PlayPathEditor::changeListenerCallback(juce::ChangeBroadcaster* source)
 void PlayPathEditor::copyPathParameters()
 {
     DBG("copying play path parameters...");
+
+    pathLengthLabel.setText("Path Length: " + juce::String(associatedPath->getPathLength()), juce::NotificationType::dontSendNotification);
 
     courierIntervalSlider.setValue(associatedPath->getCourierInterval_seconds(), juce::NotificationType::dontSendNotification);
 

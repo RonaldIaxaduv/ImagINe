@@ -112,6 +112,24 @@ public:
     void setPitchQuantisationScale_major();
     void setPitchQuantisationScale_minor();
     void setPitchQuantisationScale_octaves();
+    void setPitchQuantisationScale_semitonesReversed();
+    void setPitchQuantisationScale_majorReversed();
+    void setPitchQuantisationScale_minorReversed();
+    void setPitchQuantisationScale_hijazKar();
+    void setPitchQuantisationScale_hungarianMinor();
+    void setPitchQuantisationScale_persian();
+    void setPitchQuantisationScale_bluesHexa();
+    void setPitchQuantisationScale_bluesHepta();
+    void setPitchQuantisationScale_bluesNona();
+    void setPitchQuantisationScale_ritsu();
+    void setPitchQuantisationScale_ryo();
+    void setPitchQuantisationScale_minyo();
+    void setPitchQuantisationScale_miyakoBushi();
+    void setPitchQuantisationScale_wholeTone();
+    void setPitchQuantisationScale_pentatonicMajor();
+    void setPitchQuantisationScale_pentatonicMinor();
+    void setPitchQuantisationScale_halfUp();
+    void setPitchQuantisationScale_halfDown();
 
     void setLfo(RegionLfo* newAssociatedLfo);
 

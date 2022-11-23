@@ -95,6 +95,8 @@ public:
     void stopAllPlayPaths();
     void toggleAllPlayPaths();
 
+    void panic();
+
 private:
     SegmentableImageState* states[static_cast<int>(SegmentableImageStateIndex::StateIndexCount)];
     static const SegmentableImageStateIndex initialStateIndex = SegmentableImageStateIndex::empty;

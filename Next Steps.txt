@@ -437,7 +437,7 @@
 # make unipolar modulation symmetrical like bipolar modulation (see written note)
 	/ maybe only for some parameters (perhaps it only sounds good that way for a select few)
 !# updating the focus point position while playing regions can cause an access violation
-	- another case of where locks would be wise...
+	-> another case of where locks would be wise...
 	#> suspend processing while switching the LFO table...
 !# implement a simple means of randomisation
 	# add a "randomise" button to the region editor
@@ -477,7 +477,7 @@
 !# add more/better key bindings
 !# HOOOOLD ON A GOD DAMNED SEC. why didn't i think of quantising the update interval (just like i did with the pitch)??? it shouldn't be too hard to quantise it to powers of 2, for example, which would be PERFECT for rhythms!
 	-> e.g. 1/4 quantisation: urate_quant = floor((urate_modfull / urate_base) / 0.25) / 4 * urate = floor((urate_modfull / urate_base) * 4) * 0.25 * urate_base
-!- update quantisation: 1/1 = continuous, actually... remove it immediately - right now, it won't do much damage, luckily.
+!# update quantisation: 1/1 = continuous, actually... remove it immediately - right now, it won't do much damage, luckily.
 !# scale the components in the editors percentually with the window's size, so that resizing them actually makes sense from a space conservation standpoint...
 !# bug: apparently, sometimes, too many LFOs get serialised even when not all of them are needed
 	/ probably a bug with deleting regions?
@@ -485,7 +485,7 @@
 -? don't display the "preset has been loaded" window - even if the loading fails, it would show (because the result can't be checked with the given method...)
 !# make sure that users can't break anything by playing with options in the region editor while no audio file has been set yet!
 	-> seems good
-- show a warning prompt when trying to open a preset while not in the init state
+?- show a warning prompt when trying to open a preset while not in the init state
 ?- bug: sometimes, the key bindings for switching the editor mode don't work
 	- might be the laptop being slow
 	- ohh it might also be because the editor windows grab the keyboard focus?
@@ -501,13 +501,18 @@
 ?- maybe make the phase modulation parameters into a new class that calculates modulo 1.0 at the end - in that case, one fmod calculation could be replaced with one if case, which should arguably be faster
 !- display play path length (normed) in the play path editor!
 	-> this is very useful to coordiante the different play paths
-- add a panic button (stops all regions (does NOT allow for tailoff!) and play paths)
-	- should be red and say PANIC in capital letters
-	- next to the mode selection would be a good place i think. there's still plenty of space left there
-- implement more scales (esp. pentatonic scales and various modes)
-	- half up: 0 in first half of the octave, 1 in the second half
-	- half down: -1 in first half(?), 0 in second half	(alternatively 0 and 11)
-	- reversed major/minor/semis: like the normal version, but instead of going from 0 to 12, they go from 12 to 0 -> saw-like steps through the different octaves
+	!- not scaling-independent yet...
+!- add a panic button (stops all regions (does NOT allow for tailoff!) and play paths)
+	# should be red and say PANIC in capital letters
+	# next to the mode selection would be a good place i think. there's still plenty of space left there
+	!- doesn't work for play paths yet...
+(#) implement more scales (esp. pentatonic scales and various modes)
+	# half up: 0 in first half of the octave, 1 in the second half
+	# half down: -1 in first half(?), 0 in second half	(alternatively 0 and 11)
+	# reversed major/minor/semis: like the normal version, but instead of going from 0 to 12, they go from 12 to 0 -> saw-like steps through the different octaves
+	# japanese scales
+	# check wikipedia for inspiration
+	- later: add modes maybe (phrygian etc., perhaps including popular alterations like phrygian dominant)
 - implement more parameters
 	-> to add any new parameter:
 		- add new LfoModulatableParameter value
@@ -556,6 +561,10 @@
 	!- interpret the LFO wavetable as a waveshaping table, where the starting value is at the LFO's current phase
 		- this would (most likely) result in rather distorted sounds that change over time
 		- depth: dry/wet mix
+!# some update rate quantisation settings cause the update rate to become 0 o.ô
+	-> ahh, it's probably cos i used std::floor, causing the multiplier to easily become 0. changed it to ceil now.
+!- analyse CPU performance to check whether any remaining points in this section actually need to be addressed.
+	-> https://learn.microsoft.com/en-us/visualstudio/profiling/beginners-guide-to-performance-profiling?view=vs-2022
 
 
 

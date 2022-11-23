@@ -50,6 +50,8 @@ private:
     //==============================================================================
     void updateState();
 
+    void panic();
+
     void showOpenImageDialogue();
 
     void showOpenPresetDialogue();
@@ -73,12 +75,14 @@ private:
 
     juce::TextButton informationButton;
 
-    juce::TextButton openImageButton;
-
     PluginEditorStateIndex currentStateIndex = PluginEditorStateIndex::null;
 
     juce::Label modeLabel;
     juce::ComboBox modeBox;
+
+    juce::TextButton panicButton;
+
+    juce::TextButton openImageButton;
 
     SegmentableImage& image;
 

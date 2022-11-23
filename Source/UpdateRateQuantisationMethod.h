@@ -12,9 +12,8 @@
 
 enum class UpdateRateQuantisationMethod : int
 {
-    continuous = 0,
-    full, //this doesn't do anything, so it won't be listed in the combobox. juce didn't feel right to leave it out here, tho
-    full_dotted, //same as above
+    full = 0, //this leaves the update rate the way it is
+    full_dotted, //this would make the update rate slower, so it won't be listed in the combobox. just didn't feel right to leave it out here, tho
     full_triole,
     half,
     half_dotted,

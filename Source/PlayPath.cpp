@@ -210,20 +210,20 @@ void PlayPath::transitionToState(PlayPathStateIndex stateToTransitionTo, bool ke
 
 void PlayPath::paintOverChildren(juce::Graphics& g)
 {
-    //draw range borders (only required for some debugging)
-    g.setColour(fillColour.contrasting());
-    float r = 1.0f;
-    juce::Point<float> pt;
-    for (auto itRange = regionsByRange_range.begin(); itRange != regionsByRange_range.end(); ++itRange)
-    {
-        //draw start border
-        pt = getPointAlongPath((*itRange).getStart());
-        g.fillEllipse(pt.getX() - r, pt.getY() - r, 2 * r, 2 * r);
+    //draw range borders (only required for debugging, really)
+    //g.setColour(fillColour.contrasting());
+    //float r = 1.0f;
+    //juce::Point<float> pt;
+    //for (auto itRange = regionsByRange_range.begin(); itRange != regionsByRange_range.end(); ++itRange)
+    //{
+    //    //draw start border
+    //    pt = getPointAlongPath((*itRange).getStart());
+    //    g.fillEllipse(pt.getX() - r, pt.getY() - r, 2 * r, 2 * r);
 
-        //draw end border
-        pt = getPointAlongPath((*itRange).getEnd());
-        g.fillEllipse(pt.getX() - r, pt.getY() - r, 2 * r, 2 * r);
-    }
+    //    //draw end border
+    //    pt = getPointAlongPath((*itRange).getEnd());
+    //    g.fillEllipse(pt.getX() - r, pt.getY() - r, 2 * r, 2 * r);
+    //}
 
     //WIP: draw courier (this is more of a bandaid fix because the couriers wouldn't show up despite being added properly (perhaps because they were out of bounds)
     for (auto* itCourier = couriers.begin(); itCourier != couriers.end(); ++itCourier)
@@ -337,7 +337,6 @@ bool PlayPath::shouldBePlaying()
 {
     return isPlaying_click || isPlaying_midi;
 }
-
 void PlayPath::startPlaying(bool toggleButtonState)
 {
     if (!isPlaying && shouldBePlaying())
@@ -440,6 +439,63 @@ void PlayPath::stopPlaying(bool toggleButtonState)
         //DBG("added a courier. bounds: " + newCourier->getBounds().toString() + " (within " + getLocalBounds().toString() + ")");
 
         isPlaying = false;
+    }
+}
+void PlayPath::panic()
+{
+    if (isPlaying || shouldBePlaying())
+    {
+        //stop and delete all current couriers
+        DBG("PANIC! force stopping path " + juce::String(ID));
+        isPlaying_click = false;
+        isPlaying_midi = false;
+        isPlaying = false;
+
+        //try to set the button's toggle state to "up" (needs to be done cross-thread for MIDI messages because they do not run on the same thread as couriers and clicks)
+        if (juce::MessageManager::getInstance()->isThisTheMessageThread())
+        {
+            setToggleState(false, juce::NotificationType::dontSendNotification);
+            //setState(juce::Button::ButtonState::buttonDown);
+        }
+        else
+        {
+            juce::MessageManager::getInstance()->callFunctionOnMessageThread([](void* data)
+                {
+                    static_cast<PlayPath*>(data)->setToggleState(false, juce::NotificationType::dontSendNotification);
+                    return static_cast<void*>(nullptr);
+                }, this);
+        }
+
+        for (auto* itCourier = couriers.begin(); itCourier != couriers.end(); ++itCourier)
+        {
+            (*itCourier)->stopRunning();
+            removeChildComponent(*itCourier);
+
+            //for any region that the courier was currently in, signal to that region that the courier has left
+            juce::Array<int> intersectedRegions = (*itCourier)->getCurrentlyIntersectedRegions();
+            for (auto itID = intersectedRegions.begin(); itID != intersectedRegions.end(); ++itID)
+            {
+                for (auto itRegion = regionsByRange_region.begin(); itRegion != regionsByRange_region.end(); ++itRegion)
+                {
+                    if ((*itRegion)->getID() == *itID)
+                    {
+                        (*itRegion)->signalCourierLeft();
+                        //no need to delete the index from the intersectedRegions array
+                        break;
+                    }
+                }
+            }
+
+            //reset courier's currently intersected regions
+            (*itCourier)->resetCurrentlyIntersectedRegions();
+        }
+        couriers.clear(true);
+
+        //prepare one new courier for the next time that this path is played
+        PlayPathCourier* newCourier = new PlayPathCourier(this, courierIntervalSeconds);
+        addChildComponent(newCourier);
+        couriers.add(newCourier);
+        //DBG("added a courier. bounds: " + newCourier->getBounds().toString() + " (within " + getLocalBounds().toString() + ")");
     }
 }
 

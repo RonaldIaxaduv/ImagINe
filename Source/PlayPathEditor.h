@@ -29,6 +29,8 @@ public:
 private:
     PlayPath* associatedPath;
 
+    juce::Label pathLengthLabel;
+
     juce::Label courierIntervalLabel;
     juce::Slider courierIntervalSlider;
 

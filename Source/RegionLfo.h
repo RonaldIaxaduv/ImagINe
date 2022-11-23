@@ -153,7 +153,7 @@ protected:
     float updateIntervalMs = defaultUpdateIntervalMs; //update interval in milliseconds
     static const float defaultUpdateIntervalMs;
 
-    UpdateRateQuantisationMethod currentUpdateRateQuantisationMethod = UpdateRateQuantisationMethod::continuous;
+    UpdateRateQuantisationMethod currentUpdateRateQuantisationMethod = UpdateRateQuantisationMethod::full;
     double (RegionLfo::* updateRateQuantisationFuncPt)() = nullptr;
     double updateRateQuantisationFactor = 1.0;
     double updateRateQuantisationFactor_denom = 1.0; //= 1 / updateRateQuantisationFactor (pre-calculated for less CPU usage). convention: updateRateQuantisationFactor >= updateRateQuantisationFactor_denom.

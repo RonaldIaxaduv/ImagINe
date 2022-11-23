@@ -74,7 +74,7 @@ LfoEditor::LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo)
     addAndMakeVisible(lfoUpdateIntervalLabel);
     lfoUpdateIntervalLabel.attachToComponent(&lfoUpdateIntervalSlider, true);
 
-    lfoUpdateQuantisationChoice.addItem("Continuous (no quantisation)", static_cast<int>(UpdateRateQuantisationMethod::continuous) + 1); //always adding 1 because 0 is not a valid ID (reserved for other purposes)
+    lfoUpdateQuantisationChoice.addItem("1/1 (no quantisation)", static_cast<int>(UpdateRateQuantisationMethod::full) + 1); //always adding 1 because 0 is not a valid ID (reserved for other purposes)
     lfoUpdateQuantisationChoice.addItem("1/1T", static_cast<int>(UpdateRateQuantisationMethod::full_triole) + 1);
     lfoUpdateQuantisationChoice.addItem("1/2.", static_cast<int>(UpdateRateQuantisationMethod::half_dotted) + 1);
     lfoUpdateQuantisationChoice.addItem("1/2", static_cast<int>(UpdateRateQuantisationMethod::half) + 1);

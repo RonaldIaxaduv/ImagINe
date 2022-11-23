@@ -109,10 +109,12 @@ void PlayPathState_Playable::buttonStateChanged()
         //toggle path off or on
         if (path.getToggleState() == true)
         {
+            path.setIsPlaying_Click(false);
             path.stopPlaying();
         }
         else
         {
+            path.setIsPlaying_Click(true);
             path.startPlaying();
         }
         break;

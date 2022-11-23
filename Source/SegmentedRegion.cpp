@@ -683,6 +683,41 @@ void SegmentedRegion::stopPlaying(bool toggleButtonState)
         //stopTimer(); //stopped in the drawing method since the LFO will have to keep being drawn for a little longer because of release time
     }
 }
+void SegmentedRegion::panic()
+{
+    if (isPlaying || shouldBePlaying()) //region is playing, but it was requested that it shouldn't do so anymore. (the audio file needn't be checked because the region cannot start playing without the file having been checked beforehand.)
+    {
+        DBG("PANIC! *force stops region*");
+        isPlaying_click = false;
+        isPlaying_courier = false;
+        isPlaying_midi = false;
+        isPlaying = false;
+
+        for (auto itVoice = associatedVoices.begin(); itVoice != associatedVoices.end(); ++itVoice)
+        {
+            (*itVoice)->stopNote(1.0f, false); //no tailoff!
+        }
+        //associatedVoices[currentVoiceIndex]->stopNote(1.0f, true); //cycles through all voices bit by bit
+        //currentVoiceIndex = (currentVoiceIndex + 1) % associatedVoices.size(); //next time, play the next voice
+
+        //try to set the button's toggle state to "up" (needs to be done cross-thread for MIDI messages because they do not run on the same thread as couriers and clicks)
+        if (juce::MessageManager::getInstance()->isThisTheMessageThread())
+        {
+            setToggleState(false, juce::NotificationType::dontSendNotification);
+            //setState(juce::Button::ButtonState::buttonNormal);
+        }
+        else
+        {
+            juce::MessageManager::getInstance()->callFunctionOnMessageThread([](void* data)
+                {
+                    static_cast<SegmentedRegion*>(data)->setToggleState(false, juce::NotificationType::dontSendNotification);
+                    return static_cast<void*>(nullptr);
+                }, this);
+        }
+
+        stopTimer(); //no release time -> stop timer immediately
+    }
+}
 
 int SegmentedRegion::getMidiChannel()
 {

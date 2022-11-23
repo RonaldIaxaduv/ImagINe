@@ -547,13 +547,8 @@ void RegionLfo::setUpdateRateQuantisationMethod(UpdateRateQuantisationMethod new
 {
     switch (newUpdateRateQuantisationMethod)
     {
-    case UpdateRateQuantisationMethod::continuous:
-        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_continuous;
-        break;
-
     case UpdateRateQuantisationMethod::full:
-        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
-        calculateUpdateRateQuantisationFactor(1.0);
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_continuous;
         break;
     case UpdateRateQuantisationMethod::full_dotted:
         updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
@@ -660,7 +655,7 @@ double RegionLfo::getQuantisedUpdateRate_continuous()
 double RegionLfo::getQuantisedUpdateRate_fraction()
 {
     double modVal = updateIntervalParameter.getModulatedValue();
-    return std::floor(modVal * updateRateQuantisationFactor) * updateRateQuantisationFactor_denom; //quantise to an integer multiple of updateRateQuantisationFactor_denom * modVal
+    return std::ceil(modVal * updateRateQuantisationFactor) * updateRateQuantisationFactor_denom; //quantise to an integer multiple of updateRateQuantisationFactor_denom * modVal
 }
 
 double RegionLfo::getBaseStartingPhase()
@@ -737,7 +732,7 @@ bool RegionLfo::deserialise_main(juce::XmlElement* xmlLfo)
     currentTablePos = xmlLfo->getDoubleAttribute("currentTablePos", 0.0);
     depth = xmlLfo->getDoubleAttribute("depth", 0.0);
     setUpdateInterval_Milliseconds(xmlLfo->getDoubleAttribute("updateIntervalMs", defaultUpdateIntervalMs));
-    setUpdateRateQuantisationMethod(static_cast<UpdateRateQuantisationMethod>(xmlLfo->getIntAttribute("currentUpdateRateQuantisationMethod", static_cast<int>(UpdateRateQuantisationMethod::continuous))));
+    setUpdateRateQuantisationMethod(static_cast<UpdateRateQuantisationMethod>(xmlLfo->getIntAttribute("currentUpdateRateQuantisationMethod", static_cast<int>(UpdateRateQuantisationMethod::full))));
     setBaseFrequency(xmlLfo->getDoubleAttribute("baseFrequency", 0.2));
 
     phaseIntervalModParameter.setBaseValue(xmlLfo->getDoubleAttribute("phaseInterval_base", 1.0));
