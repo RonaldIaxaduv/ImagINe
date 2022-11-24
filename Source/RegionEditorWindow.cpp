@@ -47,5 +47,7 @@ void RegionEditorWindow::closeButtonPressed()
 
     //removeKeyListener(static_cast<RegionEditor*>(getContentComponent()));
 
+    giveAwayKeyboardFocus();
+
     delete this;
 }

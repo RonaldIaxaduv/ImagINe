@@ -34,6 +34,8 @@ SegmentableImage::SegmentableImage(AudioEngine* audioEngine) : juce::ImageCompon
     this->audioEngine = audioEngine;
 
     setSize(500, 500);
+
+    setMouseClickGrabsKeyboardFocus(false);
 }
 
 SegmentableImage::~SegmentableImage()
@@ -1106,21 +1108,16 @@ void SegmentableImage::toggleAllPlayPaths()
 void SegmentableImage::panic()
 {
     //force stop all regions and play paths!
-
-    for (auto itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
-    {
-        if ((*itPath)->getIsPlaying_Click())
-        {
-            (*itPath)->panic();
-        }
-    }
+    DBG("PANIC! (SegmentableImage)");
 
     for (auto itRegion = regions.begin(); itRegion != regions.end(); ++itRegion)
     {
-        if ((*itRegion)->getIsPlaying_Click())
-        {
-            (*itRegion)->panic();
-        }
+        (*itRegion)->panic();
+    }
+
+    for (auto itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
+    {
+        (*itPath)->panic();
     }
 }
 

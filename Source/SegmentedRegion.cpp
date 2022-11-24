@@ -58,6 +58,7 @@ SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangl
     
     setBufferedToImage(true);
     setMouseClickGrabsKeyboardFocus(false);
+    setWantsKeyboardFocus(false);
     //setRepaintsOnMouseActivity(false); //doesn't work for DrawableButton sadly (but makes kind of sense since it needs to change its background image while interacting with it)
     //currentLfoLine = juce::Line<float>(juce::Point<float>(0.0f, 0.0f), juce::Point<float>(static_cast<float>(getWidth()), static_cast<float>(getHeight()))); //diagonal -> entire region will be redrawn (a little hacky, but ensures that the LFO line is drawn before the region is first played)
     //repaint(); //paints the LFO line
@@ -375,6 +376,9 @@ void SegmentedRegion::transitionToState(SegmentedRegionStateIndex stateToTransit
             {
                 if (isPlaying)
                 {
+                    isPlaying_click = false;
+                    isPlaying_courier = false;
+                    isPlaying_midi = false;
                     stopPlaying();
                 }
 
@@ -541,12 +545,22 @@ void SegmentedRegion::renderLfoWaveform()
     }
     audioEngine->suspendProcessing(wasSuspended);
 
-    float maxLength = std::sqrtf(static_cast<float>(getParentWidth() * getParentWidth() + getParentHeight() * getParentHeight())); //diagonal of the image (-> longest line)
+    //calculate new LFO depth
+    //float maxLength = std::sqrtf(static_cast<float>(getParentWidth() * getParentWidth() + getParentHeight() * getParentHeight())); //diagonal of the image (-> longest line)
+    //float maxDepthCutoff = 0.4f; //ratio of maxLength required to reach depth=1
+    //float actualLength = (std::sqrtf(range.getEnd()) - std::sqrtf(range.getStart())); //subtract (ignore) the minimum length, because the minimum only adds a constant offset
+    //actualLength = actualLength / maxLength; //ratio of maxLength
+    //float newDepth = juce::jmin(actualLength, maxDepthCutoff) / maxDepthCutoff;
+    //associatedLfo->setDepth(newDepth);
+
+    float maxLength = std::sqrt(static_cast<float>(getParentWidth() * getParentWidth() + getParentHeight() * getParentHeight())); //diagonal of the image (-> longest line)
     float maxDepthCutoff = 0.4f; //ratio of maxLength required to reach depth=1
-    float actualLength = (std::sqrtf(range.getEnd()) - std::sqrtf(range.getStart())); //subtract (ignore) the minimum length, because the minimum only adds a constant offset
+    float actualLength = (std::sqrt(range.getEnd())); //subtract (ignore) the minimum length, because the minimum only adds a constant offset
     actualLength = actualLength / maxLength; //ratio of maxLength
     float newDepth = juce::jmin(actualLength, maxDepthCutoff) / maxDepthCutoff;
+    
     associatedLfo->setDepth(newDepth);
+    timerCallback(); //repaint LFO line
     DBG("new depth: " + juce::String(associatedLfo->getDepth()));
 
     DBG("LFO's waveform has been rendered.");
@@ -613,6 +627,14 @@ bool SegmentedRegion::getIsPlaying_Click()
 {
     return isPlaying_click;
 }
+void SegmentedRegion::setIsPlaying_Midi(bool shouldBePlaying)
+{
+    isPlaying_midi = shouldBePlaying;
+}
+bool SegmentedRegion::getIsPlaying_Midi()
+{
+    return isPlaying_midi;
+}
 bool SegmentedRegion::shouldBePlaying()
 {
     return isPlaying_click || isPlaying_courier || isPlaying_midi;
@@ -621,7 +643,7 @@ void SegmentedRegion::startPlaying(bool toggleButtonState)
 {
     if (audioFileName != "" && !isPlaying && shouldBePlaying()) //audio file is set, and the region isn't playing yet, but it was requested to do so
     {
-        DBG("*plays music*");
+        DBG("*plays region " + juce::String(ID) + "*");
         isPlaying = true;
         
         //DBG("voice: " + juce::String(currentVoiceIndex + 1) + " / " + juce::String(associatedVoices.size()));
@@ -655,7 +677,7 @@ void SegmentedRegion::stopPlaying(bool toggleButtonState)
 {
     if (isPlaying && !shouldBePlaying()) //region is playing, but it was requested that it shouldn't do so anymore. (the audio file needn't be checked because the region cannot start playing without the file having been checked beforehand.)
     {
-        DBG("*stops music*");
+        DBG("*stops region " + juce::String(ID) + "*");
         associatedVoices[currentVoiceIndex]->stopNote(1.0f, true); //cycles through all voices bit by bit
         currentVoiceIndex = (currentVoiceIndex + 1) % associatedVoices.size(); //next time, play the next voice
         //audioEngine->getSynth()->noteOff(1, 64, 1.0f, true);
@@ -737,7 +759,7 @@ void SegmentedRegion::setMidiNote(int newNoteNumber)
 }
 void SegmentedRegion::handleNoteOn(juce::MidiKeyboardState* source, int midiChannel, int midiNoteNumber, float velocity)
 {
-    //DBG("registered ON note: " + juce::String(midiChannel) + " " + juce::String(midiNoteNumber));
+    DBG("registered ON note: " + juce::String(midiChannel) + " " + juce::String(midiNoteNumber));
 
     //LONG VERSION (easier to understand, but has too many if cases):
     //if (this->midiChannel >= 0 && noteNumber >= 0)
@@ -769,23 +791,26 @@ void SegmentedRegion::handleNoteOn(juce::MidiKeyboardState* source, int midiChan
     if ((this->midiChannel >= 0 && noteNumber >= 0) && (this->midiChannel == 0 || (this->midiChannel == midiChannel)) && (noteNumber == midiNoteNumber))
     {
         //region is set up to receive MIDI, and the incoming MIDI corresponds to that which the region recognises
-        if (shouldBeToggleable && isPlaying_midi)
+        if (shouldBeToggleable && (isPlaying_midi || isPlaying_click))
         {
             //setToggleState(!getToggleState(), juce::NotificationType::sendNotificationAsync); //WIP: this would be cleaner, but requires a message manager (throws as assert)
+            DBG("MIDI stop region (1)");
             isPlaying_midi = false;
+            isPlaying_click = false; //overwrites clicks
             stopPlaying();
         }
         else
         {
+            DBG("MIDI play region");
             isPlaying_midi = true;
-            startPlaying();
+            startPlaying(currentStateIndex != SegmentedRegionStateIndex::playable || shouldBeToggleable); //don't toggle button if it's not toggleable in playing regions mode, otherwise it will immediately turn itself off again
         }
         
     }
 }
 void SegmentedRegion::handleNoteOff(juce::MidiKeyboardState* source, int midiChannel, int midiNoteNumber, float velocity)
 {
-    //DBG("registered OFF note: " + juce::String(midiChannel) + " " + juce::String(midiNoteNumber));
+    DBG("registered OFF note: " + juce::String(midiChannel) + " " + juce::String(midiNoteNumber));
 
     //LONG VERSION (easier to understand, but has too many if cases):
     //if (this->midiChannel >= 0 && noteNumber >= 0)
@@ -800,7 +825,7 @@ void SegmentedRegion::handleNoteOff(juce::MidiKeyboardState* source, int midiCha
     //        {
     //            //note number matches with the one that the region responds to
     //            
-    //            if (!isToggleable())
+    //            if (!shouldBeToggleable)
     //            {
     //                isPlaying_midi = false;
     //                stopPlaying();
@@ -810,11 +835,13 @@ void SegmentedRegion::handleNoteOff(juce::MidiKeyboardState* source, int midiCha
     //}
 
     //SHORT VERSION (combines several of the above if cases into one case to improve performance):
-    if ((this->midiChannel >= 0 && noteNumber >= 0) && (this->midiChannel == 0 || (this->midiChannel == midiChannel)) && (noteNumber == midiNoteNumber) && (!isToggleable()))
+    if ((this->midiChannel >= 0 && noteNumber >= 0) && (this->midiChannel == 0 || (this->midiChannel == midiChannel)) && (noteNumber == midiNoteNumber) && (!shouldBeToggleable))
     {
         //region is set up to receive MIDI, and the incoming MIDI corresponds to that which the region recognises
+        DBG("MIDI stop region (2)");
         isPlaying_midi = false;
-        stopPlaying();
+        isPlaying_click = false; //overwrites clicks
+        stopPlaying(currentStateIndex != SegmentedRegionStateIndex::playable);
     }
 }
 

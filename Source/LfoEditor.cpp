@@ -23,8 +23,8 @@ LfoEditor::LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo)
     //rate
     lfoRateSlider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
     lfoRateSlider.setTextValueSuffix("Hz");
-    lfoRateSlider.setRange(0.01, 100.0, 0.01);
-    lfoRateSlider.setSkewFactorFromMidPoint(1.0);
+    lfoRateSlider.setRange(0.001, 100.0, 0.001);
+    lfoRateSlider.setSkewFactorFromMidPoint(10.0);
     lfoRateSlider.onValueChange = [this] { updateLfoRate(); };
     lfoRateSlider.setPopupMenuEnabled(true);
     lfoRateSlider.setTooltip("This slider changes the speed at which the LFO line travels around the region.");

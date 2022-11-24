@@ -129,9 +129,9 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     pitchQuantisationChoice.addItem("Semitones [12]", static_cast<int>(PitchQuantisationMethod::semitones) + 1);
     pitchQuantisationChoice.addItem("Scale: Major [7]", static_cast<int>(PitchQuantisationMethod::scale_major) + 1);
     pitchQuantisationChoice.addItem("Scale: Minor [7]", static_cast<int>(PitchQuantisationMethod::scale_minor) + 1);
-    pitchQuantisationChoice.addItem("Scale: Whole Tone [6]", static_cast<int>(PitchQuantisationMethod::scale_wholeTone) + 1);
     pitchQuantisationChoice.addItem("Scale: Pentatonic Major [5]", static_cast<int>(PitchQuantisationMethod::scale_pentatonicMajor) + 1);
     pitchQuantisationChoice.addItem("Scale: Pentatonic Minor [5]", static_cast<int>(PitchQuantisationMethod::scale_pentatonicMinor) + 1);
+    pitchQuantisationChoice.addItem("Scale: Whole Tone [6]", static_cast<int>(PitchQuantisationMethod::scale_wholeTone) + 1);
     pitchQuantisationChoice.addSeparator();
     pitchQuantisationChoice.addSectionHeading("Reversed");
     pitchQuantisationChoice.addItem("Semitones Reversed [12]", static_cast<int>(PitchQuantisationMethod::scale_semitonesReversed) + 1);
@@ -139,10 +139,10 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     pitchQuantisationChoice.addItem("Scale: Minor Reversed [7]", static_cast<int>(PitchQuantisationMethod::scale_minorReversed) + 1);
     pitchQuantisationChoice.addSeparator();
     pitchQuantisationChoice.addSectionHeading("Japanese");
-    pitchQuantisationChoice.addItem("Scale: Ritsu [5]", static_cast<int>(PitchQuantisationMethod::scale_ritsu) + 1);
-    pitchQuantisationChoice.addItem("Scale: Ryo [5]", static_cast<int>(PitchQuantisationMethod::scale_ryo) + 1);
     pitchQuantisationChoice.addItem("Scale: Min'yo [5]", static_cast<int>(PitchQuantisationMethod::scale_minyo) + 1);
     pitchQuantisationChoice.addItem("Scale: Miyako Bushi [5]", static_cast<int>(PitchQuantisationMethod::scale_miyakoBushi) + 1);
+    pitchQuantisationChoice.addItem("Scale: Ritsu [5]", static_cast<int>(PitchQuantisationMethod::scale_ritsu) + 1);
+    pitchQuantisationChoice.addItem("Scale: Ryo [5]", static_cast<int>(PitchQuantisationMethod::scale_ryo) + 1);
     pitchQuantisationChoice.addSeparator();
     pitchQuantisationChoice.addSectionHeading("Blues");
     pitchQuantisationChoice.addItem("Scale: Blues [6]", static_cast<int>(PitchQuantisationMethod::scale_bluesHexa) + 1);
@@ -150,12 +150,12 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     pitchQuantisationChoice.addItem("Scale: Blues [9]", static_cast<int>(PitchQuantisationMethod::scale_bluesNona) + 1);
     pitchQuantisationChoice.addSeparator();
     pitchQuantisationChoice.addSectionHeading("Other");
-    pitchQuantisationChoice.addItem("Scale: Hijaz Kar [7]", static_cast<int>(PitchQuantisationMethod::scale_hijazKar) + 1);
-    pitchQuantisationChoice.addItem("Scale: Hungarian Minor [7]", static_cast<int>(PitchQuantisationMethod::scale_hungarianMinor) + 1);
-    pitchQuantisationChoice.addItem("Scale: Persian [7]", static_cast<int>(PitchQuantisationMethod::scale_persian) + 1);
-    pitchQuantisationChoice.addItem("Scale: Octaves [1]", static_cast<int>(PitchQuantisationMethod::scale_octaves) + 1);
     pitchQuantisationChoice.addItem("Scale: Half Up [2]", static_cast<int>(PitchQuantisationMethod::scale_halfUp) + 1);
     pitchQuantisationChoice.addItem("Scale: Half Down [2]", static_cast<int>(PitchQuantisationMethod::scale_halfDown) + 1);
+    pitchQuantisationChoice.addItem("Scale: Hijaz Kar [7]", static_cast<int>(PitchQuantisationMethod::scale_hijazKar) + 1);
+    pitchQuantisationChoice.addItem("Scale: Hungarian Minor [7]", static_cast<int>(PitchQuantisationMethod::scale_hungarianMinor) + 1);
+    pitchQuantisationChoice.addItem("Scale: Octaves [1]", static_cast<int>(PitchQuantisationMethod::scale_octaves) + 1);
+    pitchQuantisationChoice.addItem("Scale: Persian [7]", static_cast<int>(PitchQuantisationMethod::scale_persian) + 1);
     pitchQuantisationChoice.onChange = [this]
     {
         auto voices = associatedRegion->getAudioEngine()->getVoicesWithID(associatedRegion->getID());
@@ -165,14 +165,8 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
             (*it)->setPitchQuantisationMethod(static_cast<PitchQuantisationMethod>(pitchQuantisationChoice.getSelectedId() - 1)); //set the new pitch quantisation method for all associated voices
         }
     };
-    pitchQuantisationChoice.setTooltip("If you want pitch shifts to only hit notes on a certain scale, you can choose so here. This does not affect the pitch slider, only pitch modulation.");
+    pitchQuantisationChoice.setTooltip("If you want pitch shifts to only hit notes on a certain scale, you can choose so here. This does not affect the pitch slider, only pitch modulation. The value in the square brackets is the number of notes on the scale within one octave (which has a total of 12 notes).");
     addChildComponent(pitchQuantisationChoice);
-
-    //    //oriental
-    //    scale_hijazKar, //double harmonic major scale (often associated with arabic music)
-    //    scale_hungarianMinor, //double harmonic minor scale
-    //    scale_persian,
-
 
     pitchQuantisationLabel.setText("Pitch Quantisation: ", juce::NotificationType::dontSendNotification);
     addChildComponent(pitchQuantisationLabel);
@@ -511,7 +505,7 @@ void RegionEditor::selectFile()
     //shutdownAudio();
 
     fc = std::make_unique<juce::FileChooser>("Select a Wave file shorter than 2 seconds to play...",
-        juce::File(R"(C:\Users\Aaron\Desktop\Musikproduktion\VSTs\Iris 2\Iris 2 Library\Samples)"),
+        juce::File(/*R"(C:\Users\Aaron\Desktop\Musikproduktion\VSTs\Iris 2\Iris 2 Library\Samples)"*/),
         formatManager.getWildcardForAllFormats());
     auto chooserFlags = juce::FileBrowserComponent::openMode
         | juce::FileBrowserComponent::canSelectFiles;

@@ -110,6 +110,7 @@ void SegmentedRegionState_Playable::buttonStateChanged()
         if (region.isToggleable() && region.getToggleState() == true)
         {
             region.setIsPlaying_Click(false);
+            region.setIsPlaying_Midi(false); //overwrites MIDI
             region.stopPlaying(false); //don't update the button's toggle state - this would cause an endless loop back to this method!
         }
         else //not in toggle mode or toggling on
@@ -123,6 +124,7 @@ void SegmentedRegionState_Playable::buttonStateChanged()
         if (!region.isToggleable())
         {
             region.setIsPlaying_Click(false);
+            region.setIsPlaying_Midi(false); //overwrites MIDI
             region.stopPlaying(true);
         }
         break;

@@ -413,7 +413,7 @@
 
 
 
-!- remove the fixed directory paths from the code (loading image, loading audio)
+!# remove the fixed directory paths from the code (loading image, loading audio)
 ?# maybe make regions playable in play path playing mode
 	-> actually, it's possible to do that now since the user can freely switch between "Playing Regions" and "Playing Play Paths" without interruption
 	!# do make sure, though, that the regions don't start/stop playing in "Playing Regions" mode depending on whether or not there are couriers in them! (just needs an additional condition in the startPlaying/stopPlaying methods)
@@ -485,10 +485,17 @@
 -? don't display the "preset has been loaded" window - even if the loading fails, it would show (because the result can't be checked with the given method...)
 !# make sure that users can't break anything by playing with options in the region editor while no audio file has been set yet!
 	-> seems good
-?- show a warning prompt when trying to open a preset while not in the init state
-?- bug: sometimes, the key bindings for switching the editor mode don't work
-	- might be the laptop being slow
-	- ohh it might also be because the editor windows grab the keyboard focus?
+?/ show a warning prompt when trying to open a preset while not in the init state
+	-> actually, even the dumbest user should be smart enough not to know that imho...
+!(#) bug: sometimes, the key bindings for switching the editor mode don't work
+	- idea 1: might be the laptop being slow
+	!- idea 2: it might also be because the editor windows or some component grabs the keyboard focus?
+		-> try grabbing keyboard focus after transitioning modes?
+	/ idea 3: maybe one of the keyPressed handlers (presumably in the playable states) in SegmentableImage returns true even though a key wasn't handled?
+	-> added a DBG output for PluginEditor::keyPressed now. if it doesn't register the key presses, it might be idea 2, otherwise idea 1.
+		-> it doesn't receive the key pressed when it happens!
+	-> ohhh i think it's when one clicks the plugin's window instead of its area... yikes...
+		(#)> so i managed to fix it partly by telling editor windows to give away their keyboard focus when they close. but since one cannot access the window in which the plugin editor lives, one cannot tell it not to grab the keyboard focus, damn...
 !# gotta reset the state of the AudioEngine before deserialising it! -> if there's an editor, need to tell it that SegmentableImage has been deleted and needs to be replaced!
 !/(?) bug: read access violation when removing a modulator (in ModulatableParameter)
 	/> the usual: suspend processing...
@@ -499,13 +506,14 @@
 # bug: play paths are already interactable while in drawing mode -> handle them in the same way as regions in region drawing mode instead!
 	-> arghhhh it's because of some involuntary setback again... easy fix though, thankfully
 ?- maybe make the phase modulation parameters into a new class that calculates modulo 1.0 at the end - in that case, one fmod calculation could be replaced with one if case, which should arguably be faster
-!- display play path length (normed) in the play path editor!
+!# display play path length (normed) in the play path editor!
 	-> this is very useful to coordiante the different play paths
-	!- not scaling-independent yet...
-!- add a panic button (stops all regions (does NOT allow for tailoff!) and play paths)
+	!# not scaling-independent yet...
+!# add a panic button (stops all regions (does NOT allow for tailoff!) and play paths)
 	# should be red and say PANIC in capital letters
 	# next to the mode selection would be a good place i think. there's still plenty of space left there
-	!- doesn't work for play paths yet...
+	# also needs to affect AudioEngine: turn off all notes
+	!# doesn't work for play paths yet...
 (#) implement more scales (esp. pentatonic scales and various modes)
 	# half up: 0 in first half of the octave, 1 in the second half
 	# half down: -1 in first half(?), 0 in second half	(alternatively 0 and 11)
@@ -563,8 +571,28 @@
 		- depth: dry/wet mix
 !# some update rate quantisation settings cause the update rate to become 0 o.ô
 	-> ahh, it's probably cos i used std::floor, causing the multiplier to easily become 0. changed it to ceil now.
-!- analyse CPU performance to check whether any remaining points in this section actually need to be addressed.
+!# regions (and maybe play paths) don't act like toggleables when playing play paths (or regions in the other case) even if they are set to toggleable
+# try resetting the voice's DAHDSR when its current playback position gets modulated. if it sounds good, keep it.
+	-> sounds better imo
+	!#> add a note in the respective modulation tooltip
+!# regions no longer turn off when clicking them o.ô
+# make it so that un-playing via MIDI and un-playing via clicking overwrite each other, seems more intuitive.
+	# doesn't keep playing while MIDI is pressed atm
+		-> only happens in playing regions mode
+	# play plath MIDI needs two interactions to start/stop playing when it's used after clicks have come in
+# make the LFO depth calculation more lenient maybe
+	# perhaps don't subtract the minimum?
+	/ perhaps compare the max length to the length of the actual diagonal instead of the squared diagonal?
+		-> actually did so already
+# order scales more alphabetically
+# decrease minimum LFO frequency to 0.001Hz
+!(#) analyse CPU performance to check whether any remaining points in this section actually need to be addressed.
 	-> https://learn.microsoft.com/en-us/visualstudio/profiling/beginners-guide-to-performance-profiling?view=vs-2022
+	-> seems like it's mainly the UI that's eating tons of ressources. optimising little things about the rendering of voices wouldn't do much i fear...
+		!-> put that into the thesis maybe
+!/ display version number in the window's title bar
+	-> not possible from within the program, argh...
+- delete all empty cpp and header files
 
 
 

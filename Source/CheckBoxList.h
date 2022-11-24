@@ -182,7 +182,7 @@ public:
 
             case static_cast<int>(LfoModulatableParameter::playbackPositionCurrent):
             case static_cast<int>(LfoModulatableParameter::playbackPositionCurrent_inverted):
-                return "You are currently modulating region " + juce::String(regionID) + "'s current playback position. Whenever this region's LFO updates, it will force the target region's playback point to a certain position (from which it will keep on playing). When the LFO line is longer, the position to which it gets set is shifted further back (or forward if inverted). This is an additive parameter.";
+                return "You are currently modulating region " + juce::String(regionID) + "'s current playback position. Whenever this region's LFO updates, it will force the target region's playback point to a certain position (from which it will keep on playing). When the LFO line is longer, the position to which it gets set is shifted further back (or forward if inverted). Note: for a less clicky sound, the region's DAHDSR envelope gets retriggered whenever the current playback position changes. This is an additive parameter.";
 
 
 
@@ -205,7 +205,7 @@ public:
 
             case static_cast<int>(LfoModulatableParameter::lfoUpdateInterval):
             case static_cast<int>(LfoModulatableParameter::lfoUpdateInterval_inverted):
-                return "You are currently modulating the update rate of region " + juce::String(regionID) + "'s LFO, i.e. the longer this LFO's line is, the slower that other LFO's update rate becomes (or faster if inverted). This is a multiplicative parameter.";
+                return "You are currently modulating the update rate of region " + juce::String(regionID) + "'s LFO, i.e. the longer this LFO's line is, the slower that other LFO's update rate becomes (or faster if inverted). Note: the time until an LFO's next update is only adjusted during *its own* update, not whenever LFOs modulating it change. This is a multiplicative parameter.";
 
 
 

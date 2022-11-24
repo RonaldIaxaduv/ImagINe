@@ -107,17 +107,30 @@ void PlayPathState_Playable::buttonStateChanged()
     {
     case juce::Button::ButtonState::buttonDown:
         //toggle path off or on
-        if (path.getToggleState() == true)
+        if (path.getToggleState() == true) //(path.getIsPlaying_Click() || path.getIsPlaying_Midi())
         {
             path.setIsPlaying_Click(false);
-            path.stopPlaying();
+            path.setIsPlaying_Midi(false); //overwrites MIDI
+            path.stopPlaying(false);
         }
         else
         {
             path.setIsPlaying_Click(true);
-            path.startPlaying();
+            path.startPlaying(false);
         }
         break;
+
+        //if (region.isToggleable() && region.getToggleState() == true)
+        //{
+        //    region.setIsPlaying_Click(false);
+        //    region.setIsPlaying_Midi(false); //overwrites MIDI
+        //    region.stopPlaying(false); //don't update the button's toggle state - this would cause an endless loop back to this method!
+        //}
+        //else //not in toggle mode or toggling on
+        //{
+        //    region.setIsPlaying_Click(true);
+        //    region.startPlaying(!region.isToggleable());
+        //}
 
     default:
         break;

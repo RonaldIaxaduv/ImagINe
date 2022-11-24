@@ -737,6 +737,11 @@ bool AudioEngine::isSuspended()
 {
     return associatedProcessor.isSuspended();
 }
+void AudioEngine::panic()
+{
+    DBG("PANIC! (AudioEngine)");
+    synth.allNotesOff(0, false); //no tailoff!
+}
 
 void AudioEngine::releaseResources()
 {

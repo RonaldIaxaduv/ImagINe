@@ -49,6 +49,7 @@ PlayPath::PlayPath(int ID, const juce::Path& path, const juce::Rectangle<float>&
     setToggleable(true);
     setBufferedToImage(true);
     setMouseClickGrabsKeyboardFocus(false);
+    setWantsKeyboardFocus(false);
     setSize(parentBounds.getWidth(), parentBounds.getHeight());
 }
 PlayPath::~PlayPath()
@@ -333,6 +334,14 @@ bool PlayPath::getIsPlaying_Click()
 {
     return isPlaying_click;
 }
+void PlayPath::setIsPlaying_Midi(bool shouldBePlaying)
+{
+    isPlaying_midi = shouldBePlaying;
+}
+bool PlayPath::getIsPlaying_Midi()
+{
+    return isPlaying_midi;
+}
 bool PlayPath::shouldBePlaying()
 {
     return isPlaying_click || isPlaying_midi;
@@ -343,6 +352,7 @@ void PlayPath::startPlaying(bool toggleButtonState)
     {
         //play couriers (have been prepared in advance)
         DBG("playing path " + juce::String(ID));
+        isPlaying = true;
 
         //try to set the button's toggle state to "down" (needs to be done cross-thread for MIDI messages because they do not run on the same thread as couriers and clicks)
         if (toggleButtonState)
@@ -379,7 +389,6 @@ void PlayPath::startPlaying(bool toggleButtonState)
                 }
             }
         }
-        isPlaying = true;
     }
 }
 void PlayPath::stopPlaying(bool toggleButtonState)
@@ -436,6 +445,7 @@ void PlayPath::stopPlaying(bool toggleButtonState)
         PlayPathCourier* newCourier = new PlayPathCourier(this, courierIntervalSeconds);
         addChildComponent(newCourier);
         couriers.add(newCourier);
+        repaint(); //otherwise, the old couriers will appear to stop in place
         //DBG("added a courier. bounds: " + newCourier->getBounds().toString() + " (within " + getLocalBounds().toString() + ")");
 
         isPlaying = false;
@@ -449,53 +459,9 @@ void PlayPath::panic()
         DBG("PANIC! force stopping path " + juce::String(ID));
         isPlaying_click = false;
         isPlaying_midi = false;
-        isPlaying = false;
 
-        //try to set the button's toggle state to "up" (needs to be done cross-thread for MIDI messages because they do not run on the same thread as couriers and clicks)
-        if (juce::MessageManager::getInstance()->isThisTheMessageThread())
-        {
-            setToggleState(false, juce::NotificationType::dontSendNotification);
-            //setState(juce::Button::ButtonState::buttonDown);
-        }
-        else
-        {
-            juce::MessageManager::getInstance()->callFunctionOnMessageThread([](void* data)
-                {
-                    static_cast<PlayPath*>(data)->setToggleState(false, juce::NotificationType::dontSendNotification);
-                    return static_cast<void*>(nullptr);
-                }, this);
-        }
-
-        for (auto* itCourier = couriers.begin(); itCourier != couriers.end(); ++itCourier)
-        {
-            (*itCourier)->stopRunning();
-            removeChildComponent(*itCourier);
-
-            //for any region that the courier was currently in, signal to that region that the courier has left
-            juce::Array<int> intersectedRegions = (*itCourier)->getCurrentlyIntersectedRegions();
-            for (auto itID = intersectedRegions.begin(); itID != intersectedRegions.end(); ++itID)
-            {
-                for (auto itRegion = regionsByRange_region.begin(); itRegion != regionsByRange_region.end(); ++itRegion)
-                {
-                    if ((*itRegion)->getID() == *itID)
-                    {
-                        (*itRegion)->signalCourierLeft();
-                        //no need to delete the index from the intersectedRegions array
-                        break;
-                    }
-                }
-            }
-
-            //reset courier's currently intersected regions
-            (*itCourier)->resetCurrentlyIntersectedRegions();
-        }
-        couriers.clear(true);
-
-        //prepare one new courier for the next time that this path is played
-        PlayPathCourier* newCourier = new PlayPathCourier(this, courierIntervalSeconds);
-        addChildComponent(newCourier);
-        couriers.add(newCourier);
-        //DBG("added a courier. bounds: " + newCourier->getBounds().toString() + " (within " + getLocalBounds().toString() + ")");
+        isPlaying = true; //required for the following line to execute
+        stopPlaying();
     }
 }
 
@@ -965,9 +931,13 @@ void PlayPath::handleNoteOn(juce::MidiKeyboardState* source, int midiChannel, in
     if ((this->midiChannel >= 0 && noteNumber >= 0) && (this->midiChannel == 0 || (this->midiChannel == midiChannel)) && (noteNumber == midiNoteNumber))
     {
         //play path is set up to receive MIDI, and the incoming MIDI corresponds to that which the play path recognises
-        if (isPlaying_midi)
+        DBG(juce::String(static_cast<int>(isPlaying)) + ": " + juce::String(static_cast<int>(isPlaying_midi)) + " || " + juce::String(static_cast<int>(isPlaying_click)));
+        if (isPlaying_midi || isPlaying_click)
         {
+            DBG("MIDI stop path");
             isPlaying_midi = false;
+            isPlaying_click = false; //overwrites clicks
+
             juce::MessageManager::getInstance()->callFunctionOnMessageThread([](void* data)
                 {
                     static_cast<PlayPath*>(data)->stopPlaying(); //needs to be called on the message thread because the couriers are also running there
@@ -976,7 +946,9 @@ void PlayPath::handleNoteOn(juce::MidiKeyboardState* source, int midiChannel, in
         }
         else
         {
+            DBG("MIDI play path");
             isPlaying_midi = true;
+
             juce::MessageManager::getInstance()->callFunctionOnMessageThread([](void* data)
                 {
                     static_cast<PlayPath*>(data)->startPlaying(); //needs to be called on the message thread because the couriers are also running there

@@ -209,7 +209,7 @@ void PlayPathEditor::copyPathParameters()
 {
     DBG("copying play path parameters...");
 
-    pathLengthLabel.setText("Path Length: " + juce::String(associatedPath->getPathLength()), juce::NotificationType::dontSendNotification);
+    pathLengthLabel.setText("Path Length: " + juce::String(associatedPath->getPathLength() / std::sqrt(static_cast<float>(associatedPath->getWidth() * associatedPath->getWidth() + associatedPath->getHeight() * associatedPath->getHeight()))), juce::NotificationType::dontSendNotification);
 
     courierIntervalSlider.setValue(associatedPath->getCourierInterval_seconds(), juce::NotificationType::dontSendNotification);
 

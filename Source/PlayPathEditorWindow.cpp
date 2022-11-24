@@ -35,5 +35,7 @@ PlayPathEditorWindow::PlayPathEditorWindow(juce::String name, PlayPath* path)
 
 void PlayPathEditorWindow::closeButtonPressed()
 {
+    giveAwayKeyboardFocus();
+
     delete this;
 }

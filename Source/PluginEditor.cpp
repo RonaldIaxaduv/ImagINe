@@ -86,8 +86,8 @@ ImageINeDemoAudioProcessorEditor::ImageINeDemoAudioProcessorEditor (ImageINeDemo
     panicButton.setButtonText("PANIC!");
     panicButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colours::red);
     panicButton.setColour(juce::TextButton::ColourIds::buttonOnColourId, juce::Colours::darkred);
-    panicButton.setColour(juce::TextButton::ColourIds::textColourOffId, juce::Colours::lightgrey);
-    panicButton.setColour(juce::TextButton::ColourIds::textColourOnId, juce::Colours::lightgrey);
+    panicButton.setColour(juce::TextButton::ColourIds::textColourOffId, juce::Colours::black);
+    panicButton.setColour(juce::TextButton::ColourIds::textColourOnId, juce::Colours::white);
     panicButton.onClick = [this] { panic(); };
     panicButton.setTooltip("Clicking this button will immediately stop all regions and play paths without any release times. This is useful in case you accidentally run into some noisy program configuration et cetera.");
     addAndMakeVisible(panicButton);
@@ -100,6 +100,8 @@ ImageINeDemoAudioProcessorEditor::ImageINeDemoAudioProcessorEditor (ImageINeDemo
     //setResizable(true, true); //set during state changes
     setResizeLimits(100, 100, 4096, 2160); //maximum resolution: 4k
     setSize(600, 400);
+    setWantsKeyboardFocus(true);
+    setMouseClickGrabsKeyboardFocus(true);
 
     //tooltips
     tooltipWindow->setMillisecondsBeforeTipAppears(2000);
@@ -208,6 +210,8 @@ void ImageINeDemoAudioProcessorEditor::resized()
 
 bool ImageINeDemoAudioProcessorEditor::keyPressed(const juce::KeyPress& key)
 {
+    DBG("editor detected key press.");
+
     //state-specific key bindings:
     switch (currentStateIndex)
     {
@@ -476,9 +480,7 @@ void ImageINeDemoAudioProcessorEditor::restorePreviousModeBoxSelection()
 
 void ImageINeDemoAudioProcessorEditor::showOpenImageDialogue()
 {
-    //image.setImage(juce::ImageFileFormat::loadFrom(juce::File("C:\\Users\\Aaron\\Desktop\\Programmierung\\GitHub\\ImageSegmentationTester\\Test Images\\Re_Legion_big+.jpg")));
-
-    fc.reset(new juce::FileChooser("Choose an image to open...", juce::File(R"(C:\Users\Aaron\Desktop\Programmierung\GitHub\ImageSegmentationTester\Test Images)") /*juce::File::getCurrentWorkingDirectory()*/,
+    fc.reset(new juce::FileChooser("Choose an image to open...", juce::File(/*R"(C:\Users\Aaron\Desktop\Programmierung\GitHub\ImageSegmentationTester\Test Images)"*/) /*juce::File::getCurrentWorkingDirectory()*/,
         "*.jpg;*.jpeg;*.png;*.gif;*.bmp", true));
 
     fc->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
@@ -823,7 +825,9 @@ void ImageINeDemoAudioProcessorEditor::updateState()
 
 void ImageINeDemoAudioProcessorEditor::panic()
 {
+    DBG("PANIC! (PluginEditor)");
     image.panic();
+    audioProcessor.audioEngine.panic();
 }
 
 void ImageINeDemoAudioProcessorEditor::setMidiInput(int index)

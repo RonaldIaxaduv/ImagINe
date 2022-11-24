@@ -50,6 +50,8 @@ public:
 
     void setIsPlaying_Click(bool shouldBePlaying);
     bool getIsPlaying_Click();
+    void setIsPlaying_Midi(bool shouldBePlaying);
+    bool getIsPlaying_Midi();
     bool shouldBePlaying();
     void startPlaying(bool toggleButtonState = true);
     void stopPlaying(bool toggleButtonState = true);

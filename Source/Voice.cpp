@@ -550,6 +550,8 @@ void Voice::evaluateBufferPosModulation()
         //^- see evaluateTablePosModulation method in RegionLfo for further notes
 
         //don't advance; stick to the target phase!
+
+        envelope.noteOn(); //restart envelope for a cleaner sound
     }
     else
     {

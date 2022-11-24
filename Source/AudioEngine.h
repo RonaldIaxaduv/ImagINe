@@ -71,6 +71,7 @@ public:
     void prepareToPlay(int /*samplesPerBlockExpected*/, double sampleRate) override;
     void suspendProcessing(bool shouldBeSuspended);
     bool isSuspended();
+    void panic();
 
     void releaseResources() override;
 

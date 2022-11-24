@@ -24,6 +24,9 @@ PlayPathCourier::PlayPathCourier(PlayPath* associatedPlayPath, float intervalInS
     setInterval_seconds(intervalInSeconds);
     parentPathLengthChanged();
 
+    setWantsKeyboardFocus(false);
+    setMouseClickGrabsKeyboardFocus(false);
+
     //update bounds (without repainting the parent)
     juce::Point<float> currentPoint = associatedPlayPath->getPointAlongPath(currentNormedDistanceFromStart);
     setBounds(static_cast<int>(currentPoint.getX() - radius),
