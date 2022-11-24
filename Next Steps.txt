@@ -592,7 +592,7 @@
 		!-> put that into the thesis maybe
 !/ display version number in the window's title bar
 	-> not possible from within the program, argh...
-- delete all empty cpp and header files
+# delete all empty cpp and header files
 
 
 

@@ -38,8 +38,6 @@
               file="Source/SegmentableImage.h"/>
         <FILE id="AnGmtW" name="SegmentableImage.cpp" compile="1" resource="0"
               file="Source/SegmentableImage.cpp"/>
-        <FILE id="Jw3OBx" name="SegmentableImageState.h" compile="0" resource="0"
-              file="Source/SegmentableImageState.h"/>
       </GROUP>
       <GROUP id="{CBF11E86-5346-B8D0-1757-75A69300FD28}" name="Segmented Region">
         <FILE id="ofjIHs" name="SegmentedRegionStates.cpp" compile="1" resource="0"
@@ -97,8 +95,6 @@
               file="Source/ModulatableParameter.h"/>
         <FILE id="SBVSll" name="ModulatableParameterStateIndex.h" compile="0"
               resource="0" file="Source/ModulatableParameterStateIndex.h"/>
-        <FILE id="UGiR3n" name="ModulatableParameterStates.cpp" compile="1"
-              resource="0" file="Source/ModulatableParameterStates.cpp"/>
         <FILE id="iOx8RN" name="ModulatableParameterStates.h" compile="0" resource="0"
               file="Source/ModulatableParameterStates.h"/>
       </GROUP>
