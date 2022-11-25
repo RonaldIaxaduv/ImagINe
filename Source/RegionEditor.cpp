@@ -149,12 +149,34 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     pitchQuantisationChoice.addItem("Scale: Blues [7]", static_cast<int>(PitchQuantisationMethod::scale_bluesHepta) + 1);
     pitchQuantisationChoice.addItem("Scale: Blues [9]", static_cast<int>(PitchQuantisationMethod::scale_bluesNona) + 1);
     pitchQuantisationChoice.addSeparator();
+    pitchQuantisationChoice.addSectionHeading("Intervals");
+    pitchQuantisationChoice.addItem("Scale: Minor Second Down [2]", static_cast<int>(PitchQuantisationMethod::scale_minorSecondDown) + 1);
+    pitchQuantisationChoice.addItem("Scale: Minor Second Up [2]", static_cast<int>(PitchQuantisationMethod::scale_minorSecondUp) + 1);
+    pitchQuantisationChoice.addItem("Scale: Major Second Down [2]", static_cast<int>(PitchQuantisationMethod::scale_majorSecondDown) + 1);
+    pitchQuantisationChoice.addItem("Scale: Major Second Up [2]", static_cast<int>(PitchQuantisationMethod::scale_majorSecondUp) + 1);
+    pitchQuantisationChoice.addItem("Scale: Minor Third Down [2]", static_cast<int>(PitchQuantisationMethod::scale_minorThirdDown) + 1);
+    pitchQuantisationChoice.addItem("Scale: Minor Third Up [2]", static_cast<int>(PitchQuantisationMethod::scale_minorThirdUp) + 1);
+    pitchQuantisationChoice.addItem("Scale: Major Third Down [2]", static_cast<int>(PitchQuantisationMethod::scale_majorThirdDown) + 1);
+    pitchQuantisationChoice.addItem("Scale: Major Third Up [2]", static_cast<int>(PitchQuantisationMethod::scale_majorThirdUp) + 1);
+    pitchQuantisationChoice.addItem("Scale: Perfect Fourth Down [2]", static_cast<int>(PitchQuantisationMethod::scale_perfectFourthDown) + 1);
+    pitchQuantisationChoice.addItem("Scale: Perfect Fourth Up [2]", static_cast<int>(PitchQuantisationMethod::scale_perfectFourthUp) + 1);
+    pitchQuantisationChoice.addItem("Scale: Diminished Fifth Down [2]", static_cast<int>(PitchQuantisationMethod::scale_diminishedFifthDown) + 1);
+    pitchQuantisationChoice.addItem("Scale: Diminished Fifth Up [2]", static_cast<int>(PitchQuantisationMethod::scale_diminishedFifthUp) + 1);
+    pitchQuantisationChoice.addItem("Scale: Perfect Fifth Down [2]", static_cast<int>(PitchQuantisationMethod::scale_perfectFifthDown) + 1);
+    pitchQuantisationChoice.addItem("Scale: Perfect Fifth Up [2]", static_cast<int>(PitchQuantisationMethod::scale_perfectFifthUp) + 1);
+    pitchQuantisationChoice.addItem("Scale: Minor Sixth Down [2]", static_cast<int>(PitchQuantisationMethod::scale_minorSixthDown) + 1);
+    pitchQuantisationChoice.addItem("Scale: Minor Sixth Up [2]", static_cast<int>(PitchQuantisationMethod::scale_minorSixthUp) + 1);
+    pitchQuantisationChoice.addItem("Scale: Major Sixth Down [2]", static_cast<int>(PitchQuantisationMethod::scale_majorSixthDown) + 1);
+    pitchQuantisationChoice.addItem("Scale: Major Sixth Up [2]", static_cast<int>(PitchQuantisationMethod::scale_majorSixthUp) + 1);
+    pitchQuantisationChoice.addItem("Scale: Minor Seventh Down [2]", static_cast<int>(PitchQuantisationMethod::scale_minorSeventhDown) + 1);
+    pitchQuantisationChoice.addItem("Scale: Minor Seventh Up [2]", static_cast<int>(PitchQuantisationMethod::scale_minorSeventhUp) + 1);
+    pitchQuantisationChoice.addItem("Scale: Major Seventh Down [2]", static_cast<int>(PitchQuantisationMethod::scale_majorSeventhDown) + 1);
+    pitchQuantisationChoice.addItem("Scale: Major Seventh Up [2]", static_cast<int>(PitchQuantisationMethod::scale_majorSeventhUp) + 1);
+    pitchQuantisationChoice.addItem("Scale: Perfect Octave [1]", static_cast<int>(PitchQuantisationMethod::scale_perfectOctave) + 1);
+    pitchQuantisationChoice.addSeparator();
     pitchQuantisationChoice.addSectionHeading("Other");
-    pitchQuantisationChoice.addItem("Scale: Half Up [2]", static_cast<int>(PitchQuantisationMethod::scale_halfUp) + 1);
-    pitchQuantisationChoice.addItem("Scale: Half Down [2]", static_cast<int>(PitchQuantisationMethod::scale_halfDown) + 1);
     pitchQuantisationChoice.addItem("Scale: Hijaz Kar [7]", static_cast<int>(PitchQuantisationMethod::scale_hijazKar) + 1);
     pitchQuantisationChoice.addItem("Scale: Hungarian Minor [7]", static_cast<int>(PitchQuantisationMethod::scale_hungarianMinor) + 1);
-    pitchQuantisationChoice.addItem("Scale: Octaves [1]", static_cast<int>(PitchQuantisationMethod::scale_octaves) + 1);
     pitchQuantisationChoice.addItem("Scale: Persian [7]", static_cast<int>(PitchQuantisationMethod::scale_persian) + 1);
     pitchQuantisationChoice.onChange = [this]
     {

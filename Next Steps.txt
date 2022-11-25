@@ -748,3 +748,7 @@ possible features to add later:
 - modulate a region's LFO depth using a(/the voices') DAHDSR modulator
 	-> would be pretty simple to implement (excluding UI): add a DAHDSR to RegionLfo and start/reset it in Voice whenever the Voice's DAHDSR is also started/reset (should be fine even with polyphony imo)
 	-> idea for a quicker implementation: set the LFO's DAHDSR parameters to the same values as the voices' DAHDSR, except that the levels should be capped at 0dB (since that translates to 1.0!)
+- add an option to only update a voice's current pitch when it starts playing
+	-> neat to implement regions that contain a single-pitch waveform and are called often
+	-> would be especially cool in combination with the polyphony and one-shot updates!
+	- this shouldn't be too hard to implement: add a class for the state (which will handle the method which sets the voice's current phase and also has a method that will be called during the voice's noteOn method) and add two implementations of it. the first uses the normal method for aquiring pitch (looking for updates during every call), the second has a member variable storing the modulated pitch that was detected when the noteOn method was called and only ever returns that value for the pitch method.

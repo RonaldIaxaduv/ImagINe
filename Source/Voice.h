@@ -111,7 +111,6 @@ public:
 
     void setPitchQuantisationScale_major();
     void setPitchQuantisationScale_minor();
-    void setPitchQuantisationScale_octaves();
     void setPitchQuantisationScale_semitonesReversed();
     void setPitchQuantisationScale_majorReversed();
     void setPitchQuantisationScale_minorReversed();
@@ -128,8 +127,30 @@ public:
     void setPitchQuantisationScale_wholeTone();
     void setPitchQuantisationScale_pentatonicMajor();
     void setPitchQuantisationScale_pentatonicMinor();
-    void setPitchQuantisationScale_halfUp();
-    void setPitchQuantisationScale_halfDown();
+
+    void setPitchQuantisationScale_minorSecondDown();
+    void setPitchQuantisationScale_minorSecondUp();
+    void setPitchQuantisationScale_majorSecondDown();
+    void setPitchQuantisationScale_majorSecondUp();
+    void setPitchQuantisationScale_minorThirdDown();
+    void setPitchQuantisationScale_minorThirdUp();
+    void setPitchQuantisationScale_majorThirdDown();
+    void setPitchQuantisationScale_majorThirdUp();
+    void setPitchQuantisationScale_perfectFourthDown();
+    void setPitchQuantisationScale_perfectFourthUp();
+    void setPitchQuantisationScale_diminishedFifthDown();
+    void setPitchQuantisationScale_diminishedFifthUp();
+    void setPitchQuantisationScale_perfectFifthDown();
+    void setPitchQuantisationScale_perfectFifthUp();
+    void setPitchQuantisationScale_minorSixthDown();
+    void setPitchQuantisationScale_minorSixthUp();
+    void setPitchQuantisationScale_majorSixthDown();
+    void setPitchQuantisationScale_majorSixthUp();
+    void setPitchQuantisationScale_minorSeventhDown();
+    void setPitchQuantisationScale_minorSeventhUp();
+    void setPitchQuantisationScale_majorSeventhDown();
+    void setPitchQuantisationScale_majorSeventhUp();
+    void setPitchQuantisationScale_perfectOctave();
 
     void setLfo(RegionLfo* newAssociatedLfo);
 

@@ -589,11 +589,6 @@ void Voice::setPitchQuantisationMethod(PitchQuantisationMethod newPitchQuantisat
         pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
         break;
 
-    case PitchQuantisationMethod::scale_octaves:
-        setPitchQuantisationScale_octaves();
-        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
-        break;
-
     case PitchQuantisationMethod::scale_semitonesReversed:
         setPitchQuantisationScale_semitonesReversed();
         pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
@@ -674,13 +669,118 @@ void Voice::setPitchQuantisationMethod(PitchQuantisationMethod newPitchQuantisat
         pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
         break;
 
-    case PitchQuantisationMethod::scale_halfUp:
-        setPitchQuantisationScale_halfUp();
+    case PitchQuantisationMethod::scale_minorSecondUp:
+        setPitchQuantisationScale_minorSecondUp();
         pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
         break;
 
-    case PitchQuantisationMethod::scale_halfDown:
-        setPitchQuantisationScale_halfDown();
+    case PitchQuantisationMethod::scale_minorSecondDown:
+        setPitchQuantisationScale_minorSecondDown();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_majorSecondUp:
+        setPitchQuantisationScale_majorSecondUp();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_majorSecondDown:
+        setPitchQuantisationScale_majorSecondDown();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_minorThirdUp:
+        setPitchQuantisationScale_minorThirdUp();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_minorThirdDown:
+        setPitchQuantisationScale_minorThirdDown();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_majorThirdUp:
+        setPitchQuantisationScale_majorThirdUp();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_majorThirdDown:
+        setPitchQuantisationScale_majorThirdDown();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_perfectFourthUp:
+        setPitchQuantisationScale_perfectFourthUp();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_perfectFourthDown:
+        setPitchQuantisationScale_perfectFourthDown();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_diminishedFifthUp:
+        setPitchQuantisationScale_diminishedFifthUp();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_diminishedFifthDown:
+        setPitchQuantisationScale_diminishedFifthDown();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_perfectFifthUp:
+        setPitchQuantisationScale_perfectFifthUp();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_perfectFifthDown:
+        setPitchQuantisationScale_perfectFifthDown();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_minorSixthUp:
+        setPitchQuantisationScale_minorSixthUp();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_minorSixthDown:
+        setPitchQuantisationScale_minorSixthDown();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_majorSixthUp:
+        setPitchQuantisationScale_majorSixthUp();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_majorSixthDown:
+        setPitchQuantisationScale_majorSixthDown();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_minorSeventhUp:
+        setPitchQuantisationScale_minorSeventhUp();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_minorSeventhDown:
+        setPitchQuantisationScale_minorSeventhDown();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_majorSeventhUp:
+        setPitchQuantisationScale_majorSeventhUp();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_majorSeventhDown:
+        setPitchQuantisationScale_majorSeventhDown();
+        pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
+        break;
+
+    case PitchQuantisationMethod::scale_perfectOctave:
+        setPitchQuantisationScale_perfectOctave();
         pitchQuantisationFuncPt = &Voice::getQuantisedPitch_scale;
         break;
 
@@ -755,21 +855,6 @@ void Voice::setPitchQuantisationScale_minor()
     pitchQuantisationScale[9] = 8; //a -> g#
     pitchQuantisationScale[10] = 10; //a# -> a#
     pitchQuantisationScale[11] = 10; //h -> a#
-}
-void Voice::setPitchQuantisationScale_octaves()
-{
-    pitchQuantisationScale[0] = 0; //c -> c
-    pitchQuantisationScale[1] = 0; //c# -> c
-    pitchQuantisationScale[2] = 0; //d -> c
-    pitchQuantisationScale[3] = 0; //d# -> c
-    pitchQuantisationScale[4] = 0; //e -> c
-    pitchQuantisationScale[5] = 0; //f -> c
-    pitchQuantisationScale[6] = 0; //f# -> c
-    pitchQuantisationScale[7] = 0; //g -> c
-    pitchQuantisationScale[8] = 0; //g# -> c
-    pitchQuantisationScale[9] = 0; //a -> c
-    pitchQuantisationScale[10] = 0; //a# -> c
-    pitchQuantisationScale[11] = 0; //h -> c
 }
 void Voice::setPitchQuantisationScale_semitonesReversed()
 {
@@ -1011,7 +1096,22 @@ void Voice::setPitchQuantisationScale_pentatonicMinor()
     pitchQuantisationScale[10] = 10; //a#
     pitchQuantisationScale[11] = 10; //h
 }
-void Voice::setPitchQuantisationScale_halfUp()
+void Voice::setPitchQuantisationScale_minorSecondDown()
+{
+    pitchQuantisationScale[0] = -1; //c
+    pitchQuantisationScale[1] = -1; //c#
+    pitchQuantisationScale[2] = -1; //d
+    pitchQuantisationScale[3] = -1; //d#
+    pitchQuantisationScale[4] = -1; //e
+    pitchQuantisationScale[5] = -1; //f
+    pitchQuantisationScale[6] = 0; //f#
+    pitchQuantisationScale[7] = 0; //g
+    pitchQuantisationScale[8] = 0; //g#
+    pitchQuantisationScale[9] = 0; //a
+    pitchQuantisationScale[10] = 0; //a#
+    pitchQuantisationScale[11] = 0; //h
+}
+void Voice::setPitchQuantisationScale_minorSecondUp()
 {
     pitchQuantisationScale[0] = 0; //c
     pitchQuantisationScale[1] = 0; //c#
@@ -1026,20 +1126,320 @@ void Voice::setPitchQuantisationScale_halfUp()
     pitchQuantisationScale[10] = 1; //a#
     pitchQuantisationScale[11] = 1; //h
 }
-void Voice::setPitchQuantisationScale_halfDown()
+void Voice::setPitchQuantisationScale_majorSecondDown()
 {
-    pitchQuantisationScale[0] = -1; //c
-    pitchQuantisationScale[1] = -1; //c#
-    pitchQuantisationScale[2] = -1; //d
-    pitchQuantisationScale[3] = -1; //d#
-    pitchQuantisationScale[4] = -1; //e
-    pitchQuantisationScale[5] = -1; //f
+    pitchQuantisationScale[0] = -2; //c
+    pitchQuantisationScale[1] = -2; //c#
+    pitchQuantisationScale[2] = -2; //d
+    pitchQuantisationScale[3] = -2; //d#
+    pitchQuantisationScale[4] = -2; //e
+    pitchQuantisationScale[5] = -2; //f
     pitchQuantisationScale[6] = 0; //f#
     pitchQuantisationScale[7] = 0; //g
     pitchQuantisationScale[8] = 0; //g#
     pitchQuantisationScale[9] = 0; //a
     pitchQuantisationScale[10] = 0; //a#
     pitchQuantisationScale[11] = 0; //h
+}
+void Voice::setPitchQuantisationScale_majorSecondUp()
+{
+    pitchQuantisationScale[0] = 0; //c
+    pitchQuantisationScale[1] = 0; //c#
+    pitchQuantisationScale[2] = 0; //d
+    pitchQuantisationScale[3] = 0; //d#
+    pitchQuantisationScale[4] = 0; //e
+    pitchQuantisationScale[5] = 0; //f
+    pitchQuantisationScale[6] = 2; //f#
+    pitchQuantisationScale[7] = 2; //g
+    pitchQuantisationScale[8] = 2; //g#
+    pitchQuantisationScale[9] = 2; //a
+    pitchQuantisationScale[10] = 2; //a#
+    pitchQuantisationScale[11] = 2; //h
+}
+void Voice::setPitchQuantisationScale_minorThirdDown()
+{
+    pitchQuantisationScale[0] = -3; //c
+    pitchQuantisationScale[1] = -3; //c#
+    pitchQuantisationScale[2] = -3; //d
+    pitchQuantisationScale[3] = -3; //d#
+    pitchQuantisationScale[4] = -3; //e
+    pitchQuantisationScale[5] = -3; //f
+    pitchQuantisationScale[6] = 0; //f#
+    pitchQuantisationScale[7] = 0; //g
+    pitchQuantisationScale[8] = 0; //g#
+    pitchQuantisationScale[9] = 0; //a
+    pitchQuantisationScale[10] = 0; //a#
+    pitchQuantisationScale[11] = 0; //h
+}
+void Voice::setPitchQuantisationScale_minorThirdUp()
+{
+    pitchQuantisationScale[0] = 0; //c
+    pitchQuantisationScale[1] = 0; //c#
+    pitchQuantisationScale[2] = 0; //d
+    pitchQuantisationScale[3] = 0; //d#
+    pitchQuantisationScale[4] = 0; //e
+    pitchQuantisationScale[5] = 0; //f
+    pitchQuantisationScale[6] = 3; //f#
+    pitchQuantisationScale[7] = 3; //g
+    pitchQuantisationScale[8] = 3; //g#
+    pitchQuantisationScale[9] = 3; //a
+    pitchQuantisationScale[10] = 3; //a#
+    pitchQuantisationScale[11] = 3; //h
+}
+void Voice::setPitchQuantisationScale_majorThirdDown()
+{
+    pitchQuantisationScale[0] = -4; //c
+    pitchQuantisationScale[1] = -4; //c#
+    pitchQuantisationScale[2] = -4; //d
+    pitchQuantisationScale[3] = -4; //d#
+    pitchQuantisationScale[4] = -4; //e
+    pitchQuantisationScale[5] = -4; //f
+    pitchQuantisationScale[6] = 0; //f#
+    pitchQuantisationScale[7] = 0; //g
+    pitchQuantisationScale[8] = 0; //g#
+    pitchQuantisationScale[9] = 0; //a
+    pitchQuantisationScale[10] = 0; //a#
+    pitchQuantisationScale[11] = 0; //h
+}
+void Voice::setPitchQuantisationScale_majorThirdUp()
+{
+    pitchQuantisationScale[0] = 0; //c
+    pitchQuantisationScale[1] = 0; //c#
+    pitchQuantisationScale[2] = 0; //d
+    pitchQuantisationScale[3] = 0; //d#
+    pitchQuantisationScale[4] = 0; //e
+    pitchQuantisationScale[5] = 0; //f
+    pitchQuantisationScale[6] = 4; //f#
+    pitchQuantisationScale[7] = 4; //g
+    pitchQuantisationScale[8] = 4; //g#
+    pitchQuantisationScale[9] = 4; //a
+    pitchQuantisationScale[10] = 4; //a#
+    pitchQuantisationScale[11] = 4; //h
+}
+void Voice::setPitchQuantisationScale_perfectFourthDown()
+{
+    pitchQuantisationScale[0] = -5; //c
+    pitchQuantisationScale[1] = -5; //c#
+    pitchQuantisationScale[2] = -5; //d
+    pitchQuantisationScale[3] = -5; //d#
+    pitchQuantisationScale[4] = -5; //e
+    pitchQuantisationScale[5] = -5; //f
+    pitchQuantisationScale[6] = 0; //f#
+    pitchQuantisationScale[7] = 0; //g
+    pitchQuantisationScale[8] = 0; //g#
+    pitchQuantisationScale[9] = 0; //a
+    pitchQuantisationScale[10] = 0; //a#
+    pitchQuantisationScale[11] = 0; //h
+}
+void Voice::setPitchQuantisationScale_perfectFourthUp()
+{
+    pitchQuantisationScale[0] = 0; //c
+    pitchQuantisationScale[1] = 0; //c#
+    pitchQuantisationScale[2] = 0; //d
+    pitchQuantisationScale[3] = 0; //d#
+    pitchQuantisationScale[4] = 0; //e
+    pitchQuantisationScale[5] = 0; //f
+    pitchQuantisationScale[6] = 5; //f#
+    pitchQuantisationScale[7] = 5; //g
+    pitchQuantisationScale[8] = 5; //g#
+    pitchQuantisationScale[9] = 5; //a
+    pitchQuantisationScale[10] = 5; //a#
+    pitchQuantisationScale[11] = 5; //h
+}
+void Voice::setPitchQuantisationScale_diminishedFifthDown()
+{
+    pitchQuantisationScale[0] = -6; //c
+    pitchQuantisationScale[1] = -6; //c#
+    pitchQuantisationScale[2] = -6; //d
+    pitchQuantisationScale[3] = -6; //d#
+    pitchQuantisationScale[4] = -6; //e
+    pitchQuantisationScale[5] = -6; //f
+    pitchQuantisationScale[6] = 0; //f#
+    pitchQuantisationScale[7] = 0; //g
+    pitchQuantisationScale[8] = 0; //g#
+    pitchQuantisationScale[9] = 0; //a
+    pitchQuantisationScale[10] = 0; //a#
+    pitchQuantisationScale[11] = 0; //h
+}
+void Voice::setPitchQuantisationScale_diminishedFifthUp()
+{
+    pitchQuantisationScale[0] = 0; //c
+    pitchQuantisationScale[1] = 0; //c#
+    pitchQuantisationScale[2] = 0; //d
+    pitchQuantisationScale[3] = 0; //d#
+    pitchQuantisationScale[4] = 0; //e
+    pitchQuantisationScale[5] = 0; //f
+    pitchQuantisationScale[6] = 6; //f#
+    pitchQuantisationScale[7] = 6; //g
+    pitchQuantisationScale[8] = 6; //g#
+    pitchQuantisationScale[9] = 6; //a
+    pitchQuantisationScale[10] = 6; //a#
+    pitchQuantisationScale[11] = 6; //h
+}
+void Voice::setPitchQuantisationScale_perfectFifthDown()
+{
+    pitchQuantisationScale[0] = -7; //c
+    pitchQuantisationScale[1] = -7; //c#
+    pitchQuantisationScale[2] = -7; //d
+    pitchQuantisationScale[3] = -7; //d#
+    pitchQuantisationScale[4] = -7; //e
+    pitchQuantisationScale[5] = -7; //f
+    pitchQuantisationScale[6] = 0; //f#
+    pitchQuantisationScale[7] = 0; //g
+    pitchQuantisationScale[8] = 0; //g#
+    pitchQuantisationScale[9] = 0; //a
+    pitchQuantisationScale[10] = 0; //a#
+    pitchQuantisationScale[11] = 0; //h
+}
+void Voice::setPitchQuantisationScale_perfectFifthUp()
+{
+    pitchQuantisationScale[0] = 0; //c
+    pitchQuantisationScale[1] = 0; //c#
+    pitchQuantisationScale[2] = 0; //d
+    pitchQuantisationScale[3] = 0; //d#
+    pitchQuantisationScale[4] = 0; //e
+    pitchQuantisationScale[5] = 0; //f
+    pitchQuantisationScale[6] = 7; //f#
+    pitchQuantisationScale[7] = 7; //g
+    pitchQuantisationScale[8] = 7; //g#
+    pitchQuantisationScale[9] = 7; //a
+    pitchQuantisationScale[10] = 7; //a#
+    pitchQuantisationScale[11] = 7; //h
+}
+void Voice::setPitchQuantisationScale_minorSixthDown()
+{
+    pitchQuantisationScale[0] = -8; //c
+    pitchQuantisationScale[1] = -8; //c#
+    pitchQuantisationScale[2] = -8; //d
+    pitchQuantisationScale[3] = -8; //d#
+    pitchQuantisationScale[4] = -8; //e
+    pitchQuantisationScale[5] = -8; //f
+    pitchQuantisationScale[6] = 0; //f#
+    pitchQuantisationScale[7] = 0; //g
+    pitchQuantisationScale[8] = 0; //g#
+    pitchQuantisationScale[9] = 0; //a
+    pitchQuantisationScale[10] = 0; //a#
+    pitchQuantisationScale[11] = 0; //h
+}
+void Voice::setPitchQuantisationScale_minorSixthUp()
+{
+    pitchQuantisationScale[0] = 0; //c
+    pitchQuantisationScale[1] = 0; //c#
+    pitchQuantisationScale[2] = 0; //d
+    pitchQuantisationScale[3] = 0; //d#
+    pitchQuantisationScale[4] = 0; //e
+    pitchQuantisationScale[5] = 0; //f
+    pitchQuantisationScale[6] = 8; //f#
+    pitchQuantisationScale[7] = 8; //g
+    pitchQuantisationScale[8] = 8; //g#
+    pitchQuantisationScale[9] = 8; //a
+    pitchQuantisationScale[10] = 8; //a#
+    pitchQuantisationScale[11] = 8; //h
+}
+void Voice::setPitchQuantisationScale_majorSixthDown()
+{
+    pitchQuantisationScale[0] = -9; //c
+    pitchQuantisationScale[1] = -9; //c#
+    pitchQuantisationScale[2] = -9; //d
+    pitchQuantisationScale[3] = -9; //d#
+    pitchQuantisationScale[4] = -9; //e
+    pitchQuantisationScale[5] = -9; //f
+    pitchQuantisationScale[6] = 0; //f#
+    pitchQuantisationScale[7] = 0; //g
+    pitchQuantisationScale[8] = 0; //g#
+    pitchQuantisationScale[9] = 0; //a
+    pitchQuantisationScale[10] = 0; //a#
+    pitchQuantisationScale[11] = 0; //h
+}
+void Voice::setPitchQuantisationScale_majorSixthUp()
+{
+    pitchQuantisationScale[0] = 0; //c
+    pitchQuantisationScale[1] = 0; //c#
+    pitchQuantisationScale[2] = 0; //d
+    pitchQuantisationScale[3] = 0; //d#
+    pitchQuantisationScale[4] = 0; //e
+    pitchQuantisationScale[5] = 0; //f
+    pitchQuantisationScale[6] = 9; //f#
+    pitchQuantisationScale[7] = 9; //g
+    pitchQuantisationScale[8] = 9; //g#
+    pitchQuantisationScale[9] = 9; //a
+    pitchQuantisationScale[10] = 9; //a#
+    pitchQuantisationScale[11] = 9; //h
+}
+void Voice::setPitchQuantisationScale_minorSeventhDown()
+{
+    pitchQuantisationScale[0] = -10; //c
+    pitchQuantisationScale[1] = -10; //c#
+    pitchQuantisationScale[2] = -10; //d
+    pitchQuantisationScale[3] = -10; //d#
+    pitchQuantisationScale[4] = -10; //e
+    pitchQuantisationScale[5] = -10; //f
+    pitchQuantisationScale[6] = 0; //f#
+    pitchQuantisationScale[7] = 0; //g
+    pitchQuantisationScale[8] = 0; //g#
+    pitchQuantisationScale[9] = 0; //a
+    pitchQuantisationScale[10] = 0; //a#
+    pitchQuantisationScale[11] = 0; //h
+}
+void Voice::setPitchQuantisationScale_minorSeventhUp()
+{
+    pitchQuantisationScale[0] = 0; //c
+    pitchQuantisationScale[1] = 0; //c#
+    pitchQuantisationScale[2] = 0; //d
+    pitchQuantisationScale[3] = 0; //d#
+    pitchQuantisationScale[4] = 0; //e
+    pitchQuantisationScale[5] = 0; //f
+    pitchQuantisationScale[6] = 10; //f#
+    pitchQuantisationScale[7] = 10; //g
+    pitchQuantisationScale[8] = 10; //g#
+    pitchQuantisationScale[9] = 10; //a
+    pitchQuantisationScale[10] = 10; //a#
+    pitchQuantisationScale[11] = 10; //h
+}
+void Voice::setPitchQuantisationScale_majorSeventhDown()
+{
+    pitchQuantisationScale[0] = -11; //c
+    pitchQuantisationScale[1] = -11; //c#
+    pitchQuantisationScale[2] = -11; //d
+    pitchQuantisationScale[3] = -11; //d#
+    pitchQuantisationScale[4] = -11; //e
+    pitchQuantisationScale[5] = -11; //f
+    pitchQuantisationScale[6] = 0; //f#
+    pitchQuantisationScale[7] = 0; //g
+    pitchQuantisationScale[8] = 0; //g#
+    pitchQuantisationScale[9] = 0; //a
+    pitchQuantisationScale[10] = 0; //a#
+    pitchQuantisationScale[11] = 0; //h
+}
+void Voice::setPitchQuantisationScale_majorSeventhUp()
+{
+    pitchQuantisationScale[0] = 0; //c
+    pitchQuantisationScale[1] = 0; //c#
+    pitchQuantisationScale[2] = 0; //d
+    pitchQuantisationScale[3] = 0; //d#
+    pitchQuantisationScale[4] = 0; //e
+    pitchQuantisationScale[5] = 0; //f
+    pitchQuantisationScale[6] = 11; //f#
+    pitchQuantisationScale[7] = 11; //g
+    pitchQuantisationScale[8] = 11; //g#
+    pitchQuantisationScale[9] = 11; //a
+    pitchQuantisationScale[10] = 11; //a#
+    pitchQuantisationScale[11] = 11; //h
+}
+void Voice::setPitchQuantisationScale_perfectOctave()
+{
+    pitchQuantisationScale[0] = 0; //c -> c
+    pitchQuantisationScale[1] = 0; //c# -> c
+    pitchQuantisationScale[2] = 0; //d -> c
+    pitchQuantisationScale[3] = 0; //d# -> c
+    pitchQuantisationScale[4] = 0; //e -> c
+    pitchQuantisationScale[5] = 0; //f -> c
+    pitchQuantisationScale[6] = 0; //f# -> c
+    pitchQuantisationScale[7] = 0; //g -> c
+    pitchQuantisationScale[8] = 0; //g# -> c
+    pitchQuantisationScale[9] = 0; //a -> c
+    pitchQuantisationScale[10] = 0; //a# -> c
+    pitchQuantisationScale[11] = 0; //h -> c
 }
 
 void Voice::setLfo(RegionLfo* newAssociatedLfo)

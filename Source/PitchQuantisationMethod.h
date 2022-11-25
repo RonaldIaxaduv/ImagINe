@@ -16,7 +16,6 @@ enum class PitchQuantisationMethod : int
     semitones,
     scale_major,
     scale_minor,
-    scale_octaves,
 
     //reversed scales: going from higher notes to lower ones instead of the other way around
     scale_semitonesReversed,
@@ -40,12 +39,35 @@ enum class PitchQuantisationMethod : int
     scale_minyo, //https://en.wikipedia.org/wiki/Yo_scale
     scale_miyakoBushi, //https://en.wikipedia.org/wiki/In_scale
 
+    //intervals
+    scale_minorSecondDown, //-1 on the first half, 0 on the second
+    scale_minorSecondUp, //0 on the first half, 1 on the second
+    scale_majorSecondDown,
+    scale_majorSecondUp,
+    scale_minorThirdDown,
+    scale_minorThirdUp,
+    scale_majorThirdDown,
+    scale_majorThirdUp,
+    scale_perfectFourthDown,
+    scale_perfectFourthUp,
+    scale_diminishedFifthDown,
+    scale_diminishedFifthUp,
+    scale_perfectFifthDown,
+    scale_perfectFifthUp,
+    scale_minorSixthDown,
+    scale_minorSixthUp,
+    scale_majorSixthDown,
+    scale_majorSixthUp,
+    scale_minorSeventhDown,
+    scale_minorSeventhUp,
+    scale_majorSeventhDown,
+    scale_majorSeventhUp,
+    scale_perfectOctave,
+
     //other
     scale_wholeTone, //https://en.wikipedia.org/wiki/Whole-tone_scale
     scale_pentatonicMajor, //https://en.wikipedia.org/wiki/Pentatonic_scale
     scale_pentatonicMinor, //https://en.wikipedia.org/wiki/Pentatonic_scale
-    scale_halfUp, //0 on the first half, 1 on the second
-    scale_halfDown, //-1 on the first half, 0 on the second
 
     MethodCount
 };

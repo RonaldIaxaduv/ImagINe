@@ -129,6 +129,17 @@ void ImageINeDemoAudioProcessorEditor::paint (juce::Graphics& g)
     g.setFont (15.0f);
     g.drawFittedText ("Hello World!", getLocalBounds(), juce::Justification::centred, 1);*/
 }
+void ImageINeDemoAudioProcessorEditor::paintOverChildren(juce::Graphics& g)
+{
+    g.setColour(juce::Colours::white);
+
+    int textHeight = juce::jmax(2, juce::jmin(20, getHeight() / 100));
+    int textWidth = getWidth(); //juce::jmax(100, juce::jmin(getWidth(), textHeight * 25));
+    //float textHeight = juce::jmax(2.0f, juce::jmin(20.0f, static_cast<float>(getHeight()) / 100.0f));
+    //float textWidth = juce::jmax(50.0f, juce::jmin(static_cast<float>(getWidth()) / 2.0f, textHeight * 25.0f));
+    g.drawText("ImageINe V" + juce::String(JucePlugin_VersionString), juce::Rectangle<int>(0, getHeight() - textHeight, textWidth, textHeight), juce::Justification::bottomLeft, false);
+    //g.drawFittedText("ImageINe V" + juce::String(JucePlugin_VersionString), juce::Rectangle<int>(0, getHeight() - textHeight, textWidth, textHeight), juce::Justification::bottomLeft, 1, 0.5f);
+}
 
 void ImageINeDemoAudioProcessorEditor::resized()
 {
