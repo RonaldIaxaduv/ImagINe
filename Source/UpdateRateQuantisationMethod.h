@@ -12,7 +12,7 @@
 
 enum class UpdateRateQuantisationMethod : int
 {
-    full = 0, //this leaves the update rate the way it is
+    full = 0, //this would make it so that the update rate isn't affected by any modulation, so it won't be listed in the combobox. just didn't feel right to leave it out here, tho
     full_dotted, //this would make the update rate slower, so it won't be listed in the combobox. just didn't feel right to leave it out here, tho
     full_triole,
     half,
@@ -32,5 +32,6 @@ enum class UpdateRateQuantisationMethod : int
     thirtysecond_triole,
     sixtyfourth,
     sixtyfourth_dotted,
-    sixtyfourth_triole
+    sixtyfourth_triole,
+    continuous //no quantisation
 };

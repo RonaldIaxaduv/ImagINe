@@ -57,7 +57,7 @@ public:
 
     ModulatableAdditiveParameter<double>* getFrequencyModParameter();
     ModulatableAdditiveParameter<double>* getStartingPhaseModParameter();
-    ModulatableMultiplicativeParameter<double>* getPhaseIntervalModParameter(); //WIP: rename to "getPhaseIntervalModParameter"
+    ModulatableMultiplicativeParameterLowerCap<double>* getPhaseIntervalModParameter(); //WIP: rename to "getPhaseIntervalModParameter"
     ModulatableAdditiveParameter<double>* getCurrentPhaseModParameter();
     ModulatableMultiplicativeParameter<double>* getUpdateIntervalParameter();
 
@@ -66,6 +66,7 @@ public:
 
     int getRegionID();
     void setRegionID(int newRegionID);
+    void otherRegionIDHasChanged(int oldRegionID, int newRegionID);
 
     void advance() override;
     void advanceUnsafeWithUpdate();
@@ -80,6 +81,7 @@ public:
     float getLatestModulatedStartingPhase();
     float getLatestModulatedPhaseInterval();
 
+    void updateLatestModulatedPhase();
     void updateCurrentValues();
 
     double getCurrentValue_Unipolar();
@@ -139,7 +141,7 @@ protected:
     void evaluateTablePosModulation();
 
     ModulatableAdditiveParameter<double> startingPhaseModParameter;
-    ModulatableMultiplicativeParameter<double> phaseIntervalModParameter;
+    ModulatableMultiplicativeParameterLowerCap<double> phaseIntervalModParameter;
     ModulatableAdditiveParameter<double> currentPhaseModParameter;
     float latestModulatedPhase = 1.0f;
     float latestModulatedStartingPhase = 0.0f;
@@ -153,7 +155,7 @@ protected:
     float updateIntervalMs = defaultUpdateIntervalMs; //update interval in milliseconds
     static const float defaultUpdateIntervalMs;
 
-    UpdateRateQuantisationMethod currentUpdateRateQuantisationMethod = UpdateRateQuantisationMethod::full;
+    UpdateRateQuantisationMethod currentUpdateRateQuantisationMethod = UpdateRateQuantisationMethod::continuous;
     double (RegionLfo::* updateRateQuantisationFuncPt)() = nullptr;
     double updateRateQuantisationFactor = 1.0;
     double updateRateQuantisationFactor_denom = 1.0; //= 1 / updateRateQuantisationFactor (pre-calculated for less CPU usage). convention: updateRateQuantisationFactor >= updateRateQuantisationFactor_denom.

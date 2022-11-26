@@ -14,7 +14,7 @@ Voice::Voice() :
     playbackMultApprox([](double semis) { return std::pow(2.0, semis / 12.0); }, -60.0, 60.0, 60 + 60 + 1), //1 point per semi should be enough
     envelope(),
     levelParameter(0.25), pitchShiftParameter(0.0),
-    playbackPositionStartParameter(0.0), playbackPositionIntervalParameter(1.0), playbackPositionCurrentParameter(0.0)
+    playbackPositionStartParameter(0.0), playbackPositionIntervalParameter(1.0, 0.001), playbackPositionCurrentParameter(0.0)
 {
     osc = nullptr;
 
@@ -136,6 +136,7 @@ void Voice::setOsc(juce::AudioSampleBuffer buffer, int origSampleRate)
         osc->fileBuffer = buffer;
         osc->origSampleRate = origSampleRate;
     }
+    currentBufferPos = 0.0;
     currentState->wavefileChanged(buffer.getNumSamples());
 }
 
@@ -160,7 +161,7 @@ bool Voice::canPlaySound(juce::SynthesiserSound* sound)
 void Voice::startNote(int midiNoteNumber, float velocity,
     juce::SynthesiserSound* sound, int /*currentPitchWheelPosition*/)
 {
-    currentBufferPos = 0.0;
+    //currentBufferPos = 0.0; //if voices restarted while they are still tailing off, it be a rather unintuitive behaviour. instead, only reset the current buffer position if the voice has ended or the buffer changes.
 
     //auto cyclesPerSecond = juce::MidiMessage::getMidiNoteInHertz(midiNoteNumber);
     //auto cyclesPerSample = cyclesPerSecond / getSampleRate();
@@ -274,6 +275,7 @@ void Voice::renderNextBlock_wave(juce::AudioSampleBuffer& outputBuffer, int samp
     
     double effectivePhase = static_cast<double>(currentBufferPos / static_cast<float>(osc->fileBuffer.getNumSamples())); //convert currentTablePos to currentPhase
     effectivePhase = std::fmod(effectivePhase, playbackPositionIntervalParameter.getModulatedValue()); //convert to new interval while preserving deltaTablePos (i.e. the frequency)!
+    jassert(!isnan(effectivePhase));
     effectivePhase = std::fmod(effectivePhase + playbackPositionStartParameter.getModulatedValue(), 1.0); //shift the starting phase from 0 to the value stated by playbackPositionStartParameter and wrap, so that the value stays within [0,1) (i.e. within wavetable later on)
     float effectiveBufferPos = static_cast<float>(effectivePhase) * static_cast<float>(osc->fileBuffer.getNumSamples() - 1); //convert phase back to index within wavetable (-1 at the end to ensure that floating-point rounding won't let the variable take on out-of-range values!)
     //^- see updateCurrentValues method in RegionLfo for some more details
@@ -312,7 +314,9 @@ void Voice::renderNextBlock_waveAndLfo(juce::AudioSampleBuffer& outputBuffer, in
     evaluateBufferPosModulation(); //advances currentBufferPos if required
 
     double effectivePhase = static_cast<double>(currentBufferPos / static_cast<float>(osc->fileBuffer.getNumSamples())); //convert currentTablePos to currentPhase
-    effectivePhase = std::fmod(effectivePhase, playbackPositionIntervalParameter.getModulatedValue()); //convert to new interval while preserving deltaTablePos (i.e. the frequency)!
+    //effectivePhase = std::fmod(effectivePhase, playbackPositionIntervalParameter.getModulatedValue()); //convert to new interval while preserving deltaTablePos (i.e. the frequency)!
+    effectivePhase = std::fmod(effectivePhase, playbackPositionIntervalParameter.getModulatedValue()); //convert to new interval while preserving deltaTablePos (i.e. the frequency)! note that playbackPositionIntervalParameter is a capped parameter that cannot become 0.0
+    jassert(!isnan(effectivePhase));
     effectivePhase = std::fmod(effectivePhase + playbackPositionStartParameter.getModulatedValue(), 1.0); //shift the starting phase from 0 to the value stated by playbackPositionStartParameter and wrap, so that the value stays within [0,1) (i.e. within wavetable later on)
     float effectiveBufferPos = static_cast<float>(effectivePhase) * static_cast<float>(osc->fileBuffer.getNumSamples() - 1); //convert phase back to index within wavetable (-1 at the end to ensure that floating-point rounding won't let the variable take on out-of-range values!)
     //^- see updateCurrentValues method in RegionLfo for some more details
@@ -321,7 +325,7 @@ void Voice::renderNextBlock_waveAndLfo(juce::AudioSampleBuffer& outputBuffer, in
     for (auto i = outputBuffer.getNumChannels() - 1; i >= 0; --i)
     {
         //auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)currentBufferPos)) * gainAdjustment;
-        auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)effectiveBufferPos)) * gainAdjustment;
+        auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), static_cast<int>(effectiveBufferPos))) * gainAdjustment;
         outputBuffer.addSample(i, sampleIndex, (float)currentSample);
     }
 
@@ -490,7 +494,7 @@ double Voice::getBasePlaybackPositionStart()
     return playbackPositionStartParameter.getBaseValue();
 }
 
-ModulatableMultiplicativeParameter<double>* Voice::getPlaybackPositionIntervalParameter()
+ModulatableMultiplicativeParameterLowerCap<double>* Voice::getPlaybackPositionIntervalParameter()
 {
     return &playbackPositionIntervalParameter;
 }
@@ -551,7 +555,10 @@ void Voice::evaluateBufferPosModulation()
 
         //don't advance; stick to the target phase!
 
-        envelope.noteOn(); //restart envelope for a cleaner sound
+        if (!envelope.isReleasing()) //do not retrigger if releasing! otherwise, voices with long envelopes and relatively short update intervals that modulate their own playback position would play indefinitely!
+        {
+            envelope.noteOn(false); //restart envelope (from attack, not from delay) for a cleaner sound
+        }
     }
     else
     {
@@ -564,6 +571,7 @@ void Voice::evaluateBufferPosModulation()
         {
             currentBufferPos -= latestPlaybackPosInterval * static_cast<float>(osc->fileBuffer.getNumSamples() - 1);
         }
+        jassert(currentBufferPos >= 0 && currentBufferPos < osc->fileBuffer.getNumSamples());
     }
 }
 

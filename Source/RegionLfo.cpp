@@ -20,7 +20,7 @@ RegionLfo::RegionLfo(int regionID) :
     Lfo(juce::AudioSampleBuffer(), [](float) {; }), //can only initialise waveTable through the base class's constructor...
     waveTableUnipolar(0, 0),
     frequencyModParameter(0.0),
-    startingPhaseModParameter(0.0), phaseIntervalModParameter(1.0), currentPhaseModParameter(0.0),
+    startingPhaseModParameter(0.0), phaseIntervalModParameter(1.0, 0.001), currentPhaseModParameter(0.0),
     updateIntervalParameter(1.0)
 {
     states[static_cast<int>(RegionLfoStateIndex::unprepared)] = static_cast<RegionLfoState*>(new RegionLfoState_Unprepared(*this));
@@ -294,7 +294,7 @@ ModulatableAdditiveParameter<double>* RegionLfo::getStartingPhaseModParameter()
 {
     return &startingPhaseModParameter;
 }
-ModulatableMultiplicativeParameter<double>* RegionLfo::getPhaseIntervalModParameter()
+ModulatableMultiplicativeParameterLowerCap<double>* RegionLfo::getPhaseIntervalModParameter()
 {
     return &phaseIntervalModParameter;
 }
@@ -393,7 +393,7 @@ void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParamete
         modulatedParameterIDs.add(newModulatedParameterID);
         affectedRegionIDs.add(newRegionID);
 
-        DBG("added modulation. new parameter count: " + juce::String(getNumModulatedParameterIDs()));
+        DBG("added a modulation to LFO " + juce::String(getRegionID()) + ": " + juce::String(static_cast<int>(newModulatedParameterID)) + " for region " + juce::String(newRegionID) + " (" + juce::String(newParameters.size()) + " voices). new parameter count: " + juce::String(getNumModulatedParameterIDs()));
 
         currentState->modulatedParameterCountChanged(getNumModulatedParameterIDs());
     }
@@ -414,6 +414,7 @@ void RegionLfo::removeRegionModulation(int regionID)
                 (*itParam)->removeModulator(getRegionID());
             }
 
+            DBG("removed a modulation from LFO " + juce::String(getRegionID()) + ": " + juce::String(regionID) + " (" + juce::String(params->size()) + " voices). new parameter count: " + juce::String(getNumModulatedParameterIDs()));
             modulatedParameters.remove(index, true);
             modulatedParameterIDs.remove(index);
             affectedRegionIDs.remove(index);
@@ -431,7 +432,30 @@ int RegionLfo::getRegionID()
 }
 void RegionLfo::setRegionID(int newRegionID)
 {
+    int oldRegionID = regionID;
     regionID = newRegionID;
+
+    int i = 0;
+    for (auto itRegion = affectedRegionIDs.begin(); itRegion != affectedRegionIDs.end(); ++itRegion, ++i)
+    {
+        if ((*itRegion) == oldRegionID)
+        {
+            affectedRegionIDs.set(i, newRegionID);
+            break; //only one modulation per region
+        }
+    }
+}
+void RegionLfo::otherRegionIDHasChanged(int oldRegionID, int newRegionID)
+{
+    int i = 0;
+    for (auto itRegion = affectedRegionIDs.begin(); itRegion != affectedRegionIDs.end(); ++itRegion, ++i)
+    {
+        if ((*itRegion) == oldRegionID)
+        {
+            affectedRegionIDs.set(i, newRegionID);
+            break; //only one modulation per region
+        }
+    }
 }
 
 void RegionLfo::advance()
@@ -445,7 +469,7 @@ void RegionLfo::advanceUnsafeWithUpdate()
     evaluateFrequencyModulation();
     evaluateTablePosModulation(); //increments currentTablePos if required
 
-    updateCurrentValues();
+    updateCurrentValues(); //also updates the current modulated phase
     updateModulatedParameterUnsafe(); //saves one more if case compared to the normal update
 }
 void RegionLfo::advanceUnsafeWithoutUpdate()
@@ -455,6 +479,9 @@ void RegionLfo::advanceUnsafeWithoutUpdate()
 
     evaluateFrequencyModulation();
     evaluateTablePosModulation(); //increments currentTablePos if required
+
+    ////update phase
+    //updateLatestModulatedPhase(); //required to keep the LFO line updated
 }
 
 void RegionLfo::setPhase(float relativeTablePos)
@@ -509,7 +536,7 @@ double RegionLfo::getCurrentValue_Bipolar()
 
 void RegionLfo::resetSamplesUntilUpdate()
 {
-    samplesUntilUpdate = updateInterval * (*this.*updateRateQuantisationFuncPt)();
+    samplesUntilUpdate = static_cast<int>(static_cast<double>(updateInterval) * (*this.*updateRateQuantisationFuncPt)());
 }
 void RegionLfo::setUpdateInterval_Milliseconds(float newUpdateIntervalMs)
 {
@@ -548,7 +575,8 @@ void RegionLfo::setUpdateRateQuantisationMethod(UpdateRateQuantisationMethod new
     switch (newUpdateRateQuantisationMethod)
     {
     case UpdateRateQuantisationMethod::full:
-        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_continuous;
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
+        calculateUpdateRateQuantisationFactor(1.0);
         break;
     case UpdateRateQuantisationMethod::full_dotted:
         updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_fraction;
@@ -637,11 +665,18 @@ void RegionLfo::setUpdateRateQuantisationMethod(UpdateRateQuantisationMethod new
         calculateUpdateRateQuantisationFactor((2.0/3.0) * 64.0);
         break;
 
+    case UpdateRateQuantisationMethod::continuous:
+        updateRateQuantisationFuncPt = &RegionLfo::getQuantisedUpdateRate_continuous;
+        break;
+
     default:
         throw std::exception("Unknown or unhandled value of UpdateRateQuantisationMethod.");
     }
 
+    DBG("new update rate quantisation method: " + juce::String(static_cast<int>(newUpdateRateQuantisationMethod)));
+
     currentUpdateRateQuantisationMethod = newUpdateRateQuantisationMethod;
+    resetSamplesUntilUpdate();
 }
 UpdateRateQuantisationMethod RegionLfo::getUpdateRateQuantisationMethod()
 {
@@ -650,7 +685,7 @@ UpdateRateQuantisationMethod RegionLfo::getUpdateRateQuantisationMethod()
 
 double RegionLfo::getQuantisedUpdateRate_continuous()
 {
-    return updateIntervalParameter.getModulatedValue(); ////no special processing needed
+    return updateIntervalParameter.getModulatedValue(); //no special processing needed
 }
 double RegionLfo::getQuantisedUpdateRate_fraction()
 {
@@ -731,9 +766,10 @@ bool RegionLfo::deserialise_main(juce::XmlElement* xmlLfo)
 
     currentTablePos = xmlLfo->getDoubleAttribute("currentTablePos", 0.0);
     depth = xmlLfo->getDoubleAttribute("depth", 0.0);
-    setUpdateInterval_Milliseconds(xmlLfo->getDoubleAttribute("updateIntervalMs", defaultUpdateIntervalMs));
-    setUpdateRateQuantisationMethod(static_cast<UpdateRateQuantisationMethod>(xmlLfo->getIntAttribute("currentUpdateRateQuantisationMethod", static_cast<int>(UpdateRateQuantisationMethod::full))));
     setBaseFrequency(xmlLfo->getDoubleAttribute("baseFrequency", 0.2));
+
+    setUpdateInterval_Milliseconds(xmlLfo->getDoubleAttribute("updateIntervalMs", defaultUpdateIntervalMs));
+    setUpdateRateQuantisationMethod(static_cast<UpdateRateQuantisationMethod>(xmlLfo->getIntAttribute("currentUpdateRateQuantisationMethod", static_cast<int>(UpdateRateQuantisationMethod::continuous))));
 
     phaseIntervalModParameter.setBaseValue(xmlLfo->getDoubleAttribute("phaseInterval_base", 1.0));
     startingPhaseModParameter.setBaseValue(xmlLfo->getDoubleAttribute("startingPhase_base", 0.0));
@@ -800,15 +836,9 @@ void RegionLfo::updateCurrentValues() //pre-calculates the current LFO values (u
     ////^- 2 mod, 2 mult, 1 div (oof...)
 
     //idea 2: effectivePhase = (((currentTablePos/numSamples) mod phaseInterval) + startingPhase) mod 1.0
-    latestModulatedStartingPhase = startingPhaseModParameter.getModulatedValue();
-    latestModulatedPhaseInterval = phaseIntervalModParameter.getModulatedValue();
-    double effectivePhase = static_cast<double>(currentTablePos / static_cast<float>(getNumSamplesUnsafe())); //convert currentTablePos to currentPhase
-    effectivePhase = std::fmod(effectivePhase, latestModulatedPhaseInterval); //convert to new interval while preserving deltaTablePos (i.e. the frequency)!
-    effectivePhase = std::fmod(effectivePhase + latestModulatedStartingPhase, 1.0); //shift the starting phase from 0 to the value stated by startingPhaseModParameter and wrap, so that the value stays within [0,1) (i.e. within wavetable later on)
-    latestModulatedPhase = effectivePhase; //remember modulated phase to keep the LFO line updated that's drawn over regions
-    float effectiveTablePos = static_cast<float>(effectivePhase) * static_cast<float>(getNumSamplesUnsafe() - 1); //convert phase back to index within wavetable (-1 at the end to ensure that floating-point rounding won't let the variable take on out-of-range values!)
+    updateLatestModulatedPhase();
+    float effectiveTablePos = static_cast<float>(latestModulatedPhase) * static_cast<float>(getNumSamplesUnsafe() - 1); //convert phase back to index within wavetable (-1 at the end to ensure that floating-point rounding won't let the variable take on out-of-range values!)
     //^- 2 mod, 1 mult, 1 div -> slightly better
-
 
     int sampleIndex1 = static_cast<int>(effectiveTablePos);
     int sampleIndex2 = sampleIndex1 + 1;
@@ -819,6 +849,15 @@ void RegionLfo::updateCurrentValues() //pre-calculates the current LFO values (u
 
     auto* samplesBipolar = waveTable.getReadPointer(0);
     currentValueBipolar = samplesBipolar[sampleIndex1] + frac * (samplesBipolar[sampleIndex2] - samplesBipolar[sampleIndex1]); //interpolate between samples (good especially at slower freqs)
+}
+void RegionLfo::updateLatestModulatedPhase()
+{
+    latestModulatedStartingPhase = startingPhaseModParameter.getModulatedValue();
+    latestModulatedPhaseInterval = phaseIntervalModParameter.getModulatedValue(); //note that phaseIntervalModParameter is a capped parameter that cannot become 0.0 
+    double effectivePhase = static_cast<double>(currentTablePos / static_cast<float>(getNumSamplesUnsafe())); //convert currentTablePos to currentPhase
+    effectivePhase = std::fmod(effectivePhase, latestModulatedPhaseInterval); //convert to new interval while preserving deltaTablePos (i.e. the frequency)!
+    effectivePhase = std::fmod(effectivePhase + latestModulatedStartingPhase, 1.0); //shift the starting phase from 0 to the value stated by startingPhaseModParameter and wrap, so that the value stays within [0,1) (i.e. within wavetable later on)
+    latestModulatedPhase = effectivePhase; //remember modulated phase to keep the LFO line updated that's drawn over regions
 }
 
 void RegionLfo::calculateUpdateRateQuantisationFactor(double quantisationValue)

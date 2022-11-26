@@ -258,3 +258,53 @@ public:
         transitionToState(ModulatableParameterStateIndex::upToDate);
     }
 };
+
+
+
+
+/// <summary>
+/// Implements multiplicative parameters, i.e. parameters where the individual modulators' values are multiplied. The parameter has a lower cap.
+/// Example: volume(final volume = base volume * volume 1 * volume 2 * ...)
+/// </summary>
+/// <typeparam name="T">Type of the modulated parameter</typeparam>
+template <typename T>
+class ModulatableMultiplicativeParameterLowerCap final : public ModulatableParameter<T>
+{
+public:
+    ModulatableMultiplicativeParameterLowerCap(T baseValue, T lowerCap) :
+        ModulatableParameter<T>::ModulatableParameter(baseValue)
+    {
+        this->lowerCap = lowerCap;
+    }
+    /*~ModulatableMultiplicativeParameterLowerCap() //<- IMPORTANT: this caused some problems with the deletion of some scalars for some reason. luckily it's not needed atm, but if it ever is, look into that issue further.
+    {
+        ModulatableParameter<T>::~ModulatableParameter<T>();
+    }*/
+
+    void calculateModulatedValue() override
+    {
+        currentModulatedValue = baseValue;
+
+        //DBG("base " + juce::String(baseValue));
+
+        auto* itFunc = lfoEvaluationFunctions.begin();
+        for (auto* itLfo = modulatingLfos.begin(); itLfo != modulatingLfos.end(); itLfo++, itFunc++)
+        {
+            currentModulatedValue *= (*itFunc)(*itLfo); //handles unipolar vs. bipolar values, scalings, inversions, etc.
+            //DBG("*" + juce::String((*itFunc)(*itLfo)));
+        }
+
+        if (currentModulatedValue < lowerCap)
+        {
+            currentModulatedValue = lowerCap;
+        }
+
+        //DBG("mod val: " + juce::String(currentModulatedValue));
+
+        //parameter is now up-to-date again
+        transitionToState(ModulatableParameterStateIndex::upToDate);
+    }
+
+private:
+    T lowerCap;
+};

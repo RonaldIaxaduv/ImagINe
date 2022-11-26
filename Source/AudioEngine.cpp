@@ -301,68 +301,70 @@ bool AudioEngine::deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine)
             }
 
             juce::Array<ModulatableParameter<double>*> affectedParams;
-            for (int j = 0; j < pIDs.size(); ++j)
+            for (int j = 0; j < pIDs.size() && deserialisationSuccessful; ++j)
             {
-                //get affected parameters
-                switch (pIDs[j])
-                {
-                case LfoModulatableParameter::volume:
-                case LfoModulatableParameter::volume_inverted:
-                    affectedParams = getParameterOfRegion_Volume(rIDs[j]);
-                    break;
+                ////get affected parameters
+                //switch (pIDs[j])
+                //{
+                //case LfoModulatableParameter::volume:
+                //case LfoModulatableParameter::volume_inverted:
+                //    affectedParams = getParameterOfRegion_Volume(rIDs[j]);
+                //    break;
 
-                case LfoModulatableParameter::pitch:
-                case LfoModulatableParameter::pitch_inverted:
-                    affectedParams = getParameterOfRegion_Pitch(rIDs[j]);
-                    break;
+                //case LfoModulatableParameter::pitch:
+                //case LfoModulatableParameter::pitch_inverted:
+                //    affectedParams = getParameterOfRegion_Pitch(rIDs[j]);
+                //    break;
 
-                case LfoModulatableParameter::playbackPositionStart:
-                case LfoModulatableParameter::playbackPositionStart_inverted:
-                    affectedParams = getParameterOfRegion_PlaybackPositionInterval(rIDs[j]);
-                    break;
+                //case LfoModulatableParameter::playbackPositionStart:
+                //case LfoModulatableParameter::playbackPositionStart_inverted:
+                //    affectedParams = getParameterOfRegion_PlaybackPositionInterval(rIDs[j]);
+                //    break;
 
-                case LfoModulatableParameter::playbackPositionInterval:
-                case LfoModulatableParameter::playbackPositionInterval_inverted:
-                    affectedParams = getParameterOfRegion_PlaybackPositionInterval(rIDs[j]);
-                    break;
+                //case LfoModulatableParameter::playbackPositionInterval:
+                //case LfoModulatableParameter::playbackPositionInterval_inverted:
+                //    affectedParams = getParameterOfRegion_PlaybackPositionInterval(rIDs[j]);
+                //    break;
 
-                case LfoModulatableParameter::playbackPositionCurrent:
-                case LfoModulatableParameter::playbackPositionCurrent_inverted:
-                    affectedParams = getParameterOfRegion_PlaybackPositionInterval(rIDs[j]);
-                    break;
+                //case LfoModulatableParameter::playbackPositionCurrent:
+                //case LfoModulatableParameter::playbackPositionCurrent_inverted:
+                //    affectedParams = getParameterOfRegion_PlaybackPositionInterval(rIDs[j]);
+                //    break;
 
-                case LfoModulatableParameter::lfoRate:
-                case LfoModulatableParameter::lfoRate_inverted:
-                    affectedParams = getParameterOfRegion_LfoRate(rIDs[j]);
-                    break;
+                //case LfoModulatableParameter::lfoRate:
+                //case LfoModulatableParameter::lfoRate_inverted:
+                //    affectedParams = getParameterOfRegion_LfoRate(rIDs[j]);
+                //    break;
 
-                case LfoModulatableParameter::lfoStartingPhase:
-                case LfoModulatableParameter::lfoStartingPhase_inverted:
-                    affectedParams = getParameterOfRegion_LfoPhaseInterval(rIDs[j]);
-                    break;
+                //case LfoModulatableParameter::lfoStartingPhase:
+                //case LfoModulatableParameter::lfoStartingPhase_inverted:
+                //    affectedParams = getParameterOfRegion_LfoPhaseInterval(rIDs[j]);
+                //    break;
 
-                case LfoModulatableParameter::lfoPhaseInterval:
-                case LfoModulatableParameter::lfoPhaseInterval_inverted:
-                    affectedParams = getParameterOfRegion_LfoPhaseInterval(rIDs[j]);
-                    break;
+                //case LfoModulatableParameter::lfoPhaseInterval:
+                //case LfoModulatableParameter::lfoPhaseInterval_inverted:
+                //    affectedParams = getParameterOfRegion_LfoPhaseInterval(rIDs[j]);
+                //    break;
 
-                case LfoModulatableParameter::lfoCurrentPhase:
-                case LfoModulatableParameter::lfoCurrentPhase_inverted:
-                    affectedParams = getParameterOfRegion_LfoPhaseInterval(rIDs[j]);
-                    break;
+                //case LfoModulatableParameter::lfoCurrentPhase:
+                //case LfoModulatableParameter::lfoCurrentPhase_inverted:
+                //    affectedParams = getParameterOfRegion_LfoPhaseInterval(rIDs[j]);
+                //    break;
 
-                case LfoModulatableParameter::lfoUpdateInterval:
-                case LfoModulatableParameter::lfoUpdateInterval_inverted:
-                    affectedParams = getParameterOfRegion_LfoUpdateInterval(rIDs[j]);
-                    break;
+                //case LfoModulatableParameter::lfoUpdateInterval:
+                //case LfoModulatableParameter::lfoUpdateInterval_inverted:
+                //    affectedParams = getParameterOfRegion_LfoUpdateInterval(rIDs[j]);
+                //    break;
 
-                default:
-                    DBG("Unknown or unimplemented region modulation");
-                    return false;
-                }
+                //default:
+                //    DBG("Unknown or unimplemented region modulation");
+                //    return false;
+                //}
 
-                //apply modulation
-                lfos[i]->addRegionModulation(pIDs[j], rIDs[j], affectedParams);
+                ////apply modulation
+                //lfos[i]->addRegionModulation(pIDs[j], rIDs[j], affectedParams);
+
+                deserialisationSuccessful = updateLfoParameter(lfos[i]->getRegionID(), rIDs[j], true, pIDs[j]);
             }
 
             DBG(juce::String(deserialisationSuccessful ? "mods of region " + juce::String(lfos[i]->getRegionID()) + "'s LFO have been deserialised." : "mods of region " + juce::String(lfos[i]->getRegionID()) + "'s LFO could not be deserialised."));
@@ -485,7 +487,17 @@ bool AudioEngine::tryChangeRegionID(int regionID, int newRegionID)
         {
             //found the LFO of the affected region
             (*itLfo)->setRegionID(newRegionID);
+
             break; //only one LFO per region
+        }
+    }
+
+    //signal to all other LFOs that this LFO's ID has changed
+    for (auto itOtherLfo = lfos.begin(); itOtherLfo != lfos.end(); ++itOtherLfo)
+    {
+        if ((*itOtherLfo)->getRegionID() != newRegionID)
+        {
+            (*itOtherLfo)->otherRegionIDHasChanged(regionID, newRegionID);
         }
     }
 
@@ -710,6 +722,94 @@ juce::Array<ModulatableParameter<double>*> AudioEngine::getParameterOfRegion_Lfo
     return parameters;
 }
 
+bool AudioEngine::updateLfoParameter(int lfoID, int targetRegionID, bool shouldBeModulated, LfoModulatableParameter modulatedParameter)
+{
+    bool wasSuspended = isSuspended();
+    RegionLfo* lfo = getLfo(lfoID);
+
+    if (lfo == nullptr)
+    {
+        DBG("LFO with the given ID couldn't be found!");
+        return false;
+    }
+
+    if (!shouldBeModulated || static_cast<int>(modulatedParameter) <= 0)
+    {
+        suspendProcessing(true);
+        lfo->removeRegionModulation(targetRegionID); //removing modulation is the same for every region
+        suspendProcessing(wasSuspended);
+        return true;
+    }
+
+    //there are different overloads for RegionLfo::addRegionModulation depending on whether a voice is modulated or an LFO
+    suspendProcessing(true);
+    switch (modulatedParameter)
+    {
+    case LfoModulatableParameter::volume:
+    case LfoModulatableParameter::volume_inverted:
+        lfo->addRegionModulation(modulatedParameter, targetRegionID, getParameterOfRegion_Volume(targetRegionID));
+        break;
+
+    case LfoModulatableParameter::pitch:
+    case LfoModulatableParameter::pitch_inverted:
+        lfo->addRegionModulation(modulatedParameter, targetRegionID, getParameterOfRegion_Pitch(targetRegionID));
+        break;
+
+    case LfoModulatableParameter::playbackPositionStart:
+    case LfoModulatableParameter::playbackPositionStart_inverted:
+        lfo->addRegionModulation(modulatedParameter, targetRegionID, getParameterOfRegion_PlaybackPositionStart(targetRegionID));
+        break;
+
+    case LfoModulatableParameter::playbackPositionInterval:
+    case LfoModulatableParameter::playbackPositionInterval_inverted:
+        lfo->addRegionModulation(modulatedParameter, targetRegionID, getParameterOfRegion_PlaybackPositionInterval(targetRegionID));
+        break;
+
+    case LfoModulatableParameter::playbackPositionCurrent:
+    case LfoModulatableParameter::playbackPositionCurrent_inverted:
+        lfo->addRegionModulation(modulatedParameter, targetRegionID, getParameterOfRegion_PlaybackPositionCurrent(targetRegionID));
+        break;
+
+
+
+
+    case LfoModulatableParameter::lfoRate:
+    case LfoModulatableParameter::lfoRate_inverted:
+        lfo->addRegionModulation(modulatedParameter, targetRegionID, getParameterOfRegion_LfoRate(targetRegionID));
+        break;
+
+    case LfoModulatableParameter::lfoStartingPhase:
+    case LfoModulatableParameter::lfoStartingPhase_inverted:
+        lfo->addRegionModulation(modulatedParameter, targetRegionID, getParameterOfRegion_LfoStartingPhase(targetRegionID));
+        break;
+
+    case LfoModulatableParameter::lfoPhaseInterval:
+    case LfoModulatableParameter::lfoPhaseInterval_inverted:
+        lfo->addRegionModulation(modulatedParameter, targetRegionID, getParameterOfRegion_LfoPhaseInterval(targetRegionID));
+        break;
+
+    case LfoModulatableParameter::lfoCurrentPhase:
+    case LfoModulatableParameter::lfoCurrentPhase_inverted:
+        lfo->addRegionModulation(modulatedParameter, targetRegionID, getParameterOfRegion_LfoCurrentPhase(targetRegionID));
+        break;
+
+    case LfoModulatableParameter::lfoUpdateInterval:
+    case LfoModulatableParameter::lfoUpdateInterval_inverted:
+        lfo->addRegionModulation(modulatedParameter, targetRegionID, getParameterOfRegion_LfoUpdateInterval(targetRegionID));
+        break;
+
+
+
+
+    default:
+        DBG("Unknown or unimplemented region modulation");
+        suspendProcessing(wasSuspended);
+        return false;
+    }
+
+    suspendProcessing(wasSuspended);
+    return true;
+}
 
 void AudioEngine::prepareToPlay(int /*samplesPerBlockExpected*/, double sampleRate)
 {
@@ -812,7 +912,7 @@ juce::Synthesiser* AudioEngine::getSynth()
 void AudioEngine::addLfo(RegionLfo* newLfo)
 {
     int regionID = newLfo->getRegionID(); //the LFO belongs to this region
-    int newLfoIndex = lfos.size();
+    //int newLfoIndex = lfos.size();
     newLfo->prepare(specs);
     newLfo->setBaseFrequency(0.2f);
     lfos.add(newLfo);

@@ -68,6 +68,8 @@ public:
     juce::Array<ModulatableParameter<double>*> getParameterOfRegion_LfoCurrentPhase(int regionID);
     juce::Array<ModulatableParameter<double>*> getParameterOfRegion_LfoUpdateInterval(int regionID);
 
+    bool updateLfoParameter(int lfoID, int targetRegionID, bool shouldBeModulated, LfoModulatableParameter modulatedParameter);
+
     void prepareToPlay(int /*samplesPerBlockExpected*/, double sampleRate) override;
     void suspendProcessing(bool shouldBeSuspended);
     bool isSuspended();

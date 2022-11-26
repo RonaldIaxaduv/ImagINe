@@ -1030,9 +1030,10 @@ void SegmentableImage::stopAllRegions()
 {
     for (auto itRegion = regions.begin(); itRegion != regions.end(); ++itRegion)
     {
-        if ((*itRegion)->getIsPlaying_Click())
+        if ((*itRegion)->getIsPlaying_Click() || (*itRegion)->getIsPlaying_Midi())
         {
             (*itRegion)->setIsPlaying_Click(false); //counts as a click
+            (*itRegion)->setIsPlaying_Midi(false); //also overwrites MIDI
             (*itRegion)->stopPlaying();
         }
     }
@@ -1041,7 +1042,7 @@ void SegmentableImage::toggleAllRegions()
 {
     for (auto itRegion = regions.begin(); itRegion != regions.end(); ++itRegion)
     {
-        if (!(*itRegion)->getIsPlaying_Click())
+        if (!((*itRegion)->getIsPlaying_Click() || (*itRegion)->getIsPlaying_Midi()))
         {
             (*itRegion)->setIsPlaying_Click(true); //counts as a click
             (*itRegion)->startPlaying();
@@ -1049,6 +1050,7 @@ void SegmentableImage::toggleAllRegions()
         else
         {
             (*itRegion)->setIsPlaying_Click(false); //counts as a click
+            (*itRegion)->setIsPlaying_Midi(false); //also overwrites MIDI
             (*itRegion)->stopPlaying();
         }
     }
@@ -1081,9 +1083,10 @@ void SegmentableImage::stopAllPlayPaths()
 {
     for (auto itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
     {
-        if ((*itPath)->getIsPlaying_Click())
+        if ((*itPath)->getIsPlaying_Click() || (*itPath)->getIsPlaying_Midi())
         {
             (*itPath)->setIsPlaying_Click(false); //counts as a click
+            (*itPath)->setIsPlaying_Midi(false); //also overwrites MIDI
             (*itPath)->stopPlaying();
         }
     }
@@ -1092,7 +1095,7 @@ void SegmentableImage::toggleAllPlayPaths()
 {
     for (auto itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
     {
-        if (!(*itPath)->getIsPlaying_Click())
+        if (!((*itPath)->getIsPlaying_Click() || (*itPath)->getIsPlaying_Midi()))
         {
             (*itPath)->setIsPlaying_Click(true); //counts as a click
             (*itPath)->startPlaying();
@@ -1100,6 +1103,7 @@ void SegmentableImage::toggleAllPlayPaths()
         else
         {
             (*itPath)->setIsPlaying_Click(false); //counts as a click
+            (*itPath)->setIsPlaying_Midi(false); //also overwrites MIDI
             (*itPath)->stopPlaying();
         }
     }

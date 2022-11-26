@@ -189,6 +189,12 @@ void RegionLfoState_WithoutModulatedParameters::modulatedParameterCountChanged(i
 void RegionLfoState_WithoutModulatedParameters::advance()
 {
     lfo.advanceUnsafeWithoutUpdate(); //needs to update phase (displayed on the region!), but no update necessary
+
+    if (!lfo.samplesUntilUpdate--) //update phase when samplesUntilUpdate == 0 (important to keep the LFO line updated)
+    {
+        lfo.updateLatestModulatedPhase();
+        lfo.resetSamplesUntilUpdate();
+    }
 }
 
 float RegionLfoState_WithoutModulatedParameters::getPhase()
@@ -261,6 +267,12 @@ void RegionLfoState_Muted::modulatedParameterCountChanged(int newCount)
 void RegionLfoState_Muted::advance()
 {
     lfo.advanceUnsafeWithoutUpdate(); //leaves out if cases (for samples in the wave table) and doesn't update the modulated value
+
+    if (!lfo.samplesUntilUpdate--) //update phase when samplesUntilUpdate == 0 (important to keep the LFO line updated)
+    {
+        lfo.updateLatestModulatedPhase();
+        lfo.resetSamplesUntilUpdate();
+    }
 }
 
 float RegionLfoState_Muted::getPhase()
@@ -338,7 +350,7 @@ void RegionLfoState_Active::advance()
     }
     else
     {
-        lfo.advanceUnsafeWithUpdate();
+        lfo.advanceUnsafeWithUpdate(); //also updates the latest modulated phase
         lfo.resetSamplesUntilUpdate();
     }
 }

@@ -88,7 +88,7 @@ public:
     void setBasePlaybackPositionStart(double newPlaybackPositionStart);
     double getBasePlaybackPositionStart();
 
-    ModulatableMultiplicativeParameter<double>* getPlaybackPositionIntervalParameter();
+    ModulatableMultiplicativeParameterLowerCap<double>* getPlaybackPositionIntervalParameter();
     void setBasePlaybackPositionInterval(double newPlaybackPositionInterval);
     double getBasePlaybackPositionInterval();
 
@@ -185,7 +185,7 @@ private:
     int pitchQuantisationScale[12]; //for each semitone in an octave (-> input index), maps to a note on a scale
 
     ModulatableAdditiveParameter<double> playbackPositionStartParameter;
-    ModulatableMultiplicativeParameter<double> playbackPositionIntervalParameter;
+    ModulatableMultiplicativeParameterLowerCap<double> playbackPositionIntervalParameter;
     ModulatableAdditiveParameter<double> playbackPositionCurrentParameter;
 
     SamplerOscillator* osc;

@@ -83,9 +83,9 @@ void DahdsrEnvelope::setSampleRate(double newSampleRate)
     currentState->sampleRateChanged(newSampleRate, true); //for the current state, *do* trigger the transition to idle (if applicable)
 }
 
-void DahdsrEnvelope::noteOn()
+void DahdsrEnvelope::noteOn(bool includeDelay)
 {
-    currentState->noteOn(); //automatically transitions states where applicable
+    currentState->noteOn(includeDelay); //automatically transitions states where applicable
 }
 
 void DahdsrEnvelope::noteOff() //triggers release; called in Voice::noteOff

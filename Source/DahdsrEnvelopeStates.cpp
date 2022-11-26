@@ -41,7 +41,7 @@ void DahdsrEnvelopeState_Unprepared::sampleRateChanged(double newSampleRate, boo
     }
 }
 
-void DahdsrEnvelopeState_Unprepared::noteOn()
+void DahdsrEnvelopeState_Unprepared::noteOn(bool includeDelay)
 {
     throw std::exception("Envelope has not been prepared yet, so it cannot handle notes.");
 }
@@ -95,10 +95,17 @@ void DahdsrEnvelopeState_Idle::sampleRateChanged(double newSampleRate, bool trig
     //already prepared -> do nothing
 }
 
-void DahdsrEnvelopeState_Idle::noteOn()
+void DahdsrEnvelopeState_Idle::noteOn(bool includeDelay)
 {
-    //begin delay time
-    envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, 0.0);
+    if (includeDelay)
+    {
+        //begin delay time
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, 0.0);
+    }
+    else
+    {
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::attack, 0.0);
+    }
 }
 
 double DahdsrEnvelopeState_Idle::getNextEnvelopeSample()
@@ -161,10 +168,17 @@ void DahdsrEnvelopeState_Delay::sampleRateChanged(double newSampleRate, bool tri
     }
 }
 
-void DahdsrEnvelopeState_Delay::noteOn()
+void DahdsrEnvelopeState_Delay::noteOn(bool includeDelay)
 {
-    //restart delay time
-    resetState();
+    if (includeDelay)
+    {
+        //restart delay time
+        resetState();
+    }
+    else
+    {
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::attack, 0.0);
+    }
 }
 
 double DahdsrEnvelopeState_Delay::getNextEnvelopeSample()
@@ -255,10 +269,18 @@ void DahdsrEnvelopeState_Attack::sampleRateChanged(double newSampleRate, bool tr
     }
 }
 
-void DahdsrEnvelopeState_Attack::noteOn()
+void DahdsrEnvelopeState_Attack::noteOn(bool includeDelay)
 {
-    //transition back to delay
-    envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, envelopeLevelCurrent);
+    if (includeDelay)
+    {
+        //transition back to delay
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, envelopeLevelCurrent);
+    }
+    else
+    {
+        //reset attack time, but leave the current level as-is
+        setStartingLevel(envelopeLevelCurrent);
+    }
     resetState();
 }
 
@@ -384,10 +406,18 @@ void DahdsrEnvelopeState_Hold::sampleRateChanged(double newSampleRate, bool trig
     }
 }
 
-void DahdsrEnvelopeState_Hold::noteOn()
+void DahdsrEnvelopeState_Hold::noteOn(bool includeDelay)
 {
-    //transition back to delay
-    envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, level);
+    if (includeDelay)
+    {
+        //transition back to delay
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, level);
+    }
+    else
+    {
+        //transition back to attack
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::attack, level);
+    }
     resetState();
 }
 
@@ -488,10 +518,18 @@ void DahdsrEnvelopeState_Decay::sampleRateChanged(double newSampleRate, bool tri
     }
 }
 
-void DahdsrEnvelopeState_Decay::noteOn()
+void DahdsrEnvelopeState_Decay::noteOn(bool includeDelay)
 {
-    //transition back to delay
-    envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, envelopeLevelCurrent);
+    if (includeDelay)
+    {
+        //transition back to delay
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, envelopeLevelCurrent);
+    }
+    else
+    {
+        //transition back to attack
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::attack, envelopeLevelCurrent);
+    }
     resetState();
 }
 
@@ -612,10 +650,18 @@ void DahdsrEnvelopeState_Sustain::sampleRateChanged(double newSampleRate, bool t
     }
 }
 
-void DahdsrEnvelopeState_Sustain::noteOn()
+void DahdsrEnvelopeState_Sustain::noteOn(bool includeDelay)
 {
-    //transition back to delay
-    envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, level);
+    if (includeDelay)
+    {
+        //transition back to delay
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, level);
+    }
+    else
+    {
+        //transition back to attack
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::attack, level);
+    }
 }
 
 double DahdsrEnvelopeState_Sustain::getNextEnvelopeSample()
@@ -691,10 +737,18 @@ void DahdsrEnvelopeState_Release::sampleRateChanged(double newSampleRate, bool t
     }
 }
 
-void DahdsrEnvelopeState_Release::noteOn()
+void DahdsrEnvelopeState_Release::noteOn(bool includeDelay)
 {
-    //transition back to delay
-    envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, envelopeLevelCurrent);
+    if (includeDelay)
+    {
+        //transition back to delay
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, envelopeLevelCurrent);
+    }
+    else
+    {
+        //transition back to attack
+        envelope.transitionToState(DahdsrEnvelopeStateIndex::attack, envelopeLevelCurrent);
+    }
     resetState();
 }
 

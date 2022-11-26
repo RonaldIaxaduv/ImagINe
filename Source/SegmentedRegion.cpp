@@ -280,9 +280,8 @@ void SegmentedRegion::paintOverChildren(juce::Graphics& g)
         setTimerInterval(newTimerIntervalMs);
     }
 
-    auto voices = audioEngine->getVoicesWithID(ID);
-
-    for (auto it = voices.begin(); it != voices.end(); it++)
+    //auto voices = audioEngine->getVoicesWithID(ID);
+    for (auto it = associatedVoices.begin(); it != associatedVoices.end(); it++)
     {
         if ((*it)->isPlaying())
         {
@@ -637,6 +636,9 @@ bool SegmentedRegion::getIsPlaying_Midi()
 }
 bool SegmentedRegion::shouldBePlaying()
 {
+    DBG(juce::String(isPlaying_click || isPlaying_courier || isPlaying_midi ?
+        "region " + juce::String(ID) + " should be playing: " + juce::String(isPlaying_click ? "click " : "") + juce::String(isPlaying_midi ? "MIDI " : "") + " " + juce::String(isPlaying_courier ? "courier " : "") :
+        "region " + juce::String(ID) + " should not be playing."));
     return isPlaying_click || isPlaying_courier || isPlaying_midi;
 }
 void SegmentedRegion::startPlaying(bool toggleButtonState)
@@ -672,6 +674,10 @@ void SegmentedRegion::startPlaying(bool toggleButtonState)
 
         startTimer(timerIntervalMs); //animates the LFO line
     }
+    else
+    {
+        DBG("didn't need to stop region " + juce::String(ID) + ".");
+    }
 }
 void SegmentedRegion::stopPlaying(bool toggleButtonState)
 {
@@ -703,6 +709,10 @@ void SegmentedRegion::stopPlaying(bool toggleButtonState)
         }
 
         //stopTimer(); //stopped in the drawing method since the LFO will have to keep being drawn for a little longer because of release time
+    }
+    else
+    {
+        DBG("didn't need to stop region " + juce::String(ID) + ".");
     }
 }
 void SegmentedRegion::panic()

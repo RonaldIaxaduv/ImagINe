@@ -74,8 +74,7 @@ LfoEditor::LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo)
     addAndMakeVisible(lfoUpdateIntervalLabel);
     lfoUpdateIntervalLabel.attachToComponent(&lfoUpdateIntervalSlider, true);
 
-    lfoUpdateQuantisationChoice.addItem("1/1 (no quantisation)", static_cast<int>(UpdateRateQuantisationMethod::full) + 1); //always adding 1 because 0 is not a valid ID (reserved for other purposes)
-    lfoUpdateQuantisationChoice.addItem("1/1T", static_cast<int>(UpdateRateQuantisationMethod::full_triole) + 1);
+    lfoUpdateQuantisationChoice.addItem("1/1T", static_cast<int>(UpdateRateQuantisationMethod::full_triole) + 1); //always adding 1 because 0 is not a valid ID (reserved for other purposes)
     lfoUpdateQuantisationChoice.addItem("1/2.", static_cast<int>(UpdateRateQuantisationMethod::half_dotted) + 1);
     lfoUpdateQuantisationChoice.addItem("1/2", static_cast<int>(UpdateRateQuantisationMethod::half) + 1);
     lfoUpdateQuantisationChoice.addItem("1/2T", static_cast<int>(UpdateRateQuantisationMethod::half_triole) + 1);
@@ -94,6 +93,7 @@ LfoEditor::LfoEditor(AudioEngine* audioEngine, RegionLfo* associatedLfo)
     lfoUpdateQuantisationChoice.addItem("1/64.", static_cast<int>(UpdateRateQuantisationMethod::sixtyfourth_dotted) + 1);
     lfoUpdateQuantisationChoice.addItem("1/64", static_cast<int>(UpdateRateQuantisationMethod::sixtyfourth) + 1);
     lfoUpdateQuantisationChoice.addItem("1/64T", static_cast<int>(UpdateRateQuantisationMethod::sixtyfourth_triole) + 1);
+    lfoUpdateQuantisationChoice.addItem("continuous (no quantisation)", static_cast<int>(UpdateRateQuantisationMethod::continuous) + 1);
     lfoUpdateQuantisationChoice.onChange = [this]
     {
         updateLfoUpdateQuantisation();
@@ -205,7 +205,7 @@ void LfoEditor::copyParameters()
     lfoPhaseIntervalSlider.setValue(associatedLfo->getBasePhaseInterval(), juce::NotificationType::dontSendNotification);
 
     lfoUpdateIntervalSlider.setValue(associatedLfo->getUpdateInterval_Milliseconds(), juce::NotificationType::dontSendNotification);
-    lfoUpdateQuantisationChoice.setSelectedId(static_cast<int>(associatedLfo->getUpdateRateQuantisationMethod()) + 1);
+    lfoUpdateQuantisationChoice.setSelectedId(static_cast<int>(associatedLfo->getUpdateRateQuantisationMethod()) + 1, juce::NotificationType::dontSendNotification);
 
     //copy currently affected voices and their modulated parameters
     lfoRegionsList.copyRegionModulations(associatedLfo->getAffectedRegionIDs(), associatedLfo->getModulatedParameterIDs());
@@ -348,78 +348,5 @@ void LfoEditor::randomiseLfoUpdateQuantisation()
 
 void LfoEditor::updateLfoParameter(int targetRegionID, bool shouldBeModulated, LfoModulatableParameter modulatedParameter)
 {
-    bool wasSuspended = audioEngine->isSuspended();
-
-    if (!shouldBeModulated || static_cast<int>(modulatedParameter) <= 0)
-    {
-        audioEngine->suspendProcessing(true);
-        associatedLfo->removeRegionModulation(targetRegionID); //removing modulation is the same for every region
-        audioEngine->suspendProcessing(wasSuspended);
-        return;
-    }
-    
-    //there are different overloads for RegionLfo::addRegionModulation depending on whether a voice is modulated or an LFO
-    audioEngine->suspendProcessing(true);
-    switch (modulatedParameter)
-    {
-    case LfoModulatableParameter::volume:
-    case LfoModulatableParameter::volume_inverted:
-        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_Volume(targetRegionID));
-        break;
-
-    case LfoModulatableParameter::pitch:
-    case LfoModulatableParameter::pitch_inverted:
-        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_Pitch(targetRegionID));
-        break;
-
-    case LfoModulatableParameter::playbackPositionStart:
-    case LfoModulatableParameter::playbackPositionStart_inverted:
-        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_PlaybackPositionStart(targetRegionID));
-        break;
-
-    case LfoModulatableParameter::playbackPositionInterval:
-    case LfoModulatableParameter::playbackPositionInterval_inverted:
-        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_PlaybackPositionInterval(targetRegionID));
-        break;
-
-    case LfoModulatableParameter::playbackPositionCurrent:
-    case LfoModulatableParameter::playbackPositionCurrent_inverted:
-        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_PlaybackPositionCurrent(targetRegionID));
-        break;
-
-
-
-
-    case LfoModulatableParameter::lfoRate:
-    case LfoModulatableParameter::lfoRate_inverted:
-        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_LfoRate(targetRegionID));
-        break;
-
-    case LfoModulatableParameter::lfoStartingPhase:
-    case LfoModulatableParameter::lfoStartingPhase_inverted:
-        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_LfoStartingPhase(targetRegionID));
-        break;
-
-    case LfoModulatableParameter::lfoPhaseInterval:
-    case LfoModulatableParameter::lfoPhaseInterval_inverted:
-        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_LfoPhaseInterval(targetRegionID));
-        break;
-
-    case LfoModulatableParameter::lfoCurrentPhase:
-    case LfoModulatableParameter::lfoCurrentPhase_inverted:
-        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_LfoCurrentPhase(targetRegionID));
-        break;
-
-    case LfoModulatableParameter::lfoUpdateInterval:
-    case LfoModulatableParameter::lfoUpdateInterval_inverted:
-        associatedLfo->addRegionModulation(modulatedParameter, targetRegionID, audioEngine->getParameterOfRegion_LfoUpdateInterval(targetRegionID));
-        break;
-
-
-
-
-    default:
-        throw std::exception("Unknown or unimplemented region modulation");
-    }
-    audioEngine->suspendProcessing(wasSuspended);
+    audioEngine->updateLfoParameter(associatedLfo->getRegionID(), targetRegionID, shouldBeModulated, modulatedParameter);
 }

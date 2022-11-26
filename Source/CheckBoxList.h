@@ -130,18 +130,18 @@ public:
     {
         return regionButton.getToggleState();
     }
-    void setIsModulated(bool shouldBeModulated, bool notifyParent = false)
+    void setIsModulated(bool shouldBeModulated, juce::NotificationType notification)
     {
         modulationChoice.setEnabled(shouldBeModulated);
-        regionButton.setToggleState(shouldBeModulated, juce::NotificationType::sendNotification);
+        regionButton.setToggleState(shouldBeModulated, notification);
     }
     LfoModulatableParameter getModulatedParameter()
     {
         return static_cast<LfoModulatableParameter>(modulationChoice.getSelectedId());
     }
-    void setModulatedParameterID(LfoModulatableParameter id)
+    void setModulatedParameterID(LfoModulatableParameter id, juce::NotificationType notification)
     {
-        modulationChoice.setSelectedId(static_cast<int>(id), juce::NotificationType::sendNotification);
+        modulationChoice.setSelectedId(static_cast<int>(id), notification);
     }
 
     void triggerClick(const juce::MouseEvent& e)
@@ -395,13 +395,13 @@ public:
 
         return checkedRegionIndices;
     }
-    void setCheckedRegions(juce::Array<int> regionIDs)
-    {
-        for (auto it = items.begin(); it != items.end(); ++it)
-        {
-            (*it)->setIsModulated(regionIDs.contains((*it)->getRegionID())); //checked if contained in regionIDs
-        }
-    }
+    //void setCheckedRegions(juce::Array<int> regionIDs)
+    //{
+    //    for (auto it = items.begin(); it != items.end(); ++it)
+    //    {
+    //        (*it)->setIsModulated(regionIDs.contains((*it)->getRegionID())); //checked if contained in regionIDs
+    //    }
+    //}
     void copyRegionModulations(juce::Array<int> modulatedRegionIDs, juce::Array<LfoModulatableParameter> modulatedParameterIDs)
     {
         for (auto it = items.begin(); it != items.end(); ++it)
@@ -409,12 +409,12 @@ public:
             int index = modulatedRegionIDs.indexOf((*it)->getRegionID());
             if (index >= 0) //modulatedRegionIDs contains this region
             {
-                (*it)->setIsModulated(true);
-                (*it)->setModulatedParameterID(modulatedParameterIDs[index]);
+                (*it)->setIsModulated(true, juce::NotificationType::dontSendNotification);
+                (*it)->setModulatedParameterID(modulatedParameterIDs[index], juce::NotificationType::dontSendNotification);
             }
             else
             {
-                (*it)->setIsModulated(false);
+                (*it)->setIsModulated(false, juce::NotificationType::dontSendNotification);
             }
 
         }
@@ -435,13 +435,14 @@ public:
         bool shouldBeModulated = rng.nextInt(3) < 2; //66% chance to become modulated
         if (wasModulated != shouldBeModulated)
         {
-            item->setIsModulated(shouldBeModulated, true);
+            item->setIsModulated(shouldBeModulated, item->isModulated() ? juce::NotificationType::dontSendNotification : juce::NotificationType::sendNotification); //if modulated, it will send a notification during the next if case
         }
 
         if (item->isModulated())
         {
             //set to a random parameter (excluding "no modulation")
-            item->setModulatedParameterID(static_cast<LfoModulatableParameter>(rng.nextInt(juce::Range<int>(1, static_cast<int>(LfoModulatableParameter::ModulatableParameterCount)))));
+            item->setModulatedParameterID(static_cast<LfoModulatableParameter>(rng.nextInt(juce::Range<int>(1, static_cast<int>(LfoModulatableParameter::ModulatableParameterCount)))),
+                                          juce::NotificationType::sendNotification);
         }
     }
 

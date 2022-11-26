@@ -594,6 +594,37 @@
 	-> not possible from within the program, argh...
 # delete all empty cpp and header files
 
+# bug: the keyboard shortcuts for (un)playing and toggling don't really act like clicks since they don't overwrite MIDI
+!# serious bug: the program sometimes crashes when playing regions
+	-> apparently, it's caused by negative buffer positions o.ô
+		-> effectiveBufferPos is NaN
+			- is was possible for the interval parameter to become 0.0, causing a division by zero when calculating the buffer pos (or phase for the LFO)
+				-> make a new class for modulatable multiplicative parameters that have a lower cap, so that jmax can be left out in the final calculation and ifs are reduced
+!# serious bug: sometimes regions won't stop playing
+	?/ can't really reproduce it... might've had smth to do with the keyboard shortcuts not properly acting like clicks(?)
+	-> seems to happen regularly in the Meditative preset
+		!#> apparently, removing the current playback position modulation breaks things
+			/ maybe the new method doesn't transition the modulatable parameter back to being up-to-date?
+			!#> actually, it's because one of the regions in that preset has a long envelope and modulates its own playback position! since the envelope gets retriggered every time the current playback position is updated, the voice never finishes releasing!
+				# in the same preset, i also noticed that the delay time shouldn't be taken into account for the DAHDSR reset...
+# don't reset a region's audio buffer position during noteOn. instead, only reset it when it's forced off, when its release time ends or when the buffer has been changed. that way, replaying a region while its release is still going won't reset it - a much more intuitive behaviour.
+?# it seems like some modulations might still not be loaded in correctly (opening the editor fixes it). it noticable especially for current playback pos modulation because there, the envelope should restart.
+	# hmm it seems like all modulations do get re-added when opening an editor, but that in itself might actually be good(?)
+	?-> code of adding modulations seems clean (AudioEngine, RegionLfo, ModulatableParameter)...
+	-> they do all seem to get added during deserialisation -> don't re-add them when opening the editor
+	?!/ it seems to happen especially with current playback position(?)
+	?!- apparently the modulations are added, but they don't use the correct update interval until they are re-added o.ô
+	?- it also seems like a region's update rate doesn't change if a different region, that modulated it, removes that modulation
+		-> could be a bug with the update rate
+		- hmm... actually, the LFO line itself already updates at the correct rate, that's weird o.ô
+			/ it's even weirder: when setting the update rate to a ridiculously high value, the region keeps getting modulated! what??
+	#> uhhhh so I took the code that adds modulations from the LfoEditor and inserted it into the AudioEngine to use it during deserialisation and now it works. i'm honestly not sure what it does differently but hell, i'm not going to question it at 9 pm...
+# bug: LFO lines don't update if their LFO doesn't modulate any parameters
+	!#> latestModulatedPhase is only updated within updateCurrentValues
+# urgh, why the hell did i remove continuous update rate quantisation? 1/1 would normally mean that the update rate cannot be modulated...
+
+- when new voices are added, they don't automatically receive the region's modulations... that's smth that should be fixed before polyphony is implemented
+
 
 
 
