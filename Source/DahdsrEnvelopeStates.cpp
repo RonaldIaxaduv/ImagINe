@@ -275,13 +275,15 @@ void DahdsrEnvelopeState_Attack::noteOn(bool includeDelay)
     {
         //transition back to delay
         envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, envelopeLevelCurrent);
+        resetState();
     }
     else
     {
-        //reset attack time, but leave the current level as-is
-        setStartingLevel(envelopeLevelCurrent);
+        //temporarely change the initial level to reset the attack time while seemingly leavning the current level as-is
+        float origStartingLevel = getStartingLevel(); 
+        setStartingLevel(envelopeLevelCurrent); //this will update the time until the end level and reset the state
+        envelopeLevelStart = origStartingLevel; //return the initial level to its previous value without changing the level change per sample. when the envelope finishes, it will reset and this temporary change will disappear entirely. 
     }
-    resetState();
 }
 
 double DahdsrEnvelopeState_Attack::getNextEnvelopeSample()

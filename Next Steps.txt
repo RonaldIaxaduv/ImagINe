@@ -623,6 +623,10 @@
 	!#> latestModulatedPhase is only updated within updateCurrentValues
 # urgh, why the hell did i remove continuous update rate quantisation? 1/1 would normally mean that the update rate cannot be modulated...
 
+!# setting current playback position during attack time will change the initial volume
+	-> whoops, changed a wrong variable there ><
+# inverted volume modulation sounds a lot more quiet than normal volume modulation -> check whether the formula is correct!
+	-> found the mistake!
 - when new voices are added, they don't automatically receive the region's modulations... that's smth that should be fixed before polyphony is implemented
 
 

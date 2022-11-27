@@ -348,7 +348,8 @@ void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParamete
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
                 //return 1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
-                return static_cast<double>(lfo->getDepth()) * (1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar())); //interval: [1.0, 1.0-depth]
+                //return static_cast<double>(lfo->getDepth()) * (1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar())); //interval: [1.0, 1.0-depth]
+                return 1.0 - static_cast<double>(lfo->getDepth()) * static_cast<double>(lfo->getCurrentValue_Unipolar()); //interval: [1.0, 1.0-depth]
             };
             break;
 
