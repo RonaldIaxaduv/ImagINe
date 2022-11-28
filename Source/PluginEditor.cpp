@@ -240,18 +240,26 @@ bool ImageINeDemoAudioProcessorEditor::keyPressed(const juce::KeyPress& key)
         //switch state
         if (key == juce::KeyPress::createFromDescription("w") || key == juce::KeyPress::createFromDescription("a") || key == juce::KeyPress::upKey || key == juce::KeyPress::leftKey)
         {
-            if (modeBox.getSelectedId() > 1)
+            /*if (modeBox.getSelectedId() > 1)
             {
                 modeBox.setSelectedId(modeBox.getSelectedId() - 1);
                 return true;
+            }*/
+            if (modeBox.getSelectedItemIndex() > 0)
+            {
+                modeBox.setSelectedItemIndex(modeBox.getSelectedItemIndex() - 1);
             }
         }
         if (key == juce::KeyPress::createFromDescription("s") || key == juce::KeyPress::createFromDescription("d") || key == juce::KeyPress::downKey || key == juce::KeyPress::rightKey)
         {
-            if (modeBox.getSelectedId() < static_cast<int>(PluginEditorStateIndex::StateIndexCount) - 1)
+            /*if (modeBox.getSelectedId() < static_cast<int>(PluginEditorStateIndex::StateIndexCount) - 1)
             {
                 modeBox.setSelectedId(modeBox.getSelectedId() + 1);
                 return true;
+            }*/
+            if (modeBox.getSelectedItemIndex() < modeBox.getNumItems() - 1)
+            {
+                modeBox.setSelectedItemIndex(modeBox.getSelectedItemIndex() + 1);
             }
         }
 

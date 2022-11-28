@@ -34,6 +34,9 @@ SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangl
     associatedLfo = audioEngine->getLfo(ID);
     associatedVoices = audioEngine->getVoicesWithID(ID);
 
+    midiChannel = 0; //any channel
+    noteNumber = (60 + ID) % 128; //default MIDI note: C4 + ID
+
     //initialise states
     states[static_cast<int>(SegmentedRegionStateIndex::notInteractable)] = static_cast<SegmentedRegionState*>(new SegmentedRegionState_NotInteractable(*this));
     states[static_cast<int>(SegmentedRegionStateIndex::editable)] = static_cast<SegmentedRegionState*>(new SegmentedRegionState_Editable(*this));

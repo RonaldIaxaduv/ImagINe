@@ -627,6 +627,17 @@
 	-> whoops, changed a wrong variable there ><
 # inverted volume modulation sounds a lot more quiet than normal volume modulation -> check whether the formula is correct!
 	-> found the mistake!
+!# reset samplesUntilUpdate when voice stops
+	# actually, do so when it *starts*. that way, it's more consistent with update rate modulation and it might even work after polyphony is introduced!
+!(/) formula for inversion still seems to be wrong wth?? (check volume especially)
+	# hmm, the formula is definitely right tho...
+	# checking again, it does feel correct o.ô maybe the build that i saw it on was wrong
+	?-> ahh, it's probably because volume modulation is linear whereas volume in general is logarithmic, i.e. if the base values of two sounds are vastly different, their volume modulations will sound different...
+# automatically set the MIDI response of regions upon creation: any channel, C4 + [region number] as the note.
+# when using WASD/arrow keys to switch states, the order is wrong (not the same as in the combobox)
+# randomising the entire LfoEditor using ctrl+r doesn't work yet
+	-> it's because it only passes the keypress - if the return value of that is false, randomise the entire component
+
 - when new voices are added, they don't automatically receive the region's modulations... that's smth that should be fixed before polyphony is implemented
 
 
@@ -787,3 +798,6 @@ possible features to add later:
 	-> neat to implement regions that contain a single-pitch waveform and are called often
 	-> would be especially cool in combination with the polyphony and one-shot updates!
 	- this shouldn't be too hard to implement: add a class for the state (which will handle the method which sets the voice's current phase and also has a method that will be called during the voice's noteOn method) and add two implementations of it. the first uses the normal method for aquiring pitch (looking for updates during every call), the second has a member variable storing the modulated pitch that was detected when the noteOn method was called and only ever returns that value for the pitch method.
+- make it possible to add ranges of MIDI notes that a region responds to (instead of just one note), affecting a region's pitch
+	- setting the: pitch define base note?
+	- when using pitch quantisation, make sure *not* to shift the entire scale when playing a note! instead, shift the position of the base note according to the note within the range, so that it just play a different note *within the same* scale.

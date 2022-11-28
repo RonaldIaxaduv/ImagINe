@@ -169,6 +169,10 @@ void Voice::startNote(int midiNoteNumber, float velocity,
     //currentSound = dynamic_cast<SamplerOscillator*>(sound);
 
     envelope.noteOn();
+    if (associatedLfo != nullptr)
+    {
+        associatedLfo->resetSamplesUntilUpdate(); //feels more consistent and intuitive
+    }
     currentState->playableChanged(true);
 
     updateBufferPosDelta();

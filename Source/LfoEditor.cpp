@@ -190,7 +190,12 @@ bool LfoEditor::keyPressed(const juce::KeyPress& key)
         }
         else if (lfoRegionsList.getBounds().contains(mousePos))
         {
-            return lfoRegionsList.keyPressed(key);
+            bool editedRegionsList = lfoRegionsList.keyPressed(key);
+            if (!editedRegionsList)
+            {
+                lfoRegionsList.randomiseAllParameters();
+            }
+            return true;
         }
     }
     

@@ -380,7 +380,12 @@ bool RegionEditor::keyPressed(const juce::KeyPress& key/*, Component* originatin
         }
         else if (dahdsrEditor.getBounds().contains(mousePos))
         {
-            return dahdsrEditor.keyPressed(key);
+            bool editedDahdsrEditor = dahdsrEditor.keyPressed(key);
+            if (!editedDahdsrEditor)
+            {
+                dahdsrEditor.randomiseAllParameters();
+            }
+            return true;
         }
         else if (volumeSlider.getBounds().contains(mousePos))
         {
@@ -409,7 +414,7 @@ bool RegionEditor::keyPressed(const juce::KeyPress& key/*, Component* originatin
         }
         else if (lfoEditor.getBounds().contains(mousePos))
         {
-            return lfoEditor.keyPressed(key);
+            return lfoEditor.keyPressed(key); //don't randomise all parameters of the LFO editor - its components are too varied, it would feel unintentional.
         }
     }
 
