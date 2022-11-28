@@ -31,7 +31,7 @@ public:
             modulationChoice.setEnabled(regionButton.getToggleState());
             sendChangeMessage();
         };
-        regionButton.setTooltip("This is a test. 1");
+        regionButton.setTooltip(getTooltip());
         addAndMakeVisible(regionButton);
 
         modulationChoice.addSectionHeading("Voice");
@@ -63,7 +63,7 @@ public:
         //modulationChoice.addSectionHeading("Experimental");
         modulationChoice.onChange = [this] { sendChangeMessage(); }; //the LfoEditor does the actualy routing to the RegionLfo. that way, this class doesn't need any references to RegionLfo or the LfoEditor or any of that stuff, which is cleaner overall
         modulationChoice.setEnabled(false);
-        modulationChoice.setTooltip("This is a test. 2");
+        modulationChoice.setTooltip(getTooltip());
         addAndMakeVisible(modulationChoice);
     }
 
@@ -155,6 +155,9 @@ public:
         {
             modulationChoice.showPopup();
         }
+
+        regionButton.setTooltip(getTooltip());
+        modulationChoice.setTooltip(getTooltip());
     }
 
     juce::String getTooltip() override
@@ -221,6 +224,16 @@ public:
         }
     }
 
+    void copyValues(CheckBoxListItem* otherItem)
+    {
+        row = otherItem->row;
+        regionID = otherItem->regionID;
+        setBackgroundColour(otherItem->backgroundColour);
+        regionButton.setButtonText(otherItem->regionButton.getButtonText());
+        setIsModulated(otherItem->isModulated(), juce::NotificationType::dontSendNotification);
+        modulationChoice.setSelectedId(otherItem->modulationChoice.getSelectedId(), juce::NotificationType::dontSendNotification);
+    }
+
 private:
     int row;
     int regionID;
@@ -237,7 +250,7 @@ private:
 /*
 * A ListBox containing items which are all CheckBoxes
 */
-class CheckBoxList final : public juce::Component, public juce::ListBoxModel //, public juce::TooltipClient
+class CheckBoxList final : public juce::Component, public juce::ListBoxModel, juce::ChangeListener //, public juce::TooltipClient
 {
 public:
     CheckBoxList() : juce::ListBoxModel()
@@ -252,7 +265,13 @@ public:
 
     ~CheckBoxList() override
     {
-        items.clear();
+        while (items.size() > 0)
+        {
+            delete items[items.size() - 1];
+            items.removeLast();
+        }
+
+        list.updateContent(); //deletes all children
     }
 
     int getNumRows() override
@@ -269,25 +288,49 @@ public:
     {
         if (existingComponentToUpdate == nullptr)
         {
+            //create new custom component
             if (rowNumber < getNumRows())
             {
-                auto item = items[rowNumber];
+                CheckBoxListItem* item = new CheckBoxListItem("", 0, 0);
+                item->addChangeListener(this);
+                item->copyValues(items[rowNumber]);
                 return item;
             }
         }
         else
         {
-            //WIP: row might've changed
+            CheckBoxListItem* existingItem = static_cast<CheckBoxListItem*>(existingComponentToUpdate);
 
-            if (rowNumber < getNumRows())
+            if (existingItem->getRow() != rowNumber)
             {
-                auto item = items[rowNumber];
-                return item;
+                //juce prefers to re-use previously used components over creating new ones.
+                if (rowNumber < getNumRows())
+                {
+                    CheckBoxListItem* item = static_cast<CheckBoxListItem*>(existingItem); //items[rowNumber];
+                    static_cast<CheckBoxListItem*>(existingItem)->copyValues(items[rowNumber]);
+                    return existingItem;
+                }
+                else
+                {
+                    static_cast<CheckBoxListItem*>(existingComponentToUpdate)->removeChangeListener(this);
+                    delete existingComponentToUpdate;
+                }
             }
             else
             {
-                //item does not exist anymore in the array -> has been deleted -> delete item
-                delete existingComponentToUpdate;
+                //existing component, same row number
+                if (rowNumber < getNumRows())
+                {
+                    CheckBoxListItem* item = static_cast<CheckBoxListItem*>(existingItem); //items[rowNumber];
+                    static_cast<CheckBoxListItem*>(existingItem)->copyValues(items[rowNumber]); //WIP: this might not be necessary
+                    return existingItem;
+                }
+                else
+                {
+                    //item does not exist anymore in the array -> has been deleted -> delete item
+                    static_cast<CheckBoxListItem*>(existingComponentToUpdate)->removeChangeListener(this);
+                    delete existingComponentToUpdate;
+                }
             }
         }
 
@@ -354,15 +397,29 @@ public:
         newItem->addChangeListener(changeListener);
         items.add(newItem);
 
-        list.updateContent();
+        //list.updateContent();
 
         return newItem->getRow();
     }
+    void changeListenerCallback(juce::ChangeBroadcaster* source)
+    {
+        auto* item = static_cast<CheckBoxListItem*>(source);
+
+        items[item->getRow()]->copyValues(item);
+        items[item->getRow()]->sendChangeMessage();
+    }
     
     void clearItems()
-    {
-        items.clear();
-        list.updateContent();
+    {        
+        while (items.size() > 0)
+        {
+            delete items[items.size() - 1];
+            items.removeLast();
+        }
+
+        list.updateContent(); //deletes all children
+
+        DBG("cleared items of the CheckBoxList.");
     }
 
     void setRowBackgroundColour(int rowNumber, juce::Colour colour)
@@ -371,6 +428,7 @@ public:
         {
             items[rowNumber]->setBackgroundColour(colour);
         }
+        //list.updateContent();
     }
 
     /*void setClickFunction(int rowNumber, std::function<void ()> clickFunction)
@@ -416,8 +474,9 @@ public:
             {
                 (*it)->setIsModulated(false, juce::NotificationType::dontSendNotification);
             }
-
         }
+
+        //list.updateContent();
     }
 
     void randomiseAllParameters()
@@ -444,6 +503,8 @@ public:
             item->setModulatedParameterID(static_cast<LfoModulatableParameter>(rng.nextInt(juce::Range<int>(1, static_cast<int>(LfoModulatableParameter::ModulatableParameterCount)))),
                                           juce::NotificationType::sendNotification);
         }
+
+        //list.updateContent();
     }
 
     void setUnitOfHeight(int newHUnit)

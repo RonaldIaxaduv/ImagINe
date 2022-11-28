@@ -637,6 +637,7 @@
 # when using WASD/arrow keys to switch states, the order is wrong (not the same as in the combobox)
 # randomising the entire LfoEditor using ctrl+r doesn't work yet
 	-> it's because it only passes the keypress - if the return value of that is false, randomise the entire component
+!- program crashes when scrolling through the LfoEditor's list
 
 - when new voices are added, they don't automatically receive the region's modulations... that's smth that should be fixed before polyphony is implemented
 

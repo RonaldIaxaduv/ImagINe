@@ -3,7 +3,7 @@
 <JUCERPROJECT id="bF30wr" name="ImageINe" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
               pluginFormats="buildStandalone,buildVST3" pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn"
-              version="1.0.1">
+              version="1.0.2">
   <MAINGROUP id="ERSV9V" name="ImageINe">
     <GROUP id="{8D26A2AA-44ED-091F-1BA7-BD7625DE9D6A}" name="Source">
       <GROUP id="{BD4EFDA1-1593-3EA9-9AF3-1D7AC5564478}" name="Play Path">

@@ -235,6 +235,8 @@ void LfoEditor::updateAvailableVoices()
         lfoRegionsList.setRowBackgroundColour(newRowNumber, audioEngine->getRegionColour(*it));
         //lfoRegionsList.setClickFunction(newRowNumber, [this] { updateLfoVoices(lfoRegionsList.getCheckedRegionIDs()); });
     }
+
+    resized(); //redraws lfoRegionsList (lfoRegionsList.resized() won't do the same)
 }
 
 void LfoEditor::changeListenerCallback(juce::ChangeBroadcaster* source)
