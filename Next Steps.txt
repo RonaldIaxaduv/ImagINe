@@ -566,9 +566,15 @@
 	?- "sync"
 		-> trick: using ModulatableMultiplicativeParameter<int>, one can create a big logical AND, and using ModulatableAdditiveParameter<int>, one can create a big logical OR. now, if one takes the unipolar LFO values and rounds them to 0 or 1, one can create a type of sync: if all (or any) modulations result in 1 (-> true), reset the LFO/playback phase. like with current phase modulation, this would use the modulateValueIfUpdated method.
 			-> inversion would simply set each modulator's value to 1-value, effectively negating the boolean value
-	!- interpret the LFO wavetable as a waveshaping table, where the starting value is at the LFO's current phase
-		- this would (most likely) result in rather distorted sounds that change over time
-		- depth: dry/wet mix
+	!- region waveshaper: interpret the LFO wavetable as a waveshaping table, where the starting value is at the LFO's current phase (cyclically wraps)
+		-> this would (most likely) result in rather distorted sounds that change over time
+		- modulation: shaper position, dry/wet
+	!- a lowpass filter would be really, really useful.
+	!- region filter: interpret the LFO wavetable as the values of an EQ (-> filter), where the starting value is at the LFO's current phase (cyclically wraps)
+		!-> this would cause sounds to mellow rather than to become more complex -> very much needed!
+		-> this would give a sound a certain character depending on the region's shape -> very much needed!
+		- should be applied after all other processing (to ensure -^)
+		- modulation: filter position, maybe dry/wet?
 !# some update rate quantisation settings cause the update rate to become 0 o.ô
 	-> ahh, it's probably cos i used std::floor, causing the multiplier to easily become 0. changed it to ceil now.
 !# regions (and maybe play paths) don't act like toggleables when playing play paths (or regions in the other case) even if they are set to toggleable

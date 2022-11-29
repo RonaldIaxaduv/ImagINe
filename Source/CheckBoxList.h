@@ -375,13 +375,26 @@ public:
         if (key == juce::KeyPress::createFromDescription("ctrl + r"))
         {
             auto mousePos = getMouseXYRelative();
-            juce::Component* target = getComponentAt(mousePos.getX(), mousePos.getY());
+            //juce::Component* target = getComponentAt(mousePos.getX(), mousePos.getY());
+            /*auto listItems = list.getChildren();
 
-            for (auto itItem = items.begin(); itItem != items.end(); ++itItem)
+            for (auto itItem = listItems.begin(); itItem != listItems.end(); ++itItem)
             {
-                if ((*itItem)->getBounds().contains(mousePos))
+                if ((*itItem)->getBounds().reduced(2).contains(mousePos))
                 {
-                    randomiseItem(*itItem);
+                    randomiseItem(static_cast<CheckBoxListItem*>(*itItem));
+                    return true;
+                }
+            }*/
+
+            int targetRow = list.getRowContainingPosition(mousePos.getX(), mousePos.getY());
+            if (targetRow >= 0 && targetRow < items.size())
+            {
+                auto rowBounds = list.getRowPosition(targetRow, true);
+                
+                if (rowBounds.reduced(2).contains(mousePos)) //leave some inbetween spaces -> looks better and allows for randomisation of the list as a whole (when pressing ctrl+r in those inbetween spaces)
+                {
+                    randomiseItem(items[targetRow]);
                     return true;
                 }
             }
@@ -504,7 +517,7 @@ public:
                                           juce::NotificationType::sendNotification);
         }
 
-        //list.updateContent();
+        list.updateContent();
     }
 
     void setUnitOfHeight(int newHUnit)
