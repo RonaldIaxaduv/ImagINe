@@ -62,6 +62,7 @@ public:
     juce::Array<ModulatableParameter<double>*> getParameterOfRegion_PlaybackPositionStart(int regionID);
     juce::Array<ModulatableParameter<double>*> getParameterOfRegion_PlaybackPositionInterval(int regionID);
     juce::Array<ModulatableParameter<double>*> getParameterOfRegion_PlaybackPositionCurrent(int regionID);
+    juce::Array<ModulatableParameter<double>*> getParameterOfRegion_FilterPosition(int regionID);
     juce::Array<ModulatableParameter<double>*> getParameterOfRegion_LfoRate(int regionID);
     juce::Array<ModulatableParameter<double>*> getParameterOfRegion_LfoStartingPhase(int regionID);
     juce::Array<ModulatableParameter<double>*> getParameterOfRegion_LfoPhaseInterval(int regionID);

@@ -14,7 +14,8 @@ Voice::Voice() :
     playbackMultApprox([](double semis) { return std::pow(2.0, semis / 12.0); }, -60.0, 60.0, 60 + 60 + 1), //1 point per semi should be enough
     envelope(),
     levelParameter(0.25), pitchShiftParameter(0.0),
-    playbackPositionStartParameter(0.0), playbackPositionIntervalParameter(1.0, 0.001), playbackPositionCurrentParameter(0.0)
+    playbackPositionStartParameter(0.0), playbackPositionIntervalParameter(1.0, 0.001), playbackPositionCurrentParameter(0.0),
+    filterPositionParameter(20000.0, 20.0)
 {
     osc = nullptr;
 
@@ -34,6 +35,10 @@ Voice::Voice() :
 
     pitchQuantisationFuncPt = &Voice::getQuantisedPitch_continuous; //default: no quantisation (cheapest)
     setPitchQuantisationScale_minor(); //set to minor scale by default (will be overwritten once the player chooses a different quantisation method than continous, but it's safer to initialise the array just in case)
+
+    filter.parameters->setCutOffFrequency(48000.0, 22050.0); //sample rate will be set again later during preparation
+    filter.parameters->type = juce::dsp::StateVariableFilter::StateVariableFilterType::lowPass; //WIP: maybe make other types avaible too
+    filter.snapToZero(); //the filter will be doing sample-by-sample processing
 
     //DBG("init base level: " + juce::String(levelParameter.getBaseValue()));
     //DBG("init base playback pos: " + juce::String(playbackPositionParameter.getBaseValue()));
@@ -93,7 +98,14 @@ Voice::~Voice()
     }
     unsubscribedModulators++;
 
-    jassert(unsubscribedModulators == 5);
+    auto filterPositionModulators = filterPositionParameter.getModulators();
+    for (auto* it = filterPositionModulators.begin(); it != filterPositionModulators.end(); it++)
+    {
+        (*it)->removeRegionModulation(getID());
+    }
+    unsubscribedModulators++;
+
+    jassert(unsubscribedModulators == 6);
 
     //release osc
     delete osc;
@@ -121,6 +133,8 @@ void Voice::prepare(const juce::dsp::ProcessSpec& spec)
 
     setCurrentPlaybackSampleRate(spec.sampleRate);
     envelope.setSampleRate(spec.sampleRate);
+
+    filter.prepare(spec);
 
     currentState->prepared(spec.sampleRate);
 }
@@ -276,19 +290,28 @@ void Voice::renderNextBlock_wave(juce::AudioSampleBuffer& outputBuffer, int samp
     //evaluate modulated values
     updateBufferPosDelta(); //determines pitch shift
     evaluateBufferPosModulation(); //advances currentBufferPos if required
-    
+
+    //calculate buffer position
     double effectivePhase = static_cast<double>(currentBufferPos / static_cast<float>(osc->fileBuffer.getNumSamples())); //convert currentTablePos to currentPhase
-    effectivePhase = std::fmod(effectivePhase, playbackPositionIntervalParameter.getModulatedValue()); //convert to new interval while preserving deltaTablePos (i.e. the frequency)!
+    //effectivePhase = std::fmod(effectivePhase, playbackPositionIntervalParameter.getModulatedValue()); //convert to new interval while preserving deltaTablePos (i.e. the frequency)!
+    effectivePhase = std::fmod(effectivePhase, playbackPositionIntervalParameter.getModulatedValue()); //convert to new interval while preserving deltaTablePos (i.e. the frequency)! note that playbackPositionIntervalParameter is a capped parameter that cannot become 0.0
     jassert(!isnan(effectivePhase));
     effectivePhase = std::fmod(effectivePhase + playbackPositionStartParameter.getModulatedValue(), 1.0); //shift the starting phase from 0 to the value stated by playbackPositionStartParameter and wrap, so that the value stays within [0,1) (i.e. within wavetable later on)
     float effectiveBufferPos = static_cast<float>(effectivePhase) * static_cast<float>(osc->fileBuffer.getNumSamples() - 1); //convert phase back to index within wavetable (-1 at the end to ensure that floating-point rounding won't let the variable take on out-of-range values!)
     //^- see updateCurrentValues method in RegionLfo for some more details
 
+    //pre-calculate volume of the next sample (for all channels)
     double gainAdjustment = envelope.getNextEnvelopeSample() * levelParameter.getModulatedValue(); //= envelopeLevel * level (with all modulations)
+
+    //update filter position
+    filter.parameters->setCutOffFrequency(getSampleRate(), filterPositionParameter.getModulatedValue());
+
+    //calculate sample(s)
     for (auto i = outputBuffer.getNumChannels() - 1; i >= 0; --i)
     {
         //auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)currentBufferPos)) * gainAdjustment;
-        auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)effectiveBufferPos)) * gainAdjustment;
+        auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), static_cast<int>(effectiveBufferPos))) * gainAdjustment;
+        currentSample = filter.processSample(currentSample);
         outputBuffer.addSample(i, sampleIndex, (float)currentSample);
     }
 
@@ -299,6 +322,8 @@ void Voice::renderNextBlock_wave(juce::AudioSampleBuffer& outputBuffer, int samp
     //}
 
     //no LFO set -> needn't advance
+
+    //}
 
     if (envelope.isIdle()) //has finished playing (including release). may also occur if the sample rate suddenly changed, but in theory, that shouldn't happen I think
     {
@@ -317,6 +342,7 @@ void Voice::renderNextBlock_waveAndLfo(juce::AudioSampleBuffer& outputBuffer, in
     updateBufferPosDelta(); //determines pitch shift
     evaluateBufferPosModulation(); //advances currentBufferPos if required
 
+    //calculate buffer position
     double effectivePhase = static_cast<double>(currentBufferPos / static_cast<float>(osc->fileBuffer.getNumSamples())); //convert currentTablePos to currentPhase
     //effectivePhase = std::fmod(effectivePhase, playbackPositionIntervalParameter.getModulatedValue()); //convert to new interval while preserving deltaTablePos (i.e. the frequency)!
     effectivePhase = std::fmod(effectivePhase, playbackPositionIntervalParameter.getModulatedValue()); //convert to new interval while preserving deltaTablePos (i.e. the frequency)! note that playbackPositionIntervalParameter is a capped parameter that cannot become 0.0
@@ -325,11 +351,18 @@ void Voice::renderNextBlock_waveAndLfo(juce::AudioSampleBuffer& outputBuffer, in
     float effectiveBufferPos = static_cast<float>(effectivePhase) * static_cast<float>(osc->fileBuffer.getNumSamples() - 1); //convert phase back to index within wavetable (-1 at the end to ensure that floating-point rounding won't let the variable take on out-of-range values!)
     //^- see updateCurrentValues method in RegionLfo for some more details
 
+    //pre-calculate volume of the next sample (for all channels)
     double gainAdjustment = envelope.getNextEnvelopeSample() * levelParameter.getModulatedValue(); //= envelopeLevel * level (with all modulations)
+
+    //update filter position
+    filter.parameters->setCutOffFrequency(getSampleRate(), filterPositionParameter.getModulatedValue());
+
+    //calculate sample(s)
     for (auto i = outputBuffer.getNumChannels() - 1; i >= 0; --i)
     {
         //auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)currentBufferPos)) * gainAdjustment;
         auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), static_cast<int>(effectiveBufferPos))) * gainAdjustment;
+        currentSample = filter.processSample(currentSample);
         outputBuffer.addSample(i, sampleIndex, (float)currentSample);
     }
 
@@ -522,6 +555,28 @@ void Voice::setBasePlaybackPositionCurrent(double newPlaybackPositionCurrent)
 double Voice::getBasePlaybackPositionCurrent()
 {
     return playbackPositionCurrentParameter.getBaseValue();
+}
+
+ModulatableMultiplicativeParameterLowerCap<double>* Voice::getFilterPositionParameter()
+{
+    return &filterPositionParameter;
+}
+void Voice::setBaseFilterPosition(double newBaseFilterPosition)
+{
+    filterPositionParameter.setBaseValue(newBaseFilterPosition);
+}
+double Voice::getBaseFilterPosition()
+{
+    return filterPositionParameter.getBaseValue();
+}
+
+void Voice::setFilterType(juce::dsp::StateVariableFilter::StateVariableFilterType newFilterType)
+{
+    filter.parameters->type = newFilterType;
+}
+juce::dsp::StateVariableFilter::StateVariableFilterType Voice::getFilterType()
+{
+    return filter.parameters->type;
 }
 
 void Voice::updateBufferPosDelta()
@@ -1489,6 +1544,8 @@ bool Voice::serialise(juce::XmlElement* xmlVoice)
     xmlVoice->setAttribute("pitchShiftParameter_base", pitchShiftParameter.getBaseValue());
     xmlVoice->setAttribute("playbackPositionStartParameter_base", playbackPositionStartParameter.getBaseValue());
     xmlVoice->setAttribute("playbackPositionIntervalParameter_base", playbackPositionIntervalParameter.getBaseValue());
+    xmlVoice->setAttribute("filterPositionParameter_base", filterPositionParameter.getBaseValue());
+    xmlVoice->setAttribute("filterType", static_cast<int>(filter.parameters->type));
 
     //envelope
     serialisationSuccessful = envelope.serialise(xmlVoice);
@@ -1513,6 +1570,8 @@ bool Voice::deserialise(juce::XmlElement* xmlVoice)
     pitchShiftParameter.setBaseValue(xmlVoice->getDoubleAttribute("pitchShiftParameter_base", 0.0));
     playbackPositionIntervalParameter.setBaseValue(xmlVoice->getDoubleAttribute("playbackPositionIntervalParameter_base", 1.0));
     playbackPositionStartParameter.setBaseValue(xmlVoice->getDoubleAttribute("playbackPositionStartParameter_base", 0.0));
+    filterPositionParameter.setBaseValue(xmlVoice->getDoubleAttribute("filterPositionParameter_base", 22050.0));
+    filter.parameters->type = static_cast<juce::dsp::StateVariableFilter::StateVariableFilterType>(xmlVoice->getIntAttribute("filterType", 0));
 
     //envelope
     deserialisationSuccessful = envelope.deserialise(xmlVoice);

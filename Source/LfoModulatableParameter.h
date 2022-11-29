@@ -48,5 +48,8 @@ enum class LfoModulatableParameter : int
     lfoCurrentPhase,
     lfoCurrentPhase_inverted,
 
+    filterPosition,
+    filterPosition_inverted,
+
     ModulatableParameterCount
 };

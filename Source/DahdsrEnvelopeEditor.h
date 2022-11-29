@@ -77,7 +77,8 @@ public:
 
     void paint (juce::Graphics& g) override
     {
-        g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));   // clear the background
+        juce::Colour backgroundColour = getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId);
+        g.fillAll (backgroundColour.brighter(0.1f));   // clear the background
     }
 
     void resized() override

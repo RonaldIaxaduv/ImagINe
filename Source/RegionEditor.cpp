@@ -220,6 +220,33 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     addChildComponent(playbackPositionIntervalLabel);
     playbackPositionIntervalLabel.attachToComponent(&playbackPositionIntervalSlider, true);
 
+    //filter type
+    filterTypeChoice.addItem("Lowpass", static_cast<int>(juce::dsp::StateVariableFilter::StateVariableFilterType::lowPass) + 1);
+    filterTypeChoice.addItem("Bandpass", static_cast<int>(juce::dsp::StateVariableFilter::StateVariableFilterType::bandPass) + 1);
+    filterTypeChoice.addItem("Highpass", static_cast<int>(juce::dsp::StateVariableFilter::StateVariableFilterType::highPass) + 1);
+    filterTypeChoice.onChange = [this] { updateFilterType(); };
+    filterTypeChoice.setTooltip("Here you can select the type of your filter. A lowpass filter reduces high frequencies, a highpass filter reduces low frequencies, and a bandpass reduces both low and high frequencies.");
+    addChildComponent(filterTypeChoice);
+
+    filterTypeLabel.setText("Filter Type: ", juce::NotificationType::dontSendNotification);
+    filterTypeLabel.attachToComponent(&filterTypeChoice, true);
+    addChildComponent(filterTypeLabel);
+
+    //filter position
+    filterPositionSlider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
+    filterPositionSlider.setTextValueSuffix("Hz");
+    filterPositionSlider.setRange(20.0, 22050.0, 0.1);
+    filterPositionSlider.setSkewFactorFromMidPoint(1024.0);
+    filterPositionSlider.onValueChange = [this] { updateFilterPosition(); };
+    filterPositionSlider.setValue(22050.0, juce::NotificationType::dontSendNotification);
+    filterPositionSlider.setPopupMenuEnabled(true);
+    filterPositionSlider.setTooltip("This slider lets you set the position of the filter. It's an IIR filter with a drop of 12dB per octave.");
+    addChildComponent(filterPositionSlider);
+
+    filterPositionLabel.setText("Filter Position: ", juce::NotificationType::dontSendNotification);
+    addChildComponent(filterPositionLabel);
+    filterPositionLabel.attachToComponent(&filterPositionSlider, true);
+
     //MIDI listening
     midiChannelChoice.addItem("None", -1); 
     midiChannelChoice.addItem("Any", 1); //this and all following IDs will be decreased by 1 when passed to the region
@@ -308,16 +335,68 @@ RegionEditor::~RegionEditor()
 
 void RegionEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));   // clear the background
+    juce::Colour backgroundColour = getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId);
+    g.fillAll(backgroundColour);   // clear the background
 
+    //alternate between normal and slightly brighter background regions for better visibility
+    g.setColour(backgroundColour.brighter(0.1f));
+    
+    //normal
+    auto area = getLocalBounds();
+    int hUnit = juce::jmin(50, juce::jmax(5, static_cast<int>(static_cast<float>(getHeight()) * 0.75 / 23.0))); //unit of height required to squeeze all elements into 75% of the window's area (the remaining 25% are used for the modulation table)
+
+    area.removeFromTop(hUnit);
+    area.removeFromTop(hUnit); //selectFileButton.setBounds(area.removeFromTop(hUnit).reduced(2));
+
+    //brighter
+    g.fillRect(area.removeFromTop(hUnit)); //LFO depth label
+    auto focusArea = area.removeFromTop(hUnit);
+    g.fillRect(focusArea);
+
+    //normal
+    area.removeFromTop(hUnit); //toggleModeButton.setBounds(area.removeFromTop(hUnit).reduced(1));
+
+    //brighter
+    dahdsrEditor.repaint();
+    g.fillRect(area.removeFromTop(hUnit * 4)); //the DAHDSR editor is slightly inset
+
+    //normal
+    auto volumeArea = area.removeFromTop(hUnit);
+
+    //brighter
+    auto pitchArea = area.removeFromTop(hUnit);
+    g.fillRect(pitchArea);
+    auto pitchQuantisationArea = area.removeFromTop(hUnit);
+    g.fillRect(pitchQuantisationArea);
+
+    //normal
+    auto playbackPosStartArea = area.removeFromTop(hUnit);
+    auto playbackPosIntervalArea = area.removeFromTop(hUnit);
+
+    //brighter
+    auto filterTypeArea = area.removeFromTop(hUnit);
+    g.fillRect(filterTypeArea);
+    auto filterPositionArea = area.removeFromTop(hUnit);
+    g.fillRect(filterPositionArea);
+
+    //normal
+    auto midiArea = area.removeFromTop(hUnit);
+    midiArea = area.removeFromTop(hUnit);
+
+    area.removeFromBottom(hUnit); //randomiseButton.setBounds(area.removeFromBottom(hUnit).reduced(1));
+
+    //LFO editor: handled there
+    lfoEditor.repaint();
+
+    //draw outline around the component
     g.setColour(juce::Colours::lightgrey);
-    g.drawRect(getLocalBounds(), 1);   // draw an outline around the component
+    g.drawRect(getLocalBounds(), 1);
 }
 
 void RegionEditor::resized()
 {
     auto area = getLocalBounds();
-    int hUnit = juce::jmin(50, juce::jmax(5, static_cast<int>(static_cast<float>(getHeight()) * 0.75 / 21.0))); //unit of height required to squeeze all elements into 75% of the window's area (the remaining 25% are used for the modulation table)
+    int hUnit = juce::jmin(50, juce::jmax(5, static_cast<int>(static_cast<float>(getHeight()) * 0.75 / 23.0))); //unit of height required to squeeze all elements into 75% of the window's area (the remaining 25% are used for the modulation table)
 
     area.removeFromTop(hUnit);
     selectFileButton.setBounds(area.removeFromTop(hUnit).reduced(2));
@@ -354,6 +433,13 @@ void RegionEditor::resized()
     auto playbackPosIntervalArea = area.removeFromTop(hUnit);
     playbackPositionIntervalSlider.setBounds(playbackPosIntervalArea.removeFromRight(2 * playbackPosIntervalArea.getWidth() / 3).reduced(1));
     playbackPositionIntervalSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, playbackPositionStartSlider.getWidth(), playbackPositionStartSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
+
+    auto filterTypeArea = area.removeFromTop(hUnit);
+    filterTypeChoice.setBounds(filterTypeArea.removeFromRight(2 * filterTypeArea.getWidth() / 3).reduced(2));
+
+    auto filterPositionArea = area.removeFromTop(hUnit);
+    filterPositionSlider.setBounds(filterPositionArea.removeFromRight(2 * filterPositionArea.getWidth() / 3).reduced(1));
+    filterPositionSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxAbove, false, filterPositionSlider.getWidth(), filterPositionSlider.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
 
     auto midiArea = area.removeFromTop(hUnit);
     midiChannelChoice.setBounds(midiArea.removeFromRight(2 * midiArea.getWidth() / 3).reduced(2));
@@ -412,6 +498,16 @@ bool RegionEditor::keyPressed(const juce::KeyPress& key/*, Component* originatin
             randomisePlaybackPositionInterval();
             return true;
         }
+        else if (filterTypeChoice.getBounds().contains(mousePos))
+        {
+            randomiseFilterType();
+            return true;
+        }
+        else if (filterPositionSlider.getBounds().contains(mousePos))
+        {
+            randomiseFilterPosition();
+            return true;
+        }
         else if (lfoEditor.getBounds().contains(mousePos))
         {
             return lfoEditor.keyPressed(key); //don't randomise all parameters of the LFO editor - its components are too varied, it would feel unintentional.
@@ -464,6 +560,12 @@ void RegionEditor::setChildVisibility(bool shouldBeVisible)
     playbackPositionIntervalLabel.setVisible(shouldBeVisible);
     playbackPositionIntervalSlider.setVisible(shouldBeVisible);
 
+    filterTypeChoice.setVisible(shouldBeVisible);
+    filterTypeLabel.setVisible(shouldBeVisible);
+
+    filterPositionSlider.setVisible(shouldBeVisible);
+    filterPositionLabel.setVisible(shouldBeVisible);
+
     midiChannelChoice.setVisible(shouldBeVisible);
     midiChannelLabel.setVisible(shouldBeVisible);
     midiNoteChoice.setVisible(shouldBeVisible);
@@ -502,6 +604,9 @@ void RegionEditor::copyRegionParameters()
 
         playbackPositionStartSlider.setValue(voice->getBasePlaybackPositionStart(), juce::NotificationType::dontSendNotification);
         playbackPositionIntervalSlider.setValue(voice->getBasePlaybackPositionInterval(), juce::NotificationType::dontSendNotification);
+
+        filterTypeChoice.setSelectedId(static_cast<int>(voice->getFilterType()) + 1, juce::NotificationType::dontSendNotification);
+        filterPositionSlider.setValue(voice->getBaseFilterPosition(), juce::NotificationType::dontSendNotification);
     }
     else
     {
@@ -711,7 +816,6 @@ void RegionEditor::randomisePlaybackPositionInterval()
 {
     juce::Random& rng = juce::Random::getSystemRandom();
 
-    //prefer values closer to 0
     if (rng.nextInt(4) < 3)
     {
         //75% chance: remain 1
@@ -722,6 +826,73 @@ void RegionEditor::randomisePlaybackPositionInterval()
         //25% chance: randomise freely
         playbackPositionIntervalSlider.setValue((playbackPositionIntervalSlider.getMinimum() + rng.nextDouble() * (playbackPositionIntervalSlider.getMaximum() - playbackPositionIntervalSlider.getMinimum())), juce::NotificationType::sendNotification);
     }
+}
+
+void RegionEditor::updateFilterType()
+{
+    juce::Array<Voice*> voices = associatedRegion->getAudioEngine()->getVoicesWithID(associatedRegion->getID());
+
+    for (auto* it = voices.begin(); it != voices.end(); it++)
+    {
+        (*it)->setFilterType(static_cast<juce::dsp::StateVariableFilter::StateVariableFilterType>(filterTypeChoice.getSelectedId() - 1));
+    }
+}
+void RegionEditor::randomiseFilterType()
+{
+    juce::Random& rng = juce::Random::getSystemRandom();
+
+    //66% chance to be lowpass
+    if (rng.nextInt(3) < 2)
+    {
+        filterTypeChoice.setSelectedItemIndex(0, juce::NotificationType::sendNotification);
+    }
+    else
+    {
+        //66% chance to be bandpass
+        if (rng.nextInt(3) < 2)
+        {
+            filterTypeChoice.setSelectedItemIndex(1, juce::NotificationType::sendNotification);
+        }
+        else
+        {
+            filterTypeChoice.setSelectedItemIndex(2, juce::NotificationType::sendNotification);
+        }
+    }
+}
+
+void RegionEditor::updateFilterPosition()
+{
+    juce::Array<Voice*> voices = associatedRegion->getAudioEngine()->getVoicesWithID(associatedRegion->getID());
+
+    for (auto* it = voices.begin(); it != voices.end(); it++)
+    {
+        (*it)->setBaseFilterPosition(filterPositionSlider.getValue());
+    }
+}
+void RegionEditor::randomiseFilterPosition()
+{
+    juce::Random& rng = juce::Random::getSystemRandom();
+
+    double rngWeight = rng.nextDouble();
+    switch (filterTypeChoice.getSelectedId() - 1)
+    {
+    case static_cast<int>(juce::dsp::StateVariableFilter::StateVariableFilterType::lowPass):
+        //prefer higher values (achieved by applying a fractional power to the random double value)
+        rngWeight = std::pow(rngWeight, 0.5);
+        break;
+
+    case static_cast<int>(juce::dsp::StateVariableFilter::StateVariableFilterType::bandPass):
+        //prefer middle-range values
+        rngWeight = (rngWeight - 0.5) / (1.0 + rng.nextDouble() * 5.0) + 0.5; //shifted into [-0.5, 0.5], drawn towards 0.0, shifted back to [0.0, 1.0]
+        break;
+
+    case static_cast<int>(juce::dsp::StateVariableFilter::StateVariableFilterType::highPass):
+        //prefer higher values (achieved by applying a fractional power to the random double value)
+        rngWeight = 1.0 - std::pow(rngWeight, 0.5);
+        break;
+    }
+
+    filterPositionSlider.setValue((filterPositionSlider.getMinimum() + rngWeight * (filterPositionSlider.getMaximum() - filterPositionSlider.getMinimum())), juce::NotificationType::sendNotification);
 }
 
 void RegionEditor::randomiseAllParameters()
@@ -739,6 +910,9 @@ void RegionEditor::randomiseAllParameters()
 
     randomisePlaybackPositionStart();
     randomisePlaybackPositionInterval();
+
+    randomiseFilterType();
+    randomiseFilterPosition();
 
     //MIDI channel/note: no randomisation.
 

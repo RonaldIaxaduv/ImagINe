@@ -543,7 +543,6 @@
 				- add randomisation methods and adjust the keyPressed and randomiseAllParameters methods to include the new randomisation
 			- add entry in combobox for modulation selection
 			- add tooltip for item selection with the parameter selected for modulation
-			- adjust updateLfoParameter in LfoEditor to include the new parameter
 		- consider incrementing the current program version
 	# current LFO phase (rename current implementation "LFO phase multiplier")
 		^# actually, call it "LFO interval" and "playback interval". that way, they're more intuitive.

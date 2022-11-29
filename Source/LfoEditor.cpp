@@ -122,7 +122,30 @@ LfoEditor::~LfoEditor()
 
 void LfoEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));   // clear the background
+    juce::Colour backgroundColour = getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId);
+    g.fillAll(backgroundColour);   // clear the background
+
+    //alternate between normal and slightly brighter background regions for better visibility
+    g.setColour(backgroundColour.brighter(0.1f));
+
+    auto area = getLocalBounds();
+
+    //brighter (RegionEditor ended with normal)
+    auto lfoRateArea = area.removeFromTop(hUnit);
+    g.fillRect(lfoRateArea);
+
+    //normal
+    auto lfoStartingPhaseArea = area.removeFromTop(hUnit);
+    auto lfoPhaseIntervalArea = area.removeFromTop(hUnit);
+
+    //brighter
+    auto lfoUpdateIntervalArea = area.removeFromTop(hUnit);
+    g.fillRect(lfoUpdateIntervalArea);
+    auto lfoUpdateQuantisationArea = area.removeFromTop(hUnit);
+    g.fillRect(lfoUpdateQuantisationArea);
+
+    //lfoRegionsList.setUnitOfHeight(hUnit);
+    //lfoRegionsList.setBounds(area.reduced(1));
 }
 
 void LfoEditor::setUnitOfHeight(int newHUnit)

@@ -96,6 +96,13 @@ public:
     void setBasePlaybackPositionCurrent(double newPlaybackPositionCurrent);
     double getBasePlaybackPositionCurrent();
 
+    ModulatableMultiplicativeParameterLowerCap<double>* getFilterPositionParameter();
+    void setBaseFilterPosition(double newBaseFilterPosition);
+    double getBaseFilterPosition();
+
+    void setFilterType(juce::dsp::StateVariableFilter::StateVariableFilterType newFilterType);
+    juce::dsp::StateVariableFilter::StateVariableFilterType getFilterType();
+
     void updateBufferPosDelta();
     void updateBufferPosDelta_NotPlayable();
     void updateBufferPosDelta_Playable();
@@ -187,6 +194,9 @@ private:
     ModulatableAdditiveParameter<double> playbackPositionStartParameter;
     ModulatableMultiplicativeParameterLowerCap<double> playbackPositionIntervalParameter;
     ModulatableAdditiveParameter<double> playbackPositionCurrentParameter;
+
+    ModulatableMultiplicativeParameterLowerCap<double> filterPositionParameter;
+    juce::dsp::StateVariableFilter::Filter<double> filter;
 
     SamplerOscillator* osc;
 

@@ -64,6 +64,12 @@ private:
     void updatePlaybackPositionInterval();
     void randomisePlaybackPositionInterval();
 
+    void updateFilterType();
+    void randomiseFilterType();
+
+    void updateFilterPosition();
+    void randomiseFilterPosition();
+
     void randomiseAllParameters();
 
     //================================================================
@@ -94,6 +100,11 @@ private:
 
     juce::Label playbackPositionIntervalLabel;
     juce::Slider playbackPositionIntervalSlider;
+
+    juce::Label filterTypeLabel;
+    juce::ComboBox filterTypeChoice;
+    juce::Label filterPositionLabel;
+    juce::Slider filterPositionSlider;
 
     juce::Label midiChannelLabel;
     juce::ComboBox midiChannelChoice;

@@ -24,7 +24,7 @@ RegionEditorWindow::RegionEditorWindow(juce::String name, SegmentedRegion* regio
 #else
     setResizable(true, true);
     setResizeLimits(100, 200, 4096, 2160); //max resolution: 4k
-    centreWithSize(400, 600);
+    centreWithSize(400, 700);
 #endif
 
     setVisible(true);

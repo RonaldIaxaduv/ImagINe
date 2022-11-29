@@ -47,6 +47,8 @@ public:
         modulationChoice.addItem("Playback Interval (inverted)", static_cast<int>(LfoModulatableParameter::playbackPositionInterval_inverted));
         modulationChoice.addItem("Playback Current Position", static_cast<int>(LfoModulatableParameter::playbackPositionCurrent));
         modulationChoice.addItem("Playback Current Position (inverted)", static_cast<int>(LfoModulatableParameter::playbackPositionCurrent_inverted));
+        modulationChoice.addItem("Filter Position", static_cast<int>(LfoModulatableParameter::filterPosition));
+        modulationChoice.addItem("Filter Position (inverted)", static_cast<int>(LfoModulatableParameter::filterPosition_inverted));
         modulationChoice.addSeparator();
         modulationChoice.addSectionHeading("LFO");
         modulationChoice.addItem("LFO Rate", static_cast<int>(LfoModulatableParameter::lfoRate));
@@ -186,6 +188,10 @@ public:
             case static_cast<int>(LfoModulatableParameter::playbackPositionCurrent):
             case static_cast<int>(LfoModulatableParameter::playbackPositionCurrent_inverted):
                 return "You are currently modulating region " + juce::String(regionID) + "'s current playback position. Whenever this region's LFO updates, it will force the target region's playback point to a certain position (from which it will keep on playing). When the LFO line is longer, the position to which it gets set is shifted further back (or forward if inverted). Note: for a less clicky sound, the region's DAHDSR envelope gets retriggered whenever the current playback position changes. This is an additive parameter.";
+
+            case static_cast<int>(LfoModulatableParameter::filterPosition):
+            case static_cast<int>(LfoModulatableParameter::filterPosition_inverted):
+                return "You are currently modulating region " + juce::String(regionID) + "'s filter position, i.e. its filter position rises the longer the LFO line is (or shorter if inverted). This is a multiplicative parameter.";
 
 
 

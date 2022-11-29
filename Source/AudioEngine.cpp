@@ -661,6 +661,18 @@ juce::Array<ModulatableParameter<double>*> AudioEngine::getParameterOfRegion_Pla
 
     return parameters;
 }
+juce::Array<ModulatableParameter<double>*> AudioEngine::getParameterOfRegion_FilterPosition(int regionID)
+{
+    juce::Array<Voice*> voices = getVoicesWithID(regionID);
+    juce::Array<ModulatableParameter<double>*> parameters;
+
+    for (auto* it = voices.begin(); it != voices.end(); it++)
+    {
+        parameters.add((*it)->getFilterPositionParameter());
+    }
+
+    return parameters;
+}
 juce::Array<ModulatableParameter<double>*> AudioEngine::getParameterOfRegion_LfoRate(int regionID)
 {
     juce::Array<ModulatableParameter<double>*> parameters;
@@ -768,6 +780,11 @@ bool AudioEngine::updateLfoParameter(int lfoID, int targetRegionID, bool shouldB
     case LfoModulatableParameter::playbackPositionCurrent:
     case LfoModulatableParameter::playbackPositionCurrent_inverted:
         lfo->addRegionModulation(modulatedParameter, targetRegionID, getParameterOfRegion_PlaybackPositionCurrent(targetRegionID));
+        break;
+
+    case LfoModulatableParameter::filterPosition:
+    case LfoModulatableParameter::filterPosition_inverted:
+        lfo->addRegionModulation(modulatedParameter, targetRegionID, getParameterOfRegion_FilterPosition(targetRegionID));
         break;
 
 

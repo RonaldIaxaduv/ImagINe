@@ -326,6 +326,7 @@ void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParamete
         case LfoModulatableParameter::playbackPositionStart:
         case LfoModulatableParameter::playbackPositionInterval:
         case LfoModulatableParameter::playbackPositionCurrent:
+        case LfoModulatableParameter::filterPosition:
         case LfoModulatableParameter::lfoStartingPhase:
         case LfoModulatableParameter::lfoPhaseInterval:
         case LfoModulatableParameter::lfoCurrentPhase:
@@ -341,6 +342,7 @@ void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParamete
         case LfoModulatableParameter::playbackPositionStart_inverted:
         case LfoModulatableParameter::playbackPositionInterval_inverted:
         case LfoModulatableParameter::playbackPositionCurrent_inverted:
+        case LfoModulatableParameter::filterPosition_inverted:
         case LfoModulatableParameter::lfoStartingPhase_inverted:
         case LfoModulatableParameter::lfoPhaseInterval_inverted:
         case LfoModulatableParameter::lfoCurrentPhase_inverted:
