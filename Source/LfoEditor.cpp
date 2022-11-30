@@ -244,7 +244,7 @@ void LfoEditor::updateAvailableVoices()
     lfoRegionsList.clearItems();
     juce::Array<int> regionIdList;
 
-    for (int i = 0; i <= audioEngine->getLastRegionID(); ++i)
+    for (int i = 0; i <= audioEngine->getHighestRegionID(); ++i)
     {
         if (audioEngine->checkRegionHasVoice(i) == true)
         {

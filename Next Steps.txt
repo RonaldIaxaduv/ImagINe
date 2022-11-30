@@ -642,7 +642,34 @@
 # when using WASD/arrow keys to switch states, the order is wrong (not the same as in the combobox)
 # randomising the entire LfoEditor using ctrl+r doesn't work yet
 	-> it's because it only passes the keypress - if the return value of that is false, randomise the entire component
-!- program crashes when scrolling through the LfoEditor's list
+!# program crashes when scrolling through the LfoEditor's list
+
+!# PluginEditor stops drawing when focussing a RegionEditor window...
+	- i don't get how this didn't happen before wth... o.ô
+	/ okay so apparently making the window a child component instead of adding it to the desktop "fixes" it. however, child windows will only be drawn *within* the parent component... i.e. the region editor will be cut off unless the user increases the plugin editor's size. needless to say, this is far from optimal, but i don't see a way to fix it otherwise...
+	- oh FFS it doesn't happen for the play path editor, why???
+		- no differences between the editor windows
+		- no differences between the state transitions in the plugin editor
+		- no differences between the state transitions in the segmentable image
+		- no differences between the state transitions in PlayPath/SegementedRegion
+		- no differences in the states of PlayPath/SegmentedRegion
+		-> it seems like the difference should be somewhere in the editor classes.
+			- removing the lfo editor: no change
+			!- removing the alternated background painting: THIS FIXED IT. ARE YOU FUCKING KIDDING ME, JUCE???
+				#> okay, apparently calling repaint on the DAHDSR and LFO editors causes it to hang o.ô i really have no clue why this happens, but luckily those calls were redundant anyway so... begone
+!# encountered a deserialisation error
+	-> several voices suddenly get destroyed shortly after deserialising a SegmentedRegion
+		!# suspicion: the regionIdCounter isn't adjusted after changing a region's ID! it could be that, after changing an ID, the next value of regionIdCounter happens to be an ID that already exists!
+			-> yup, that was it! good thing i noticed.
+# increase base pitch granularity to two digits after the comma - it's still noticable
+?/ change DAHDSR slider units from seconds to milliseconds - should be shorter
+	-> actually the maximum time would become 60000, so it wouldn't make much of a difference except for very small times. not worth the effort rn imo
+# don't forget to add a link to the discord server and to the survey
+	-> survey tbd bc the link will change once one restarts the survey (which will be necessary bc i don't want to accept any answers yet)
+?/ is update rate quantisation currently done with std:floor instead of std::round? in that case, it might be better to change it
+	-> it uses ceil, but that's actually intentional because the update rate must not drop to zero
+# don't show "preset has been loaded message" if the program ends up in the INIT state
+	?/ also don't allow users to save during the init state(?)
 
 - when new voices are added, they don't automatically receive the region's modulations... that's smth that should be fixed before polyphony is implemented
 
@@ -680,7 +707,7 @@
 
 
 
-!- display version number in the buttom left corner of the screen and in the window's title bar
+!# display version number in the buttom left corner of the screen and in the window's title bar
 - fix some bugs/things that would cause problems with unknowing users
 	/ since regions currently only keep their voice's index, errors would occur if regions that were created earlier than that region were deleted
 		-> fix: when implementing polyphony, voices will have a certain variable that refers to their region. simply delete only voices with the corresponding variable value -> two birds with one stone

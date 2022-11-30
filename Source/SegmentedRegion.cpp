@@ -60,6 +60,7 @@ SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangl
     setBuffer(juce::AudioSampleBuffer(), "", 0.0); //no audio file set yet -> empty buffer
     
     setBufferedToImage(true);
+    setPaintingIsUnclipped(true);
     setMouseClickGrabsKeyboardFocus(false);
     setWantsKeyboardFocus(false);
     //setRepaintsOnMouseActivity(false); //doesn't work for DrawableButton sadly (but makes kind of sense since it needs to change its background image while interacting with it)
@@ -605,8 +606,11 @@ bool SegmentedRegion::isEditorOpen()
 }
 void SegmentedRegion::sendEditorToFront()
 {
-    regionEditorWindow->toFront(true);
-    regionEditorWindow->getContentComponent()->grabKeyboardFocus();
+    if (regionEditorWindow != nullptr)
+    {
+        regionEditorWindow->toFront(true);
+        regionEditorWindow->getContentComponent()->grabKeyboardFocus();
+    }
 }
 void SegmentedRegion::openEditor()
 {
@@ -987,6 +991,7 @@ bool SegmentedRegion::deserialise(juce::XmlElement* xmlRegion, juce::Array<juce:
     bool deserialisationSuccessful = true;
 
     deserialisationSuccessful = tryChangeID(xmlRegion->getIntAttribute("ID", -1));
+    //associatedVoices = audioEngine->getVoicesWithID(ID); //the voices themselves shouldn't have changed - only their IDs.
     if (deserialisationSuccessful)
     {
         shouldBeToggleable = xmlRegion->getBoolAttribute("shouldBeToggleable", false);

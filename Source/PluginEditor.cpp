@@ -549,7 +549,15 @@ void ImageINeDemoAudioProcessorEditor::showOpenPresetDialogue()
                             image.setBounds(prevBounds.expanded(100, 100));
                             image.setBounds(prevBounds);
                         }); //hacky, but the LFO lines don't redraw properly otherwise. don't question it :x
-                    juce::NativeMessageBox::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, "ImageINe - Preset loaded.", "The preset has been loaded successfully.", this, nullptr);
+
+                    if (currentStateIndex != PluginEditorStateIndex::init)
+                    {
+                        juce::NativeMessageBox::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, "ImageINe - Preset loaded.", "The preset has been loaded successfully.", this, nullptr);
+                    }
+                    else
+                    {
+                        DBG("the editor has returned to its init state. this can happen if an error occurs while loading the preset.");
+                    }
                     processor.suspendProcessing(shouldBeSuspended);
                 }
                 catch (std::exception ex)
@@ -770,8 +778,8 @@ void ImageINeDemoAudioProcessorEditor::displayModeInformation()
 
     body += juce::String("\n\n") + 
             "ImageINe was created by Aaron David Lux for his bachelor's thesis at the Friedrich Schiller Universitaet in Jena in 2022/2023. The thesis also includes a feedback survey for this program.\n" +
-            "Feedback survey: [WIP]\n" + 
-            "ImageINe discord server: [WIP]";
+            "Feedback survey (Google Forms): [WIP]\n" + 
+            "ImageINe Discord server: https://discord.gg/NYW8bYmkEb";
 
     //juce::NativeMessageBox::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, header, body, this);
     juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, header, body, "I see!", this);

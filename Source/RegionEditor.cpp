@@ -113,7 +113,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     //pitch
     pitchSlider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
     pitchSlider.setTextValueSuffix("st");
-    pitchSlider.setRange(-60.0, 60.0, 0.1);
+    pitchSlider.setRange(-60.0, 60.0, 0.01);
     pitchSlider.onValueChange = [this] { updatePitch(); };
     pitchSlider.setValue(0.0, juce::NotificationType::dontSendNotification);
     pitchSlider.setPopupMenuEnabled(true); 
@@ -357,7 +357,7 @@ void RegionEditor::paint(juce::Graphics& g)
     area.removeFromTop(hUnit); //toggleModeButton.setBounds(area.removeFromTop(hUnit).reduced(1));
 
     //brighter
-    dahdsrEditor.repaint();
+    //dahdsrEditor.repaint(); //no need, done automatically. in fact, this somehow causes the main window to stop drawing (i really don't know why though), so don't!
     g.fillRect(area.removeFromTop(hUnit * 4)); //the DAHDSR editor is slightly inset
 
     //normal
@@ -385,8 +385,8 @@ void RegionEditor::paint(juce::Graphics& g)
 
     area.removeFromBottom(hUnit); //randomiseButton.setBounds(area.removeFromBottom(hUnit).reduced(1));
 
-    //LFO editor: handled there
-    lfoEditor.repaint();
+    ////LFO editor: handled there
+    //lfoEditor.repaint(); //no need, done automatically. in fact, this somehow causes the main window to stop drawing (i really don't know why though), so don't!
 
     //draw outline around the component
     g.setColour(juce::Colours::lightgrey);

@@ -424,16 +424,30 @@ SegmentableImage* AudioEngine::getImage()
 
 int AudioEngine::getNextRegionID()
 {
-    return ++regionIdCounter;
-}
-int AudioEngine::getLastRegionID()
-{
+    while (takenRegionIDs.contains(++regionIdCounter))
+    {
+        //ID already taken (this might be due to deserialisation because there, regions may change their IDs. that's because users may have previously deleted a region)
+        //-> just keep incrementing until a valid ID is hit. this shouldn't take long.
+    }
+
     return regionIdCounter;
+}
+int AudioEngine::getHighestRegionID()
+{
+    int highestRegionID = -1;
+
+    for (auto itID = takenRegionIDs.begin(); itID != takenRegionIDs.end(); ++itID)
+    {
+        highestRegionID = juce::jmax(highestRegionID, *itID);
+    }
+
+    return highestRegionID;
 }
 int AudioEngine::addNewRegion(const juce::Colour& regionColour, juce::MidiKeyboardState::Listener* listenerRegion)
 {
     regionColours.add(regionColour);
     int newRegionID = getNextRegionID();
+    takenRegionIDs.add(newRegionID);
 
     //create LFO
     addLfo(new RegionLfo(newRegionID));
@@ -450,6 +464,7 @@ void AudioEngine::resetRegionIDs()
 {
     regionIdCounter = -1;
     regionColours.clear();
+    takenRegionIDs.clear();
 }
 void AudioEngine::removeRegion(juce::MidiKeyboardState::Listener* listenerRegion)
 {
@@ -458,14 +473,14 @@ void AudioEngine::removeRegion(juce::MidiKeyboardState::Listener* listenerRegion
 bool AudioEngine::tryChangeRegionID(int regionID, int newRegionID)
 {
     //check whether the new ID is valid
-    if (newRegionID < 0)
-    {
-        return false;
-    }
-    else if (newRegionID == regionID)
+    if (newRegionID == regionID && regionID >= 0)
     {
         //already done
         return true;
+    }
+    else if (newRegionID < 0 || takenRegionIDs.contains(newRegionID))
+    {
+        return false;
     }
 
     //check whether the new ID isn't already taken by another region
@@ -480,17 +495,21 @@ bool AudioEngine::tryChangeRegionID(int regionID, int newRegionID)
     }
     //new ID isn't already taken
 
+    DBG("changing region " + juce::String(regionID) + "'s ID to " + juce::String(newRegionID) + "...");
+
     //adjust the ID of the LFO of the affected region
+    int changes = 0;
     for (auto itLfo = lfos.begin(); itLfo != lfos.end(); ++itLfo)
     {
         if ((*itLfo)->getRegionID() == regionID)
         {
             //found the LFO of the affected region
             (*itLfo)->setRegionID(newRegionID);
-
+            changes++;
             break; //only one LFO per region
         }
     }
+    DBG(juce::String(changes) + " LFOs have been changed (should be 1).");
 
     //signal to all other LFOs that this LFO's ID has changed
     for (auto itOtherLfo = lfos.begin(); itOtherLfo != lfos.end(); ++itOtherLfo)
@@ -502,6 +521,7 @@ bool AudioEngine::tryChangeRegionID(int regionID, int newRegionID)
     }
 
     //adjust the ID of all voices of the affected region
+    changes = 0;
     for (int i = 0; i < synth.getNumVoices(); ++i)
     {
         Voice* v = static_cast<Voice*>(synth.getVoice(i));
@@ -509,8 +529,18 @@ bool AudioEngine::tryChangeRegionID(int regionID, int newRegionID)
         if (v->getID() == regionID)
         {
             v->setID(newRegionID);
+            changes++;
         }
     }
+    DBG(juce::String(changes) + " voices have been changed (should be " + juce::String(defaultPolyphony) + ").");
+
+    //adjust the list of taken region IDs
+    takenRegionIDs.removeAllInstancesOf(regionID);
+    takenRegionIDs.add(newRegionID);
+    //for (auto itID = takenRegionIDs.begin(); itID != takenRegionIDs.end(); ++itID)
+    //{
+    //    regionIdCounter = juce::jmax(regionIdCounter, *itID); //set to maximum ID that isn't taken (needed for getLastRegionID method)
+    //}
 
     return true; //the region will proceed to change its own ID after this
 }
@@ -528,14 +558,14 @@ void AudioEngine::removeMidiListener(juce::MidiKeyboardState::Listener* midiList
 
 juce::Colour AudioEngine::getRegionColour(int regionID)
 {
-    if (regionID >= 0 && regionID <= getLastRegionID())
+    if (regionID >= 0 && regionID <= regionColours.size())
         return regionColours[regionID];
     else
         return juce::Colours::transparentBlack;
 }
 void AudioEngine::changeRegionColour(int regionID, juce::Colour newColour)
 {
-    if (regionID >= 0 && regionID <= getLastRegionID())
+    if (regionID >= 0 && regionID <= regionColours.size())
     {
         regionColours.set(regionID, newColour);
     }
@@ -999,9 +1029,11 @@ void AudioEngine::removeLfo(int regionID) //removes the LFO of the region with t
 
 void AudioEngine::resetAll()
 {
+    DBG("resetting AudioEngine...");
     associatedImage->transitionToState(SegmentableImageStateIndex::empty);
     regionColours.clear();
     synth.clearVoices();
     lfos.clear(true);
     regionIdCounter = -1;
+    DBG("AudioEngine has been reset.");
 }

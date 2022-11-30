@@ -14,7 +14,8 @@ RegionEditorWindow::RegionEditorWindow(juce::String name, SegmentedRegion* regio
     : DocumentWindow(name,
         juce::Desktop::getInstance().getDefaultLookAndFeel()
         .findColour(juce::ResizableWindow::backgroundColourId),
-        DocumentWindow::minimiseButton | DocumentWindow::closeButton)
+        DocumentWindow::minimiseButton | DocumentWindow::closeButton,
+        true)
 {
     setUsingNativeTitleBar(false);
     setContentOwned(new RegionEditor(region), true);
@@ -31,8 +32,6 @@ RegionEditorWindow::RegionEditorWindow(juce::String name, SegmentedRegion* regio
     setTitle("Region " + juce::String(region->getID()));
 
     //addKeyListener(static_cast<RegionEditor*>(getContentComponent()));
-    
-    addToDesktop();
 }
 
 void RegionEditorWindow::refreshEditor()
@@ -42,9 +41,6 @@ void RegionEditorWindow::refreshEditor()
 
 void RegionEditorWindow::closeButtonPressed() 
 {
-    //setVisible(false);
-    //this->removeFromDesktop();
-
     //removeKeyListener(static_cast<RegionEditor*>(getContentComponent()));
 
     giveAwayKeyboardFocus();

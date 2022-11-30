@@ -39,7 +39,7 @@ public:
     SegmentableImage* getImage();
 
     int getNextRegionID();
-    int getLastRegionID();
+    int getHighestRegionID();
     int addNewRegion(const juce::Colour& regionColour, juce::MidiKeyboardState::Listener* listenerRegion);
     void resetRegionIDs();
     void removeRegion(juce::MidiKeyboardState::Listener* listenerRegion);
@@ -99,6 +99,7 @@ private:
 
     int regionIdCounter = -1;
     juce::Array<juce::Colour> regionColours;
+    juce::Array<int> takenRegionIDs;
     juce::OwnedArray<RegionLfo> lfos; //one LFO per segmented region which represents that region's outline in relation to its focus point
 
     static const int defaultPolyphony;

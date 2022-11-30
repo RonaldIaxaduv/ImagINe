@@ -120,18 +120,6 @@ void PlayPathState_Playable::buttonStateChanged()
         }
         break;
 
-        //if (region.isToggleable() && region.getToggleState() == true)
-        //{
-        //    region.setIsPlaying_Click(false);
-        //    region.setIsPlaying_Midi(false); //overwrites MIDI
-        //    region.stopPlaying(false); //don't update the button's toggle state - this would cause an endless loop back to this method!
-        //}
-        //else //not in toggle mode or toggling on
-        //{
-        //    region.setIsPlaying_Click(true);
-        //    region.startPlaying(!region.isToggleable());
-        //}
-
     default:
         break;
     }

@@ -20,7 +20,7 @@
 class SegmentedRegion;
 
 
-class RegionEditor final : public juce::Component, public juce::SettableTooltipClient
+class RegionEditor final : public juce::Component//, public juce::SettableTooltipClient
 {
 public:
     RegionEditor(SegmentedRegion* region);
