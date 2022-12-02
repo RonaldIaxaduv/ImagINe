@@ -187,6 +187,10 @@ void Voice::startNote(int midiNoteNumber, float velocity,
     {
         associatedLfo->resetSamplesUntilUpdate(); //feels more consistent and intuitive
     }
+    if (restartOnNoteOn)
+    {
+        currentBufferPos = 0.0; //this feels intuitive for some sounds (e.g. plucky synth sounds), yet unintuitive for others (e.g. atmos), so it needs to be optional
+    }
     currentState->playableChanged(true);
 
     updateBufferPosDelta();
@@ -1521,6 +1525,15 @@ void Voice::setID(int newID)
     ID = newID;
 }
 
+bool Voice::getRestartOnNoteOn()
+{
+    return restartOnNoteOn;
+}
+void Voice::setRestartOnNoteOn(bool newRestartOnNoteOn)
+{
+    restartOnNoteOn = newRestartOnNoteOn;
+}
+
 DahdsrEnvelope* Voice::getEnvelope()
 {
     return &envelope;
@@ -1534,6 +1547,7 @@ bool Voice::serialise(juce::XmlElement* xmlVoice)
     //basic members
     xmlVoice->setAttribute("regionID", ID);
     //bufferPos, bufferPosDelta: not needed
+    xmlVoice->setAttribute("restartOnNoteOn", restartOnNoteOn);
     xmlVoice->setAttribute("currentPitchQuantisationMethod", static_cast<int>(currentPitchQuantisationMethod));
 
     //parameters
@@ -1560,6 +1574,7 @@ bool Voice::deserialise(juce::XmlElement* xmlVoice)
     //basic members
     ID = xmlVoice->getIntAttribute("regionID", -1);
     //bufferPos, bufferPosDelta: not needed
+    restartOnNoteOn = xmlVoice->getBoolAttribute("restartOnNoteOn", false);
     setPitchQuantisationMethod(static_cast<PitchQuantisationMethod>(xmlVoice->getIntAttribute("currentPitchQuantisationMethod", static_cast<int>(PitchQuantisationMethod::continuous))));
 
     //parameters

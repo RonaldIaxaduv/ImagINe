@@ -48,6 +48,7 @@ private:
     void renderLfoWaveform();
 
     void updateToggleable();
+    void updateRestartOnNoteOn();
 
     void updateAllVoiceSettings();
   
@@ -84,6 +85,7 @@ private:
     juce::Label lfoDepth; //adjustable using the focus position. hence, it's listed here
 
     juce::ToggleButton toggleModeButton;
+    juce::ToggleButton restartOnNoteOnButton;
 
     DahdsrEnvelopeEditor dahdsrEditor;
 

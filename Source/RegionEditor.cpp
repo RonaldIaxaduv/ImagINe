@@ -78,6 +78,12 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     toggleModeButton.setTooltip("When toggle mode is off, regions will try to stop playing as soon as clicks/notes/play path interactions stop. When it's on, they will turn on on the first interaction and off after the second.");
     addChildComponent(toggleModeButton);
 
+    //restart on note on
+    restartOnNoteOnButton.setButtonText("Restart When Played");
+    restartOnNoteOnButton.onClick = [this] { updateRestartOnNoteOn(); };
+    restartOnNoteOnButton.setTooltip("When this is off, the position of the audio file will only reset to its starting position after its release time. If it's on, however, it will also reset whenever the region starts to be played. Leaving it off sounds more intuitive for some sounds (e.g. atmos), yet unintuitive for others (e.g. plucky sounds).");
+    addChildComponent(restartOnNoteOnButton);
+
     //DAHDSR
     if (region != nullptr)
     {
@@ -410,7 +416,9 @@ void RegionEditor::resized()
     focusPositionX.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxLeft, false, focusPositionX.getWidth(), focusPositionX.getHeight());
     focusPositionY.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxRight, false, focusPositionY.getWidth(), focusPositionY.getHeight()); //this may look redundant, but the tooltip won't display unless this is done...
 
-    toggleModeButton.setBounds(area.removeFromTop(hUnit).reduced(1));
+    auto toggleArea = area.removeFromTop(hUnit);
+    toggleModeButton.setBounds(toggleArea.removeFromLeft(toggleArea.getWidth() / 2).reduced(1));
+    restartOnNoteOnButton.setBounds(toggleArea.reduced(1));
 
     dahdsrEditor.setUnitOfHeight(hUnit);
     dahdsrEditor.setBounds(area.removeFromTop(hUnit * 4).reduced(1));
@@ -543,6 +551,7 @@ void RegionEditor::setChildVisibility(bool shouldBeVisible)
     lfoDepth.setVisible(shouldBeVisible);
 
     toggleModeButton.setVisible(shouldBeVisible);
+    restartOnNoteOnButton.setVisible(shouldBeVisible);
 
     dahdsrEditor.setVisible(shouldBeVisible);
 
@@ -595,6 +604,8 @@ void RegionEditor::copyRegionParameters()
     if (voices.size() > 0) //(voice != nullptr)
     {
         Voice* voice = voices[0]; //all voices have the same parameters, so it's enough to always look at the first element
+
+        restartOnNoteOnButton.setToggleState(voice->getRestartOnNoteOn(), juce::NotificationType::dontSendNotification);
 
         volumeSlider.setValue(juce::Decibels::gainToDecibels<double>(voice->getBaseLevel(), -60.0), juce::NotificationType::dontSendNotification);
         
@@ -719,6 +730,15 @@ void RegionEditor::renderLfoWaveform()
 void RegionEditor::updateToggleable()
 {
     associatedRegion->setShouldBeToggleable(toggleModeButton.getToggleState());
+}
+void RegionEditor::updateRestartOnNoteOn()
+{
+    juce::Array<Voice*> voices = associatedRegion->getAudioEngine()->getVoicesWithID(associatedRegion->getID());
+
+    for (auto* it = voices.begin(); it != voices.end(); it++)
+    {
+        (*it)->setRestartOnNoteOn(restartOnNoteOnButton.getToggleState());
+    }
 }
 
 void RegionEditor::updateAllVoiceSettings() //used after a voice has been first set or changed
@@ -899,7 +919,7 @@ void RegionEditor::randomiseAllParameters()
 {
     randomiseFocusPosition();
     
-    //don't randomise toggle mode - it's more of a coordination tool imo
+    //don't randomise the toggle buttons - they're more of a coordination tool imo
 
     //DAHDSR parameters
     dahdsrEditor.randomiseAllParameters();

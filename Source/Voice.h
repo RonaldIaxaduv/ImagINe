@@ -164,6 +164,9 @@ public:
     int getID();
     void setID(int newID);
 
+    bool getRestartOnNoteOn();
+    void setRestartOnNoteOn(bool newRestartOnNoteOn);
+
     DahdsrEnvelope* getEnvelope();
 
     bool serialise(juce::XmlElement* xmlVoice);
@@ -181,6 +184,7 @@ private:
     int ID = -1;
 
     double currentBufferPos = 0.0, bufferPosDelta = 0.0;
+    bool restartOnNoteOn = false;
 
     ModulatableMultiplicativeParameter<double> levelParameter;
 
