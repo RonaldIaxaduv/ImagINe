@@ -42,7 +42,7 @@
 namespace ProjectInfo
 {
     const char* const  projectName    = "ImageINe";
-    const char* const  companyName    = "";
+    const char* const  companyName    = "Aaron David Lux";
     const char* const  versionString  = "1.1.2";
     const int          versionNumber  = 0x10102;
 }

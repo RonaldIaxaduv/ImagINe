@@ -2,8 +2,10 @@
 
 <JUCERPROJECT id="bF30wr" name="ImageINe" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
-              pluginFormats="buildStandalone,buildVST3" pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn"
-              version="1.1.2">
+              pluginFormats="buildAU,buildAUv3,buildRTAS,buildStandalone,buildVST3"
+              pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn"
+              version="1.1.2" companyName="Aaron David Lux" companyWebsite="https://discord.gg/NYW8bYmkEb"
+              pluginDesc="ImageINe is an image-based sampler synthesiser.">
   <MAINGROUP id="ERSV9V" name="ImageINe">
     <GROUP id="{8D26A2AA-44ED-091F-1BA7-BD7625DE9D6A}" name="Source">
       <GROUP id="{BD4EFDA1-1593-3EA9-9AF3-1D7AC5564478}" name="Play Path">
@@ -128,8 +130,8 @@
   <EXPORTFORMATS>
     <VS2019 targetFolder="Builds/VisualStudio2019">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="ImageINe Demo"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="ImageINe Demo"/>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="ImageINe"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="ImageINe"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../../../../../../../JUCE/modules"/>

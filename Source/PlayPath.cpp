@@ -213,19 +213,19 @@ void PlayPath::transitionToState(PlayPathStateIndex stateToTransitionTo, bool ke
 void PlayPath::paintOverChildren(juce::Graphics& g)
 {
     //draw range borders (only required for debugging, really)
-    g.setColour(fillColour.contrasting());
-    float r = 1.0f;
-    juce::Point<float> pt;
-    for (auto itRange = regionsByRange_range.begin(); itRange != regionsByRange_range.end(); ++itRange)
-    {
-        //draw start border
-        pt = getPointAlongPath((*itRange).getStart());
-        g.fillEllipse(pt.getX() - r, pt.getY() - r, 2 * r, 2 * r);
+    //g.setColour(fillColour.contrasting());
+    //float r = 1.0f;
+    //juce::Point<float> pt;
+    //for (auto itRange = regionsByRange_range.begin(); itRange != regionsByRange_range.end(); ++itRange)
+    //{
+    //    //draw start border
+    //    pt = getPointAlongPath((*itRange).getStart());
+    //    g.fillEllipse(pt.getX() - r, pt.getY() - r, 2 * r, 2 * r);
 
-        //draw end border
-        pt = getPointAlongPath((*itRange).getEnd());
-        g.fillEllipse(pt.getX() - r, pt.getY() - r, 2 * r, 2 * r);
-    }
+    //    //draw end border
+    //    pt = getPointAlongPath((*itRange).getEnd());
+    //    g.fillEllipse(pt.getX() - r, pt.getY() - r, 2 * r, 2 * r);
+    //}
 
     //WIP: draw courier (this is more of a bandaid fix because the couriers wouldn't show up despite being added properly (perhaps because they were out of bounds)
     for (auto* itCourier = couriers.begin(); itCourier != couriers.end(); ++itCourier)

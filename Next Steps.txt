@@ -687,6 +687,7 @@
 # bug: after loading in audio for a region, the voices list is cleared of modulations (until it's scrolled)
 # bug: modulation isn't updated when a region is randomised into losing a modulation
 - add all other file formats (.au and so on)
+- add my name to the project settings
 
 - when new voices are added, they don't automatically receive the region's modulations... that's smth that should be fixed before polyphony is implemented
 ?- filter modulation probably shouldn't be multiplicative (good for lowpass, but bad for bandpass and highpass). consider making it into an additive parameter with an upper and lower cap (new parameter class)
