@@ -145,6 +145,96 @@ public:
     {
         modulationChoice.setSelectedId(static_cast<int>(id), notification);
     }
+    void randomiseModulatedParameterID()
+    {
+        //assign weights to each parameter. the higher the weight, the more likely that parameter is to get chosen. in general, parameters that tend to yield noisy results should be chosen less often.
+        const int volumeWeight              = 10; //volume
+        const int pitchWeight               = 8; //pitch
+        const int playbackPosStartWeight    = 1; //playback position start
+        const int playbackPosIntervalWeight = 2; //playback position interval
+        const int playbackPosCurrentWeight  = 1; //playback position current
+        const int filterPosWeight           = 10; //filter position
+        const int lfoRateWeight             = 8; //LFO rate
+        const int lfoPhaseStartWeight       = 7; //LFO phase start
+        const int lfoPhaseIntervalWeight    = 5; //LFO phase interval
+        const int lfoPhaseCurrentWeight     = 3; //LFO phase current
+        const int lfoUpdateIntervalWeight   = 5; //LFO update interval
+        const int totalWeight = volumeWeight + pitchWeight + playbackPosStartWeight + playbackPosIntervalWeight + playbackPosCurrentWeight + filterPosWeight + lfoRateWeight + lfoPhaseStartWeight + lfoPhaseIntervalWeight + lfoPhaseCurrentWeight + lfoUpdateIntervalWeight;
+
+        juce::Random& rng = juce::Random::getSystemRandom();
+        int choice = rng.nextInt(totalWeight);
+
+        if (choice < volumeWeight)
+        {
+            if (rng.nextBool())
+                setModulatedParameterID(LfoModulatableParameter::volume, juce::NotificationType::sendNotification);
+            else
+                setModulatedParameterID(LfoModulatableParameter::volume_inverted, juce::NotificationType::sendNotification);
+        }
+        else if ((choice -= volumeWeight) < pitchWeight)
+        {
+            if (rng.nextBool())
+                setModulatedParameterID(LfoModulatableParameter::pitch, juce::NotificationType::sendNotification);
+            else
+                setModulatedParameterID(LfoModulatableParameter::pitch_inverted, juce::NotificationType::sendNotification);
+        }
+        else if ((choice -= pitchWeight) < playbackPosStartWeight)
+        {
+            if (rng.nextBool())
+                setModulatedParameterID(LfoModulatableParameter::playbackPositionStart, juce::NotificationType::sendNotification);
+            else
+                setModulatedParameterID(LfoModulatableParameter::playbackPositionStart_inverted, juce::NotificationType::sendNotification);
+        }
+        else if ((choice -= playbackPosStartWeight) < playbackPosIntervalWeight)
+        {
+            if (rng.nextBool())
+                setModulatedParameterID(LfoModulatableParameter::playbackPositionInterval, juce::NotificationType::sendNotification);
+            else
+                setModulatedParameterID(LfoModulatableParameter::playbackPositionInterval_inverted, juce::NotificationType::sendNotification);
+        }
+        else if ((choice -= playbackPosIntervalWeight) < playbackPosCurrentWeight)
+        {
+            if (rng.nextBool())
+                setModulatedParameterID(LfoModulatableParameter::playbackPositionCurrent, juce::NotificationType::sendNotification);
+            else
+                setModulatedParameterID(LfoModulatableParameter::playbackPositionCurrent_inverted, juce::NotificationType::sendNotification);
+        }
+        else if ((choice -= playbackPosCurrentWeight) < filterPosWeight)
+        {
+            if (rng.nextBool())
+                setModulatedParameterID(LfoModulatableParameter::filterPosition, juce::NotificationType::sendNotification);
+            else
+                setModulatedParameterID(LfoModulatableParameter::filterPosition_inverted, juce::NotificationType::sendNotification);
+        }
+        else if ((choice -= filterPosWeight) < lfoPhaseStartWeight)
+        {
+            if (rng.nextBool())
+                setModulatedParameterID(LfoModulatableParameter::lfoStartingPhase, juce::NotificationType::sendNotification);
+            else
+                setModulatedParameterID(LfoModulatableParameter::lfoStartingPhase_inverted, juce::NotificationType::sendNotification);
+        }
+        else if ((choice -= lfoPhaseStartWeight) < lfoPhaseIntervalWeight)
+        {
+            if (rng.nextBool())
+                setModulatedParameterID(LfoModulatableParameter::lfoPhaseInterval, juce::NotificationType::sendNotification);
+            else
+                setModulatedParameterID(LfoModulatableParameter::lfoPhaseInterval_inverted, juce::NotificationType::sendNotification);
+        }
+        else if ((choice -= lfoPhaseIntervalWeight) < lfoPhaseCurrentWeight)
+        {
+            if (rng.nextBool())
+                setModulatedParameterID(LfoModulatableParameter::lfoCurrentPhase, juce::NotificationType::sendNotification);
+            else
+                setModulatedParameterID(LfoModulatableParameter::lfoCurrentPhase_inverted, juce::NotificationType::sendNotification);
+        }
+        else if ((choice -= lfoPhaseCurrentWeight) < lfoUpdateIntervalWeight)
+        {
+            if (rng.nextBool())
+                setModulatedParameterID(LfoModulatableParameter::lfoUpdateInterval, juce::NotificationType::sendNotification);
+            else
+                setModulatedParameterID(LfoModulatableParameter::lfoUpdateInterval_inverted, juce::NotificationType::sendNotification);
+        }
+    }
 
     void triggerClick(const juce::MouseEvent& e)
     {
@@ -513,14 +603,13 @@ public:
         bool shouldBeModulated = rng.nextInt(3) < 2; //66% chance to become modulated
         if (wasModulated != shouldBeModulated)
         {
-            item->setIsModulated(shouldBeModulated, item->isModulated() ? juce::NotificationType::dontSendNotification : juce::NotificationType::sendNotification); //if modulated, it will send a notification during the next if case
+            item->setIsModulated(shouldBeModulated, shouldBeModulated ? juce::NotificationType::dontSendNotification : juce::NotificationType::sendNotification); //if modulated, it will send a notification during the next if case
         }
 
         if (item->isModulated())
         {
             //set to a random parameter (excluding "no modulation")
-            item->setModulatedParameterID(static_cast<LfoModulatableParameter>(rng.nextInt(juce::Range<int>(1, static_cast<int>(LfoModulatableParameter::ModulatableParameterCount)))),
-                                          juce::NotificationType::sendNotification);
+            item->randomiseModulatedParameterID(); //this method uses weights to ensure that noise-inducing parameters are chosen less often
         }
 
         list.updateContent();

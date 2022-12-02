@@ -1211,7 +1211,7 @@ void SegmentableImage::repaintAllRegions()
     for (auto* itRegion = regions.begin(); itRegion != regions.end(); ++itRegion)
     {
         (*itRegion)->triggerDrawableButtonStateChanged(); //this makes the button redraw its background
-        (*itRegion)->repaint();
+        (*itRegion)->repaint((*itRegion)->getLocalBounds());
     }
 }
 
@@ -1248,7 +1248,7 @@ void SegmentableImage::repaintAllPlayPaths()
     for (auto* itPath = playPaths.begin(); itPath != playPaths.end(); ++itPath)
     {
         (*itPath)->triggerDrawableButtonStateChanged(); //this makes the button redraw its background
-        (*itPath)->repaint();
+        (*itPath)->repaint((*itPath)->getLocalBounds());
     }
 }
 

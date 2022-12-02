@@ -671,7 +671,26 @@
 # don't show "preset has been loaded message" if the program ends up in the INIT state
 	?/ also don't allow users to save during the init state(?)
 
+# the randomiser button in the play path editor says "randomise all *regions*", whoops
+!# sometimes, play paths don't play certain regions
+	/ i'm assuming it happens when a playpath begins within a region and then doesn't correctly register that region in its lists
+	# aha! in an old section of the code, collision ranges with values above 1.0 were ignored although they are actually in use now!
+!# reset the DAHDSR on noteOn after all - otherwise starting a region while it's in release will obviously sound bad and feel inuntuitive
+	# add a bool argument "ignoreDuringRelease" to the noteOn method of the DAHDSR and its states. then, add the usual DAHDSR reset to the noteOn method of the voice class
+# try to fix the bug again that LFOs don't update when the base starting phase is altered
+# finally add the survey link to the info box
+(#) turn on setPaintingIsUnclipped for SegmentedRegion and PlayPath
+	# make sure that repaint is not called without arguments! if it is, add the region's/path's bounds expanded by half the focus/courier radius as the argument
+	-> doesn't look like it actually manages to get rid of the clipping, sadly...
+# reduce maximum filter frequency to 22000 (22050 introduces strong noise!)
+# add weights for each LfoModulatableParameter when randomising the LFO's modulation list. some modulations (especially noisy ones like playback modulation) should be rarer than others (like volume)
+# bug: after loading in audio for a region, the voices list is cleared of modulations (until it's scrolled)
+# bug: modulation isn't updated when a region is randomised into losing a modulation
+- add all other file formats (.au and so on)
+
 - when new voices are added, they don't automatically receive the region's modulations... that's smth that should be fixed before polyphony is implemented
+?- filter modulation probably shouldn't be multiplicative (good for lowpass, but bad for bandpass and highpass). consider making it into an additive parameter with an upper and lower cap (new parameter class)
+	- the question that remains: what scaling factor should there be for the modulation? (22000-20)/2 (so that a depth of 1 can reach both the maximum and minimum frequency)? or is that too much?
 
 
 
@@ -834,3 +853,5 @@ possible features to add later:
 - make it possible to add ranges of MIDI notes that a region responds to (instead of just one note), affecting a region's pitch
 	- setting the: pitch define base note?
 	- when using pitch quantisation, make sure *not* to shift the entire scale when playing a note! instead, shift the position of the base note according to the note within the range, so that it just play a different note *within the same* scale.
+- add a button that shows a full modulation matrix of all modulations across all regions
+- display the current modulation strength of a region's parameter next to its slider/combobox in the region editor. for example, if a region's pitch is being modulated by other regions, then next to the slider one should find the range of semitones that the pitch can take on

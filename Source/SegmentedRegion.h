@@ -53,8 +53,6 @@ public:
     bool hitTest(int x, int y) override;
     bool hitTest_Interactable(int x, int y);
 
-    void forceRepaint();
-
     juce::String getTooltip() override;
 
     void transitionToState(SegmentedRegionStateIndex stateToTransitionTo, bool keepPlayingAndEditing = false);

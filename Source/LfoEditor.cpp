@@ -259,6 +259,9 @@ void LfoEditor::updateAvailableVoices()
         //lfoRegionsList.setClickFunction(newRowNumber, [this] { updateLfoVoices(lfoRegionsList.getCheckedRegionIDs()); });
     }
 
+    //copy currently affected voices and their modulated parameters
+    lfoRegionsList.copyRegionModulations(associatedLfo->getAffectedRegionIDs(), associatedLfo->getModulatedParameterIDs());
+
     resized(); //redraws lfoRegionsList (lfoRegionsList.resized() won't do the same)
 }
 
@@ -299,7 +302,18 @@ void LfoEditor::updateLfoStartingPhase()
 {
     associatedLfo->setBaseStartingPhase(lfoStartingPhaseSlider.getValue());
     associatedLfo->resetPhase(); //better for visual feedback
-    static_cast<RegionEditor*>(getParentComponent())->getAssociatedRegion()->timerCallback(); //repaint LFO line
+
+    //repaint LFO line
+    if (!static_cast<RegionEditor*>(getParentComponent())->getAssociatedRegion()->isTimerRunning())
+    {
+        static_cast<RegionEditor*>(getParentComponent())->getAssociatedRegion()->startTimer(1000.0 / 20.0);
+    }
+    else
+    {
+        static_cast<RegionEditor*>(getParentComponent())->getAssociatedRegion()->timerCallback();
+    }
+    /*auto currentFocusPosition = static_cast<RegionEditor*>(getParentComponent())->getAssociatedRegion()->getFocusPoint();
+    static_cast<RegionEditor*>(getParentComponent())->getAssociatedRegion()->setFocusPoint(currentFocusPosition);*/
 }
 void LfoEditor::randomiseLfoStartingPhase()
 {
@@ -307,8 +321,6 @@ void LfoEditor::randomiseLfoStartingPhase()
 
     //completely random values within the range are fine
     lfoStartingPhaseSlider.setValue(lfoStartingPhaseSlider.getMinimum() + rng.nextDouble() * (lfoStartingPhaseSlider.getMaximum() - lfoStartingPhaseSlider.getMinimum()), juce::NotificationType::sendNotification);
-    associatedLfo->resetPhase(); //better for visual feedback
-    static_cast<RegionEditor*>(getParentComponent())->getAssociatedRegion()->timerCallback(); //repaint LFO line
 }
 
 void LfoEditor::updateLfoPhaseInterval()

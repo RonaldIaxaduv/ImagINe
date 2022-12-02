@@ -41,7 +41,7 @@ void DahdsrEnvelopeState_Unprepared::sampleRateChanged(double newSampleRate, boo
     }
 }
 
-void DahdsrEnvelopeState_Unprepared::noteOn(bool includeDelay)
+void DahdsrEnvelopeState_Unprepared::noteOn(bool includeDelay, bool ignoreDuringRelease)
 {
     throw std::exception("Envelope has not been prepared yet, so it cannot handle notes.");
 }
@@ -95,7 +95,7 @@ void DahdsrEnvelopeState_Idle::sampleRateChanged(double newSampleRate, bool trig
     //already prepared -> do nothing
 }
 
-void DahdsrEnvelopeState_Idle::noteOn(bool includeDelay)
+void DahdsrEnvelopeState_Idle::noteOn(bool includeDelay, bool ignoreDuringRelease)
 {
     if (includeDelay)
     {
@@ -168,7 +168,7 @@ void DahdsrEnvelopeState_Delay::sampleRateChanged(double newSampleRate, bool tri
     }
 }
 
-void DahdsrEnvelopeState_Delay::noteOn(bool includeDelay)
+void DahdsrEnvelopeState_Delay::noteOn(bool includeDelay, bool ignoreDuringRelease)
 {
     if (includeDelay)
     {
@@ -269,7 +269,7 @@ void DahdsrEnvelopeState_Attack::sampleRateChanged(double newSampleRate, bool tr
     }
 }
 
-void DahdsrEnvelopeState_Attack::noteOn(bool includeDelay)
+void DahdsrEnvelopeState_Attack::noteOn(bool includeDelay, bool ignoreDuringRelease)
 {
     if (includeDelay)
     {
@@ -408,7 +408,7 @@ void DahdsrEnvelopeState_Hold::sampleRateChanged(double newSampleRate, bool trig
     }
 }
 
-void DahdsrEnvelopeState_Hold::noteOn(bool includeDelay)
+void DahdsrEnvelopeState_Hold::noteOn(bool includeDelay, bool ignoreDuringRelease)
 {
     if (includeDelay)
     {
@@ -520,7 +520,7 @@ void DahdsrEnvelopeState_Decay::sampleRateChanged(double newSampleRate, bool tri
     }
 }
 
-void DahdsrEnvelopeState_Decay::noteOn(bool includeDelay)
+void DahdsrEnvelopeState_Decay::noteOn(bool includeDelay, bool ignoreDuringRelease)
 {
     if (includeDelay)
     {
@@ -652,7 +652,7 @@ void DahdsrEnvelopeState_Sustain::sampleRateChanged(double newSampleRate, bool t
     }
 }
 
-void DahdsrEnvelopeState_Sustain::noteOn(bool includeDelay)
+void DahdsrEnvelopeState_Sustain::noteOn(bool includeDelay, bool ignoreDuringRelease)
 {
     if (includeDelay)
     {
@@ -739,19 +739,22 @@ void DahdsrEnvelopeState_Release::sampleRateChanged(double newSampleRate, bool t
     }
 }
 
-void DahdsrEnvelopeState_Release::noteOn(bool includeDelay)
+void DahdsrEnvelopeState_Release::noteOn(bool includeDelay, bool ignoreDuringRelease)
 {
-    if (includeDelay)
+    if (!ignoreDuringRelease)
     {
-        //transition back to delay
-        envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, envelopeLevelCurrent);
+        if (includeDelay)
+        {
+            //transition back to delay
+            envelope.transitionToState(DahdsrEnvelopeStateIndex::delay, envelopeLevelCurrent);
+        }
+        else
+        {
+            //transition back to attack
+            envelope.transitionToState(DahdsrEnvelopeStateIndex::attack, envelopeLevelCurrent);
+        }
+        resetState();
     }
-    else
-    {
-        //transition back to attack
-        envelope.transitionToState(DahdsrEnvelopeStateIndex::attack, envelopeLevelCurrent);
-    }
-    resetState();
 }
 
 double DahdsrEnvelopeState_Release::getNextEnvelopeSample()

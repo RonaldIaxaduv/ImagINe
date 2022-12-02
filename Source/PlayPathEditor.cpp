@@ -111,7 +111,7 @@ PlayPathEditor::PlayPathEditor(PlayPath* path) :
     addAndMakeVisible(midiNoteLabel);
 
     //randomise button
-    randomiseButton.setButtonText("Randomise Region Parameters");
+    randomiseButton.setButtonText("Randomise Play Path Parameters");
     randomiseButton.onClick = [this] { randomiseAllParameters(); };
     randomiseButton.setTooltip("Clicking this button will randomise most of the parameters in this editor. The randomness is biased in a useful way to achieve useful results. You can also press Ctrl + r while hovering above a parameter to randomise only that one value.");
     addAndMakeVisible(randomiseButton);

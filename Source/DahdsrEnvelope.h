@@ -44,7 +44,7 @@ public:
 
     void setSampleRate(double newSampleRate);
 
-    void noteOn(bool includeDelay = true);
+    void noteOn(bool includeDelay = true, bool ignoreDuringRelease = false);
 
     void noteOff();
 

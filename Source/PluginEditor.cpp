@@ -778,7 +778,7 @@ void ImageINeDemoAudioProcessorEditor::displayModeInformation()
 
     body += juce::String("\n\n") + 
             "ImageINe was created by Aaron David Lux for his bachelor's thesis at the Friedrich Schiller Universitaet in Jena in 2022/2023. The thesis also includes a feedback survey for this program.\n" +
-            "Feedback survey (Google Forms): [WIP]\n" + 
+            "Feedback survey (Google Forms): https://forms.gle/d4r9Am5yja1J8myV6 \n" + //unshortened link: https://docs.google.com/forms/d/e/1FAIpQLSf9b_CzSsGovvz-4tWIfTTzq30DrUtfBDxkgTaGoAuCOHTLFA/viewform?usp=sf_link
             "ImageINe Discord server: https://discord.gg/NYW8bYmkEb";
 
     //juce::NativeMessageBox::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon, header, body, this);

@@ -64,8 +64,6 @@ SegmentedRegion::SegmentedRegion(const juce::Path& outline, const juce::Rectangl
     setMouseClickGrabsKeyboardFocus(false);
     setWantsKeyboardFocus(false);
     //setRepaintsOnMouseActivity(false); //doesn't work for DrawableButton sadly (but makes kind of sense since it needs to change its background image while interacting with it)
-    //currentLfoLine = juce::Line<float>(juce::Point<float>(0.0f, 0.0f), juce::Point<float>(static_cast<float>(getWidth()), static_cast<float>(getHeight()))); //diagonal -> entire region will be redrawn (a little hacky, but ensures that the LFO line is drawn before the region is first played)
-    //repaint(); //paints the LFO line
     setSize(parentBounds.getWidth(), parentBounds.getHeight());
 }
 
@@ -188,8 +186,6 @@ void SegmentedRegion::initialiseImages()
 
 void SegmentedRegion::timerCallback()
 {
-    //repaint(); //this is highly inefficient because it redraws lots of unchanged space
-
     if (associatedLfo == nullptr)
     {
         DBG("NO LFO SET YET"); //if the code arrives here, this method might need a state-dependent implementation...
@@ -320,16 +316,6 @@ bool SegmentedRegion::hitTest(int x, int y)
 bool SegmentedRegion::hitTest_Interactable(int x, int y)
 {
     return p.contains((float)x, (float)y);
-}
-
-void SegmentedRegion::forceRepaint()
-{
-    SegmentedRegionStateIndex previousStateIndex = currentStateIndex;
-
-    transitionToState(SegmentedRegionStateIndex::editable); //trick: transition to a state where hitTest doesn't always return false but actually corresponds to the region's hitbox
-    repaint(); //now repainting should work <- actually, it doesn't... there's not enough of a delay...
-
-    transitionToState(previousStateIndex);
 }
 
 juce::String SegmentedRegion::getTooltip()

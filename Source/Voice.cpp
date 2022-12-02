@@ -614,10 +614,7 @@ void Voice::evaluateBufferPosModulation()
 
         //don't advance; stick to the target phase!
 
-        if (!envelope.isReleasing()) //do not retrigger if releasing! otherwise, voices with long envelopes and relatively short update intervals that modulate their own playback position would play indefinitely!
-        {
-            envelope.noteOn(false); //restart envelope (from attack, not from delay) for a cleaner sound
-        }
+        envelope.noteOn(false, true); //restart envelope (from attack, not from delay) for a cleaner sound. ignored during release (otherwise, voices with long envelopes and relatively short update intervals that modulate their own playback position would play indefinitely!)
     }
     else
     {

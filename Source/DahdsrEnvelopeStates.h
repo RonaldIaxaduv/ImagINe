@@ -26,7 +26,7 @@ public:
     //envelope events to implement
     virtual void sampleRateChanged(double newSampleRate, bool triggerTransition) = 0;
 
-    virtual void noteOn(bool includeDelay = true) = 0;
+    virtual void noteOn(bool includeDelay = true, bool ignoreDuringRelease = false) = 0;
     virtual double getNextEnvelopeSample() = 0;
     virtual void noteOff() = 0;
 
@@ -53,7 +53,7 @@ public:
 
     void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
   
-    void noteOn(bool includeDelay = true) override;
+    void noteOn(bool includeDelay = true, bool ignoreDuringRelease = false) override;
     virtual double getNextEnvelopeSample() override;
     void noteOff() override;
 
@@ -76,7 +76,7 @@ public:
 
     void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
-    void noteOn(bool includeDelay = true) override;
+    void noteOn(bool includeDelay = true, bool ignoreDuringRelease = false) override;
     virtual double getNextEnvelopeSample() override;
     void noteOff() override;
 
@@ -99,7 +99,7 @@ public:
 
     void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
-    void noteOn(bool includeDelay = true) override;
+    void noteOn(bool includeDelay = true, bool ignoreDuringRelease = false) override;
     virtual double getNextEnvelopeSample() override;
     void noteOff() override;
 
@@ -133,7 +133,7 @@ public:
 
     void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
-    void noteOn(bool includeDelay = true) override;
+    void noteOn(bool includeDelay = true, bool ignoreDuringRelease = false) override;
     virtual double getNextEnvelopeSample() override;
     void noteOff() override;
 
@@ -179,7 +179,7 @@ public:
 
     void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
-    void noteOn(bool includeDelay = true) override;
+    void noteOn(bool includeDelay = true, bool ignoreDuringRelease = false) override;
     virtual double getNextEnvelopeSample() override;
     void noteOff() override;
 
@@ -219,7 +219,7 @@ public:
 
     void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
-    void noteOn(bool includeDelay = true) override;
+    void noteOn(bool includeDelay = true, bool ignoreDuringRelease = false) override;
     virtual double getNextEnvelopeSample() override;
     void noteOff() override;
 
@@ -265,7 +265,7 @@ public:
 
     void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
-    void noteOn(bool includeDelay = true) override;
+    void noteOn(bool includeDelay = true, bool ignoreDuringRelease = false) override;
     virtual double getNextEnvelopeSample() override;
     void noteOff() override;
 
@@ -296,7 +296,7 @@ public:
 
     void sampleRateChanged(double newSampleRate, bool triggerTransition) override;
 
-    void noteOn(bool includeDelay = true) override;
+    void noteOn(bool includeDelay = true, bool ignoreDuringRelease = false) override;
     virtual double getNextEnvelopeSample() override;
     void noteOff() override;
 

@@ -48,6 +48,7 @@ PlayPath::PlayPath(int ID, const juce::Path& path, const juce::Rectangle<float>&
     //rest
     setToggleable(true);
     setBufferedToImage(true);
+    setPaintingIsUnclipped(true);
     setMouseClickGrabsKeyboardFocus(false);
     setWantsKeyboardFocus(false);
     setSize(parentBounds.getWidth(), parentBounds.getHeight());
@@ -212,19 +213,19 @@ void PlayPath::transitionToState(PlayPathStateIndex stateToTransitionTo, bool ke
 void PlayPath::paintOverChildren(juce::Graphics& g)
 {
     //draw range borders (only required for debugging, really)
-    //g.setColour(fillColour.contrasting());
-    //float r = 1.0f;
-    //juce::Point<float> pt;
-    //for (auto itRange = regionsByRange_range.begin(); itRange != regionsByRange_range.end(); ++itRange)
-    //{
-    //    //draw start border
-    //    pt = getPointAlongPath((*itRange).getStart());
-    //    g.fillEllipse(pt.getX() - r, pt.getY() - r, 2 * r, 2 * r);
+    g.setColour(fillColour.contrasting());
+    float r = 1.0f;
+    juce::Point<float> pt;
+    for (auto itRange = regionsByRange_range.begin(); itRange != regionsByRange_range.end(); ++itRange)
+    {
+        //draw start border
+        pt = getPointAlongPath((*itRange).getStart());
+        g.fillEllipse(pt.getX() - r, pt.getY() - r, 2 * r, 2 * r);
 
-    //    //draw end border
-    //    pt = getPointAlongPath((*itRange).getEnd());
-    //    g.fillEllipse(pt.getX() - r, pt.getY() - r, 2 * r, 2 * r);
-    //}
+        //draw end border
+        pt = getPointAlongPath((*itRange).getEnd());
+        g.fillEllipse(pt.getX() - r, pt.getY() - r, 2 * r, 2 * r);
+    }
 
     //WIP: draw courier (this is more of a bandaid fix because the couriers wouldn't show up despite being added properly (perhaps because they were out of bounds)
     for (auto* itCourier = couriers.begin(); itCourier != couriers.end(); ++itCourier)
@@ -445,7 +446,7 @@ void PlayPath::stopPlaying(bool toggleButtonState)
         PlayPathCourier* newCourier = new PlayPathCourier(this, courierIntervalSeconds);
         addChildComponent(newCourier);
         couriers.add(newCourier);
-        repaint(); //otherwise, the old couriers will appear to stop in place
+        repaint(getLocalBounds().expanded(static_cast<int>(PlayPathCourier::radius * 0.5))); //otherwise, the old couriers will appear to stop in place
         //DBG("added a courier. bounds: " + newCourier->getBounds().toString() + " (within " + getLocalBounds().toString() + ")");
 
         isPlaying = false;
@@ -631,8 +632,7 @@ void PlayPath::addIntersectingRegion(SegmentedRegion* region)
         }
         if (initialDistance < 0.0f)
         {
-            //region encompasses the entire path
-            //regionsByRange_range.add(juce::Range<float>(0.0f, underlyingPath.getLength()));
+            //no end point found -> region encompasses the entire path
             regionsByRange_range.add(juce::Range<float>(0.0f, 1.0f));
             regionsByRange_region.add(region);
             return;
@@ -649,7 +649,6 @@ void PlayPath::addIntersectingRegion(SegmentedRegion* region)
         if (region->hitTest_Interactable(pt.getX() - xDifference, pt.getY() - yDifference))
         {
             //collision! -> starting point found
-            //distances.setStart(startDistance);
             distances.setStart(startDistance);
             DBG("start point: " + pt.toString() + " (" + juce::String(startDistance) + " / " + juce::String(1.0) + ")");
 
@@ -664,7 +663,6 @@ void PlayPath::addIntersectingRegion(SegmentedRegion* region)
                 {
                     //no more collision! -> end point found
                     endPointFound = true;
-                    //distances.setEnd(endDistance);
                     distances.setEnd(endDistance);
                     DBG("end point: " + pt.toString() + " (" + juce::String(endDistance) + " / " + juce::String(1.0) + ")");
 
@@ -680,7 +678,6 @@ void PlayPath::addIntersectingRegion(SegmentedRegion* region)
             if (!endPointFound)
             {
                 //found a starting point but no end point -> arrived at the last intersection -> loops around
-                //distances.setEnd(initialDistance); //remembered from the beginning of this method
                 distances.setEnd(initialDistance + 1.0); //remembered from the beginning of this method (note that juce::Range.end may not be smaller than juce::Range.start! hence, 1.0 is added to signal the loop-around)
 
                 //add to list
@@ -718,7 +715,12 @@ void PlayPath::recalculateAllIntersectingRegions()
 void PlayPath::insertIntoRegionsLists(juce::Range<float> regionRange, SegmentedRegion* region)
 {
     //if (regionRange.getStart() < 0.0f || regionRange.getEnd() < 0.0f || regionRange.getStart() > underlyingPath.getLength() || regionRange.getEnd() > underlyingPath.getLength())
-    if (regionRange.getStart() < 0.0f || regionRange.getEnd() < 0.0f || regionRange.getStart() > 1.0f || regionRange.getEnd() > 1.0f)
+    //if (regionRange.getStart() < 0.0f || regionRange.getEnd() < 0.0f || regionRange.getStart() > 1.0f || regionRange.getEnd() > 1.0f)
+    //{
+    //    //invalid range
+    //    return;
+    //}
+    if (regionRange.getStart() < 0.0f || regionRange.getEnd() < 0.0f) //the values may wrap now, i.e. they may be larger than one (they must still not be smaller than 0 though)
     {
         //invalid range
         return;

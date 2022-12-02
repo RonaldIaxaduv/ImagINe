@@ -235,7 +235,7 @@ RegionEditor::RegionEditor(SegmentedRegion* region) :
     //filter position
     filterPositionSlider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
     filterPositionSlider.setTextValueSuffix("Hz");
-    filterPositionSlider.setRange(20.0, 22050.0, 0.1);
+    filterPositionSlider.setRange(20.0, 22000.0, 0.1); //do not put the maximum to 22050 - noise gets introduced there!
     filterPositionSlider.setSkewFactorFromMidPoint(1024.0);
     filterPositionSlider.onValueChange = [this] { updateFilterPosition(); };
     filterPositionSlider.setValue(22050.0, juce::NotificationType::dontSendNotification);
