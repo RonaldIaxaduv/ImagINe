@@ -660,24 +660,24 @@ void RegionEditor::selectFile()
             if (file == juce::File{})
                 return;
 
-            std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(file)); // [2]
+            std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(file));
 
             if (reader.get() != nullptr)
             {
-                auto duration = (float)reader->lengthInSamples / reader->sampleRate;               // [3]
+                auto duration = (float)reader->lengthInSamples / reader->sampleRate;
 
                 associatedRegion->getAudioEngine()->suspendProcessing(true); //pause the audio engine to ensure that loading the file doesn't change the audio thread's priority
 
                 //juce::AudioSampleBuffer tempBuffer();
-                tempBuffer.setSize((int)reader->numChannels, (int)reader->lengthInSamples);  // [4]
-                reader->read(&tempBuffer,                                                      // [5]
-                    0,                                                                //  [5.1]
-                    (int)reader->lengthInSamples,                                    //  [5.2]
-                    0,                                                                //  [5.3]
-                    true,                                                             //  [5.4]
-                    true);                                                            //  [5.5]
-                //position = 0;                                                                   // [6]
-                //setAudioChannels(0, (int)reader->numChannels);                                // [7]
+                tempBuffer.setSize((int)reader->numChannels, (int)reader->lengthInSamples);
+                reader->read(&tempBuffer,
+                    0,
+                    (int)reader->lengthInSamples,
+                    0,
+                    true,
+                    true);
+                //position = 0;
+                //setAudioChannels(0, (int)reader->numChannels);
 
                 associatedRegion->setBuffer(tempBuffer, file.getFileName(), reader->sampleRate);
                 selectedFileLabel.setText(file.getFileName(), juce::NotificationType::dontSendNotification);

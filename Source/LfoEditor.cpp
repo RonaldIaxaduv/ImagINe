@@ -312,8 +312,6 @@ void LfoEditor::updateLfoStartingPhase()
     {
         static_cast<RegionEditor*>(getParentComponent())->getAssociatedRegion()->timerCallback();
     }
-    /*auto currentFocusPosition = static_cast<RegionEditor*>(getParentComponent())->getAssociatedRegion()->getFocusPoint();
-    static_cast<RegionEditor*>(getParentComponent())->getAssociatedRegion()->setFocusPoint(currentFocusPosition);*/
 }
 void LfoEditor::randomiseLfoStartingPhase()
 {

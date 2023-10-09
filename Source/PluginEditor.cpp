@@ -124,10 +124,6 @@ void ImageINeDemoAudioProcessorEditor::paint (juce::Graphics& g)
 {
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
-
-    /*g.setColour (juce::Colours::white);
-    g.setFont (15.0f);
-    g.drawFittedText ("Hello World!", getLocalBounds(), juce::Justification::centred, 1);*/
 }
 void ImageINeDemoAudioProcessorEditor::paintOverChildren(juce::Graphics& g)
 {
@@ -135,10 +131,7 @@ void ImageINeDemoAudioProcessorEditor::paintOverChildren(juce::Graphics& g)
 
     int textHeight = juce::jmax(2, juce::jmin(20, getHeight() / 100));
     int textWidth = getWidth(); //juce::jmax(100, juce::jmin(getWidth(), textHeight * 25));
-    //float textHeight = juce::jmax(2.0f, juce::jmin(20.0f, static_cast<float>(getHeight()) / 100.0f));
-    //float textWidth = juce::jmax(50.0f, juce::jmin(static_cast<float>(getWidth()) / 2.0f, textHeight * 25.0f));
     g.drawText("ImageINe V" + juce::String(JucePlugin_VersionString), juce::Rectangle<int>(0, getHeight() - textHeight, textWidth, textHeight), juce::Justification::bottomLeft, false);
-    //g.drawFittedText("ImageINe V" + juce::String(JucePlugin_VersionString), juce::Rectangle<int>(0, getHeight() - textHeight, textWidth, textHeight), juce::Justification::bottomLeft, 1, 0.5f);
 }
 
 void ImageINeDemoAudioProcessorEditor::resized()
@@ -240,11 +233,6 @@ bool ImageINeDemoAudioProcessorEditor::keyPressed(const juce::KeyPress& key)
         //switch state
         if (key == juce::KeyPress::createFromDescription("w") || key == juce::KeyPress::createFromDescription("a") || key == juce::KeyPress::upKey || key == juce::KeyPress::leftKey)
         {
-            /*if (modeBox.getSelectedId() > 1)
-            {
-                modeBox.setSelectedId(modeBox.getSelectedId() - 1);
-                return true;
-            }*/
             if (modeBox.getSelectedItemIndex() > 0)
             {
                 modeBox.setSelectedItemIndex(modeBox.getSelectedItemIndex() - 1);
@@ -252,11 +240,6 @@ bool ImageINeDemoAudioProcessorEditor::keyPressed(const juce::KeyPress& key)
         }
         if (key == juce::KeyPress::createFromDescription("s") || key == juce::KeyPress::createFromDescription("d") || key == juce::KeyPress::downKey || key == juce::KeyPress::rightKey)
         {
-            /*if (modeBox.getSelectedId() < static_cast<int>(PluginEditorStateIndex::StateIndexCount) - 1)
-            {
-                modeBox.setSelectedId(modeBox.getSelectedId() + 1);
-                return true;
-            }*/
             if (modeBox.getSelectedItemIndex() < modeBox.getNumItems() - 1)
             {
                 modeBox.setSelectedItemIndex(modeBox.getSelectedItemIndex() + 1);
@@ -267,7 +250,6 @@ bool ImageINeDemoAudioProcessorEditor::keyPressed(const juce::KeyPress& key)
         {
             if (key == juce::KeyPress::createFromDescription(juce::String(i)))
             {
-                //modeBox.setSelectedId(i + 1);
                 modeBox.setSelectedItemIndex(i);
                 return true;
             }

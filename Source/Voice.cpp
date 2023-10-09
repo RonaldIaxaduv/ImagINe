@@ -161,17 +161,6 @@ bool Voice::canPlaySound(juce::SynthesiserSound* sound)
 }
 
 //==============================================================================
-/*void Voice::noteStarted()
-{
-    auto velocity = getCurrentlyPlayingNote().noteOnVelocity.asUnsignedFloat();
-    auto freqHz = (float)getCurrentlyPlayingNote().getFrequencyInHertz();
-
-    processorChain.get<osc1Index>().setFrequency(freqHz, true);
-    processorChain.get<osc1Index>().setLevel(velocity);
-
-    processorChain.get<osc2Index>().setFrequency(freqHz * 1.01f, true);
-    processorChain.get<osc2Index>().setLevel(velocity);
-}*/
 void Voice::startNote(int midiNoteNumber, float velocity,
     juce::SynthesiserSound* sound, int /*currentPitchWheelPosition*/)
 {
@@ -233,49 +222,7 @@ void Voice::controllerMoved(int, int) {}
 void Voice::renderNextBlock(juce::AudioSampleBuffer& outputBuffer, int startSample, int numSamples)
 {
     currentState->renderNextBlock(outputBuffer, startSample);
-
-    //if (bufferPosDelta != 0.0)
-    //{
-    //    if (/*currentSound*/ osc == nullptr || /*currentSound*/osc->fileBuffer.getNumSamples() == 0)
-    //    {
-    //        outputBuffer.clear();
-    //        return;
-    //    }
-
-    //    while (--numSamples >= 0)
-    //    {
-    //        //evaluate modulated values
-    //        updateBufferPosDelta(); //determines pitch shift
-
-    //        double gainAdjustment = envelope.getNextEnvelopeSample() * levelParameter.getModulatedValue(); //= envelopeLevel * level (with all modulations)
-    //        for (auto i = outputBuffer.getNumChannels() - 1; i >= 0; --i)
-    //        {
-    //            auto currentSample = (osc->fileBuffer.getSample(i % osc->fileBuffer.getNumChannels(), (int)currentBufferPos)) * gainAdjustment;
-    //            outputBuffer.addSample(i, startSample, (float)currentSample);
-    //        }
-
-    //        currentBufferPos += bufferPosDelta;
-    //        if (currentBufferPos >= osc->fileBuffer.getNumSamples())
-    //        {
-    //            currentBufferPos -= osc->fileBuffer.getNumSamples();
-    //        }
-
-    //        if (associatedLfo != nullptr)
-    //            associatedLfo->advance(); //update LFO after every sample
-
-    //        ++startSample;
-    //    }
-
-    //    if (envelope.isIdle()) //has finished playing (including release). may also occur if the sample rate suddenly changed, but in theory, that shouldn't happen I think
-    //    {
-    //        //stop note
-    //        clearCurrentNote();
-    //        bufferPosDelta = 0.0;
-    //    }
-
-    //}
 }
-
 void Voice::renderNextBlock_empty()
 {
     //nothing set -> nothing happens
@@ -288,9 +235,6 @@ void Voice::renderNextBlock_onlyLfo()
 }
 void Voice::renderNextBlock_wave(juce::AudioSampleBuffer& outputBuffer, int sampleIndex)
 {
-    //while (--numSamples >= 0) //only rendered one sample at the time now
-    //{
-
     //evaluate modulated values
     updateBufferPosDelta(); //determines pitch shift
     evaluateBufferPosModulation(); //advances currentBufferPos if required
@@ -318,16 +262,6 @@ void Voice::renderNextBlock_wave(juce::AudioSampleBuffer& outputBuffer, int samp
         currentSample = filter.processSample(currentSample);
         outputBuffer.addSample(i, sampleIndex, (float)currentSample);
     }
-
-    //currentBufferPos += bufferPosDelta;
-    //if (currentBufferPos >= osc->fileBuffer.getNumSamples())
-    //{
-    //    currentBufferPos -= osc->fileBuffer.getNumSamples();
-    //}
-
-    //no LFO set -> needn't advance
-
-    //}
 
     if (envelope.isIdle()) //has finished playing (including release). may also occur if the sample rate suddenly changed, but in theory, that shouldn't happen I think
     {
@@ -339,9 +273,6 @@ void Voice::renderNextBlock_wave(juce::AudioSampleBuffer& outputBuffer, int samp
 }
 void Voice::renderNextBlock_waveAndLfo(juce::AudioSampleBuffer& outputBuffer, int sampleIndex)
 {
-    //while (--numSamples >= 0) //only rendered one sample at the time now
-    //{
-    
     //evaluate modulated values
     updateBufferPosDelta(); //determines pitch shift
     evaluateBufferPosModulation(); //advances currentBufferPos if required
@@ -370,15 +301,7 @@ void Voice::renderNextBlock_waveAndLfo(juce::AudioSampleBuffer& outputBuffer, in
         outputBuffer.addSample(i, sampleIndex, (float)currentSample);
     }
 
-    //currentBufferPos += bufferPosDelta;
-    //if (currentBufferPos >= osc->fileBuffer.getNumSamples())
-    //{
-    //    currentBufferPos -= osc->fileBuffer.getNumSamples();
-    //}
-
     associatedLfo->advance();
-
-    //}
 
     if (envelope.isIdle()) //has finished playing (including release). may also occur if the sample rate suddenly changed, but in theory, that shouldn't happen I think
     {

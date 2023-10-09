@@ -86,7 +86,6 @@ public:
         lfoEvaluationFunctions.add(newEvalFuncPt);
         transitionToState(ModulatableParameterStateIndex::outdated);
     }
-    //void removeModulator(RegionLfo* modulatingLfo);
     void removeModulator(int regionID)
     {
         int i = 0;

@@ -303,67 +303,6 @@ bool AudioEngine::deserialiseLFOs_mods(juce::XmlElement* xmlAudioEngine)
             juce::Array<ModulatableParameter<double>*> affectedParams;
             for (int j = 0; j < pIDs.size() && deserialisationSuccessful; ++j)
             {
-                ////get affected parameters
-                //switch (pIDs[j])
-                //{
-                //case LfoModulatableParameter::volume:
-                //case LfoModulatableParameter::volume_inverted:
-                //    affectedParams = getParameterOfRegion_Volume(rIDs[j]);
-                //    break;
-
-                //case LfoModulatableParameter::pitch:
-                //case LfoModulatableParameter::pitch_inverted:
-                //    affectedParams = getParameterOfRegion_Pitch(rIDs[j]);
-                //    break;
-
-                //case LfoModulatableParameter::playbackPositionStart:
-                //case LfoModulatableParameter::playbackPositionStart_inverted:
-                //    affectedParams = getParameterOfRegion_PlaybackPositionInterval(rIDs[j]);
-                //    break;
-
-                //case LfoModulatableParameter::playbackPositionInterval:
-                //case LfoModulatableParameter::playbackPositionInterval_inverted:
-                //    affectedParams = getParameterOfRegion_PlaybackPositionInterval(rIDs[j]);
-                //    break;
-
-                //case LfoModulatableParameter::playbackPositionCurrent:
-                //case LfoModulatableParameter::playbackPositionCurrent_inverted:
-                //    affectedParams = getParameterOfRegion_PlaybackPositionInterval(rIDs[j]);
-                //    break;
-
-                //case LfoModulatableParameter::lfoRate:
-                //case LfoModulatableParameter::lfoRate_inverted:
-                //    affectedParams = getParameterOfRegion_LfoRate(rIDs[j]);
-                //    break;
-
-                //case LfoModulatableParameter::lfoStartingPhase:
-                //case LfoModulatableParameter::lfoStartingPhase_inverted:
-                //    affectedParams = getParameterOfRegion_LfoPhaseInterval(rIDs[j]);
-                //    break;
-
-                //case LfoModulatableParameter::lfoPhaseInterval:
-                //case LfoModulatableParameter::lfoPhaseInterval_inverted:
-                //    affectedParams = getParameterOfRegion_LfoPhaseInterval(rIDs[j]);
-                //    break;
-
-                //case LfoModulatableParameter::lfoCurrentPhase:
-                //case LfoModulatableParameter::lfoCurrentPhase_inverted:
-                //    affectedParams = getParameterOfRegion_LfoPhaseInterval(rIDs[j]);
-                //    break;
-
-                //case LfoModulatableParameter::lfoUpdateInterval:
-                //case LfoModulatableParameter::lfoUpdateInterval_inverted:
-                //    affectedParams = getParameterOfRegion_LfoUpdateInterval(rIDs[j]);
-                //    break;
-
-                //default:
-                //    DBG("Unknown or unimplemented region modulation");
-                //    return false;
-                //}
-
-                ////apply modulation
-                //lfos[i]->addRegionModulation(pIDs[j], rIDs[j], affectedParams);
-
                 deserialisationSuccessful = updateLfoParameter(lfos[i]->getRegionID(), rIDs[j], true, pIDs[j]);
             }
 
@@ -537,10 +476,6 @@ bool AudioEngine::tryChangeRegionID(int regionID, int newRegionID)
     //adjust the list of taken region IDs
     takenRegionIDs.removeAllInstancesOf(regionID);
     takenRegionIDs.add(newRegionID);
-    //for (auto itID = takenRegionIDs.begin(); itID != takenRegionIDs.end(); ++itID)
-    //{
-    //    regionIdCounter = juce::jmax(regionIdCounter, *itID); //set to maximum ID that isn't taken (needed for getLastRegionID method)
-    //}
 
     return true; //the region will proceed to change its own ID after this
 }
@@ -585,7 +520,6 @@ int AudioEngine::addVoice(Voice* newVoice)
     auto* associatedLfo = getLfo(newVoice->getID());
     if (associatedLfo != nullptr)
     {
-        //newVoice->setLfoAdvancer(associatedLfo->getAdvancerFunction()); //make the new voice advance the LFO associated with the same region
         newVoice->setLfo(associatedLfo); //make the new voice advance the LFO associated with the same region
     }
 
@@ -904,51 +838,16 @@ void AudioEngine::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferTo
     juce::MidiBuffer incomingMidi;
     midiCollector.removeNextBlockOfMessages(incomingMidi, bufferToFill.numSamples);
     keyboardState.processNextMidiBuffer(incomingMidi, bufferToFill.startSample, bufferToFill.numSamples, true);       // [4]
-    //auto itMidi = incomingMidi.begin();
-    //int nextMidiSamplePosition = -1;
-    //if (itMidi != incomingMidi.end())
-    //{
-    //    nextMidiSamplePosition = static_cast<juce::MidiMessageMetadata>(*itMidi).samplePosition;
-    //    DBG("first msg: " + juce::String(nextMidiSamplePosition));
-    //}
 
     //evaluate all voices sample by sample! this is crucial since every voice *must* be rendered in sync with its LFO.
     //but since different voices' LFOs can influence one another, all voices must be rendered perfectly in sync as well!
     //the main disadvantage of this is that some processing (e.g. many types of filters, EQs or convolution-based effects)
     //might not be simple to implement (or even possible) anymore like this since they need to be rendered in block (since they require an FFT).
     //there may be workarounds for this, though.
-    //if (nextMidiSamplePosition < 0)
-    //{
-        //no MIDI received
-        for (int i = bufferToFill.startSample; i < bufferToFill.startSample + bufferToFill.numSamples; ++i)
-        {
-            synth.renderNextBlock(*bufferToFill.buffer, incomingMidi, i, 1); //sample by sample
-        }
-    //}
-    //else
-    //{
-    //    //received MIDI
-    //    for (int i = bufferToFill.startSample; i < bufferToFill.startSample + bufferToFill.numSamples; ++i)
-    //    {
-    //        if (nextMidiSamplePosition == i)
-    //        {
-    //            //evaluate MIDI message
-
-    //            //associatedImage->handleMidiMessage(static_cast<juce::MidiMessageMetadata>(*itMidi).getMessage());
-    //            ++itMidi; //move to next message
-    //            if (itMidi != incomingMidi.end())
-    //            {
-    //                nextMidiSamplePosition = static_cast<juce::MidiMessageMetadata>(*itMidi).samplePosition; //update sample position
-    //            }
-    //            else
-    //            {
-    //                nextMidiSamplePosition = -1;
-    //            }
-    //        }
-
-    //        synth.renderNextBlock(*bufferToFill.buffer, incomingMidi, i, 1); //sample by sample
-    //    }
-    //}
+    for (int i = bufferToFill.startSample; i < bufferToFill.startSample + bufferToFill.numSamples; ++i)
+    {
+        synth.renderNextBlock(*bufferToFill.buffer, incomingMidi, i, 1); //sample by sample
+    }
 }
 
 juce::Synthesiser* AudioEngine::getSynth()
@@ -971,8 +870,6 @@ void AudioEngine::addLfo(RegionLfo* newLfo)
         {
             //all voices belonging to the same region as the LFO will now advance this LFO
             //(as long as they aren't tailing off, i.e. it's only 1 voice advancing it, but it could be any of these voices)
-            //curVoice->setLfoIndex(newLfoIndex);
-            //curVoice->setLfoAdvancer(newLfo->getAdvancerFunction());
             curVoice->setLfo(newLfo);
         }
     }
@@ -1015,12 +912,10 @@ void AudioEngine::removeLfo(int regionID) //removes the LFO of the region with t
         auto* curVoice = static_cast<Voice*>(synth.getVoice(i));
         if (curVoice->getID() == regionID)
         {
-            //curVoice->setLfoAdvancer([] {; }); //clear advancer function
             curVoice->setLfo(nullptr); //clear associated LFO
         }
     }
 
-    //lfos.remove(lfoIndex, true); //removed and deleted
     lfos.remove(lfoIndex, true);
 }
 

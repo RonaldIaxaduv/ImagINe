@@ -323,10 +323,6 @@ void PlayPath::triggerDrawableButtonStateChanged()
     juce::DrawableButton::buttonStateChanged();
 }
 
-//bool PlayPath::getIsPlaying()
-//{
-//    return isPlaying;
-//}
 void PlayPath::setIsPlaying_Click(bool shouldBePlaying)
 {
     isPlaying_click = shouldBePlaying;
@@ -505,101 +501,6 @@ void PlayPath::setCourierInterval_seconds(float newCourierIntervalSeconds)
     }
 }
 
-//void PlayPath::addIntersectingRegion(SegmentedRegion* region)
-//{
-//    juce::Range<float> distances(-1.0f, -1.0f);
-//    float stepSize = juce::jmax(0.0005, juce::jmin(0.01, 2.0 / 3.0 * (PlayPathCourier::radius / underlyingPath.getLength())));
-//    DBG("stepSize: " + juce::String(stepSize));
-//    float pathLengthDenom = 1.0f / underlyingPath.getLength();
-//    
-//    //getPointAlongPath returns a point relative to this *PlayPath's* own bounds, but hitTest checks for collision relative to the *SegmentedRegion's* own bounds. so to apply a hitTest to the point, it needs to be shifted according to the difference of the PlayPath's and SegmentedRegion's position in their shared parent component.
-//    int xDifference = region->getBoundsInParent().getX() - this->getBoundsInParent().getX(); //difference from the region's x position in its parent compared to this play path's x position in that parent
-//    int yDifference = region->getBoundsInParent().getY() - this->getBoundsInParent().getY(); //^- same but for y position
-//
-//    //check whether the starting point is already contained within the region. if so, begin from the first point not contained within the region. otherwise, begin from the starting point.
-//    juce::Point<int> startingPt = underlyingPath.getPointAlongPath(0.0f).toInt();
-//    float initialDistance = 0.0f;
-//    if (region->hitTest_Interactable(startingPt.getX() - xDifference, startingPt.getY() - yDifference))
-//    {
-//        //starting point is already contained within the region
-//        //-> the end distance of that section will be found first -> remember for later and add that section last
-//        initialDistance = -1.0f;
-//
-//        for (float distanceFromStart = 0.0f; distanceFromStart < underlyingPath.getLength(); distanceFromStart += stepSize)
-//        {
-//            juce::Point<int> pt = underlyingPath.getPointAlongPath(distanceFromStart).toInt();
-//            if (!region->hitTest_Interactable(pt.getX() - xDifference, pt.getY() - yDifference)) //note the negation!
-//            {
-//                //end point found
-//                DBG("initial end point: " + pt.toString() + " (" + juce::String(distanceFromStart) + " / " + juce::String(underlyingPath.getLength()) + ")");
-//                initialDistance = distanceFromStart;
-//                break;
-//            }
-//        }
-//        if (initialDistance < 0.0f)
-//        {
-//            //region encompasses the entire path
-//            //regionsByRange_range.add(juce::Range<float>(0.0f, underlyingPath.getLength()));
-//            regionsByRange_range.add(juce::Range<float>(0.0f, 1.0f));
-//            regionsByRange_region.add(region);
-//            return;
-//        }
-//        //else: initialDistance has been set
-//    }
-//    //else: initialDistance is 0.0f
-//
-//    for (float startDistance = initialDistance; startDistance < underlyingPath.getLength(); startDistance += stepSize)
-//    {
-//        //check current position for collision
-//        juce::Point<int> pt = underlyingPath.getPointAlongPath(startDistance).toInt();
-//
-//        if (region->hitTest_Interactable(pt.getX() - xDifference, pt.getY() - yDifference))
-//        {
-//            //collision! -> starting point found
-//            //distances.setStart(startDistance);
-//            distances.setStart(startDistance * pathLengthDenom);
-//            DBG("start point: " + pt.toString() + " (" + juce::String(startDistance) + " / " + juce::String(underlyingPath.getLength()) + ")");
-//
-//            //look for end point
-//            bool endPointFound = false;
-//            for (float endDistance = startDistance + stepSize; endDistance < underlyingPath.getLength(); endDistance += stepSize)
-//            {
-//                //check current position for collision
-//                pt = underlyingPath.getPointAlongPath(endDistance).toInt();
-//
-//                if (!region->hitTest_Interactable(pt.getX() - xDifference, pt.getY() - yDifference)) //note the negation!
-//                {
-//                    //no more collision! -> end point found
-//                    endPointFound = true;
-//                    //distances.setEnd(endDistance);
-//                    distances.setEnd(endDistance * pathLengthDenom);
-//                    DBG("end point: " + pt.toString() + " (" + juce::String(endDistance) + " / " + juce::String(underlyingPath.getLength()) + ")");
-//
-//                    //add to list
-//                    insertIntoRegionsLists(juce::Range<float>(distances), region);
-//
-//                    //update start distance, reset distance variable and keep looking for more intersections
-//                    startDistance = endDistance;
-//                    distances = juce::Range<float>(-1.0f, -1.0f);
-//                    break;
-//                }
-//            }
-//            if (!endPointFound)
-//            {
-//                //found a starting point but no end point -> arrived at the last intersection -> loops around
-//                //distances.setEnd(initialDistance); //remembered from the beginning of this method
-//                distances.setEnd(initialDistance * pathLengthDenom + 1.0); //remembered from the beginning of this method (note that juce::Range.end may not be smaller than juce::Range.start! hence, 1.0 is added to signal the loop-around)
-//
-//                //add to list
-//                insertIntoRegionsLists(juce::Range<float>(distances), region);
-//
-//                //done searching
-//                break;
-//            }
-//        }
-//    }
-//
-//}
 void PlayPath::addIntersectingRegion(SegmentedRegion* region)
 {
     juce::Range<float> distances(-1.0f, -1.0f);
@@ -714,12 +615,6 @@ void PlayPath::recalculateAllIntersectingRegions()
 }
 void PlayPath::insertIntoRegionsLists(juce::Range<float> regionRange, SegmentedRegion* region)
 {
-    //if (regionRange.getStart() < 0.0f || regionRange.getEnd() < 0.0f || regionRange.getStart() > underlyingPath.getLength() || regionRange.getEnd() > underlyingPath.getLength())
-    //if (regionRange.getStart() < 0.0f || regionRange.getEnd() < 0.0f || regionRange.getStart() > 1.0f || regionRange.getEnd() > 1.0f)
-    //{
-    //    //invalid range
-    //    return;
-    //}
     if (regionRange.getStart() < 0.0f || regionRange.getEnd() < 0.0f) //the values may wrap now, i.e. they may be larger than one (they must still not be smaller than 0 though)
     {
         //invalid range

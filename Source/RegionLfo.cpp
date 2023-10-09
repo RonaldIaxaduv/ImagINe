@@ -333,7 +333,6 @@ void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParamete
         case LfoModulatableParameter::lfoUpdateInterval:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
-                //return static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
                 return 1.0 - static_cast<double>(lfo->getDepth()) * (1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar())); //interval: [1.0-depth, 1.0]
             };
             break;
@@ -349,8 +348,6 @@ void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParamete
         case LfoModulatableParameter::lfoUpdateInterval_inverted:
             lfoEvaluationFunction = [](RegionLfo* lfo)
             {
-                //return 1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar() * lfo->getDepth());
-                //return static_cast<double>(lfo->getDepth()) * (1.0 - static_cast<double>(lfo->getCurrentValue_Unipolar())); //interval: [1.0, 1.0-depth]
                 return 1.0 - static_cast<double>(lfo->getDepth()) * static_cast<double>(lfo->getCurrentValue_Unipolar()); //interval: [1.0, 1.0-depth]
             };
             break;
@@ -384,7 +381,6 @@ void RegionLfo::addRegionModulation(LfoModulatableParameter newModulatedParamete
         //register this LFO as a modulator in all new parameters
         for (auto* it = newParameters.begin(); it != newParameters.end(); it++)
         {
-            //(*it)->addModulator(this, lfoEvaluationFunction);
             (*it)->addModulator(this, getRegionID(), lfoEvaluationFunction);
         }
 
@@ -413,7 +409,6 @@ void RegionLfo::removeRegionModulation(int regionID)
             auto* params = modulatedParameters[index];
             for (auto itParam = params->begin(); itParam != params->end(); itParam++)
             {
-                //(*itParam)->removeModulator(this);
                 (*itParam)->removeModulator(getRegionID());
             }
 
@@ -514,7 +509,6 @@ void RegionLfo::resetPhaseUnsafe_WithUpdate()
 
 float RegionLfo::getLatestModulatedPhase()
 {
-    //return latestModulatedPhase * getPhase();
     return latestModulatedPhase;
 }
 float RegionLfo::getLatestModulatedStartingPhase()
@@ -798,12 +792,6 @@ void RegionLfo::evaluateFrequencyModulation()
 }
 void RegionLfo::evaluateTablePosModulation()
 {
-    //double currentPhase = static_cast<double>(currentTablePos) / static_cast<double>(getNumSamplesUnsafe());
-    //currentPhaseModParameter.modulateValueIfUpdated(&currentPhase); //if any current phase modulator updated, currentTablePos will be set to the new value. otherwise, its value will remain the same
-    //currentPhase = std::fmod(currentPhase, 1.0); //keep within [0.0, 1.0)
-    //currentTablePos = currentPhase * (getNumSamplesUnsafe() - 1); //currentTablePos actually needs to be affected by the modulation to ensure that the LFO keeps running from the phase it was set to (it won't update every time, only whenever a modulator updated)
-    ////1 div, 1 mult, 1 mod
-
     double modulatedTablePos = currentTablePos;
     if (currentPhaseModParameter.modulateValueIfUpdated(&modulatedTablePos)) //true if it updated the value
     {

@@ -334,18 +334,6 @@ juce::String SegmentedRegion::getTooltip()
     }
 }
 
-//void SegmentedRegion::setState(SegmentedRegionState newState)
-//{
-//    if (currentState != newState)
-//    {
-//        currentState = newState; //the state mainly changes how the click method behaves
-//        DBG("set SegmentedRegion's current state to " + juce::String(static_cast<int>(currentState)));
-//
-//        //WIP: when switching to Playable, preparing the audio will probably be necessary
-//
-//        //resized();
-//    }
-//}
 void SegmentedRegion::transitionToState(SegmentedRegionStateIndex stateToTransitionTo, bool keepPlayingAndEditing)
 {
     bool nonInstantStateFound = false;
@@ -442,13 +430,6 @@ void SegmentedRegion::clicked(const juce::ModifierKeys& modifiers)
 
 void SegmentedRegion::setBuffer(juce::AudioSampleBuffer newBuffer, juce::String fileName, double origSampleRate)
 {
-    //if (audioFileName != "")
-    //{
-    //    //delete old voices
-    //    associatedVoices.clear();
-    //    audioEngine->removeVoicesWithID(getID());
-    //}
-
     buffer = newBuffer;
     audioFileName = fileName;
     this->origSampleRate = origSampleRate;
@@ -535,13 +516,6 @@ void SegmentedRegion::renderLfoWaveform()
     audioEngine->suspendProcessing(wasSuspended);
 
     //calculate new LFO depth
-    //float maxLength = std::sqrtf(static_cast<float>(getParentWidth() * getParentWidth() + getParentHeight() * getParentHeight())); //diagonal of the image (-> longest line)
-    //float maxDepthCutoff = 0.4f; //ratio of maxLength required to reach depth=1
-    //float actualLength = (std::sqrtf(range.getEnd()) - std::sqrtf(range.getStart())); //subtract (ignore) the minimum length, because the minimum only adds a constant offset
-    //actualLength = actualLength / maxLength; //ratio of maxLength
-    //float newDepth = juce::jmin(actualLength, maxDepthCutoff) / maxDepthCutoff;
-    //associatedLfo->setDepth(newDepth);
-
     float maxLength = std::sqrt(static_cast<float>(getParentWidth() * getParentWidth() + getParentHeight() * getParentHeight())); //diagonal of the image (-> longest line)
     float maxDepthCutoff = 0.4f; //ratio of maxLength required to reach depth=1
     float actualLength = (std::sqrt(range.getEnd())); //subtract (ignore) the minimum length, because the minimum only adds a constant offset
@@ -644,8 +618,6 @@ void SegmentedRegion::startPlaying(bool toggleButtonState)
         //DBG("voice: " + juce::String(currentVoiceIndex + 1) + " / " + juce::String(associatedVoices.size()));
 
         associatedVoices[currentVoiceIndex]->startNote(0, 1.0f, audioEngine->getSynth()->getSound(0).get(), 64); //cycle through all voices (incremented after this voice stops)
-        //audioEngine->getSynth()->noteOn(1, 64, 1.0f); //might be worth a thought for later because of polyphony, but since voices will then be chosen automatically, adjustments to the voices class would have to be made
-        //audioEngine->getSynth()->getVoice(voiceIndex)->startNote(0, 1.0f, audioEngine->getSynth()->getSound(0).get(), 64);
 
         //try to set the button's toggle state to "down" (needs to be done cross-thread for MIDI messages because they do not run on the same thread as couriers and clicks)
         if (toggleButtonState)
@@ -679,8 +651,6 @@ void SegmentedRegion::stopPlaying(bool toggleButtonState)
         DBG("*stops region " + juce::String(ID) + "*");
         associatedVoices[currentVoiceIndex]->stopNote(1.0f, true); //cycles through all voices bit by bit
         currentVoiceIndex = (currentVoiceIndex + 1) % associatedVoices.size(); //next time, play the next voice
-        //audioEngine->getSynth()->noteOff(1, 64, 1.0f, true);
-        //audioEngine->getSynth()->getVoice(voiceIndex)->stopNote(1.0f, true);
         isPlaying = false;
 
         //try to set the button's toggle state to "up" (needs to be done cross-thread for MIDI messages because they do not run on the same thread as couriers and clicks)
@@ -689,7 +659,6 @@ void SegmentedRegion::stopPlaying(bool toggleButtonState)
             if (juce::MessageManager::getInstance()->isThisTheMessageThread())
             {
                 setToggleState(false, juce::NotificationType::dontSendNotification);
-                //setState(juce::Button::ButtonState::buttonNormal);
             }
             else
             {
@@ -722,8 +691,6 @@ void SegmentedRegion::panic()
         {
             (*itVoice)->stopNote(1.0f, false); //no tailoff!
         }
-        //associatedVoices[currentVoiceIndex]->stopNote(1.0f, true); //cycles through all voices bit by bit
-        //currentVoiceIndex = (currentVoiceIndex + 1) % associatedVoices.size(); //next time, play the next voice
 
         //try to set the button's toggle state to "up" (needs to be done cross-thread for MIDI messages because they do not run on the same thread as couriers and clicks)
         if (juce::MessageManager::getInstance()->isThisTheMessageThread())
