@@ -3,6 +3,7 @@
 ImageINe is an image-based sampler synthesiser that I've programmed alongside my bachelor's thesis on the topic "Exploration of a novel method of image-based sound synthesis".
 
 [![Demo Video of ImageINe](https://img.youtube.com/vi/ux3Emu2UIlw/hqdefault.jpg)](https://www.youtube.com/embed/ux3Emu2UIlw)
+(Click the image for a short demo video on YouTube.)
 
 The program was written in C++ using the JUCE library. While the UI could certainly use a face-lift (not my area of expertise), I'm pretty happy with the code and architecture behind it given how complex the audio modulations can be. It's available as an executable or a VST3 file for a DAW.
 
