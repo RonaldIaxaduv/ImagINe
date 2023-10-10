@@ -1,6 +1,6 @@
 # About
 
-ImageINe is an image-based sampler synthesiser that I've programmed alongside my bachelor's thesis on the topic "Exploration of a novel method of image-based sound synthesis".
+ImageINe is an image-based sampler synthesiser that I've programmed for my bachelor's thesis. Its topic was "Exploration of a novel method of image-based sound synthesis".
 
 [![Demo Video of ImageINe](https://img.youtube.com/vi/ux3Emu2UIlw/hqdefault.jpg)](https://www.youtube.com/embed/ux3Emu2UIlw)
 (Click the image for a short demo video on YouTube.)
