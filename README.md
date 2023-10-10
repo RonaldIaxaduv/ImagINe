@@ -1,8 +1,8 @@
-# About
+# About & Demo-Video
 
 ImageINe is an image-based sampler synthesiser that I've programmed for my bachelor's thesis. Its topic was "Exploration of a novel method of image-based sound synthesis".
 
-(Click the following image for a short demo video on YouTube.)
+**(Click the following image for a short demo video on YouTube.)**
 
 [![Demo Video of ImageINe](https://img.youtube.com/vi/ux3Emu2UIlw/hqdefault.jpg)](https://www.youtube.com/embed/ux3Emu2UIlw)
 
